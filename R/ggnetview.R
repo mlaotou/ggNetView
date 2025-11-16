@@ -171,7 +171,7 @@ ggNetView <- function(graph_obj,
       )
     }
 
-    if (layout.module == "order") {
+    if (layout.module == "order" & func_name != "create_layout_rings") {
       ly1_1 <- module_layout4(graph_obj,
                               layout = ly1,
                               center = center,
@@ -181,6 +181,19 @@ ggNetView <- function(graph_obj,
                               # seed = seed
       )
     }
+
+    if (layout.module == "order" & func_name == "create_layout_multirings") {
+      ly1_1 <- module_layout5(graph_obj,
+                              layout = ly1,
+                              center = center,
+                              k_nn = k_nn,
+                              push_others_delta = push_others_delta,
+                              shrink = shrink# ,
+                              # seed = seed
+      )
+    }
+
+
 
     module_number <- ly1_1$graph_ly_final$Modularity %>% as.character() %>% unique() %>% length()
 
