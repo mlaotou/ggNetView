@@ -4,7 +4,7 @@
 \alias{get_network_topology}
 \title{Create network topology}
 \usage{
-get_network_topology(graph_obj)
+get_network_topology(graph_obj, bootstrap = 1000)
 }
 \arguments{
 \item{graph_obj}{An graph object from build_graph_from_mat or build_graph_from_df.

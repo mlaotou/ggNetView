@@ -3,7 +3,7 @@ Package: ggNetView
 Title: What the Package Does (Title Case)
 Version: 0.1.0
 Authors@R: 
-    person("Yue", "Liu", , "yueliu1115@163.com", role = c("aut", "cre"),
+    person("Yue", "Liu", , "yueliu@iae.ac.cn", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-6180-8068"))
 Description: More about what it does (maybe more than one line).
     Continuation lines should be indented.

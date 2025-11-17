@@ -16,8 +16,8 @@
   Developed by Jiawang's Network Visualization Group
 
   Maintainers:
-   - Jiawang Liu <Jiawang1209@163.com>
-   - Co-maintainer <someone@example.com>
+   - Yue Liu <yueliu@iae.ac.cn>
+   - Chao Wang <cwang@iae.ac.cn>
 
   GitHub: https://github.com/Jiawang1209/ggNetView
   Bug Reports: https://github.com/Jiawang1209/ggNetView/issues
