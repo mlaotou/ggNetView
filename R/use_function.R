@@ -85,7 +85,7 @@ cor_test2 <- function(Environment, Experiment){
 }
 
 
-create_layout2 <- function(graph, hub_names = NULL, r = 10) {
+create_layout2 <- function(graph, stat_out = stat_out, hub_names = NULL, r = 10) {
   # graph = graph_obj
   # r = 10
   hub_names = NULL
