@@ -112,14 +112,14 @@ gglink_heatmaps <- function(
 
   ####----split data----####
   # 1 个点， 然后4个环境数据
-  spec_select = list(Spec01 = 1:15)
+  # spec_select = list(Spec01 = 1:15)
   #
   # # different env
-  env_select = list(Env01 = 1:14,
-                    Env02 = 15:26, # 15:28
-                    Env03 = 29:38, # 29:42
-                    Env04 = 43:50 # 43:56
-  )
+  # env_select = list(Env01 = 1:14,
+  #                   Env02 = 15:26, # 15:28
+  #                   Env03 = 29:38, # 29:42
+  #                   Env04 = 43:50 # 43:56
+  # )
 
   # equal env
   # env_select = list(Env01 = 1:14,
