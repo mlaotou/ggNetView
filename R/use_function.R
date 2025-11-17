@@ -142,7 +142,7 @@ create_layout2 <- function(graph, stat_out = stat_out, hub_names = NULL, r = 10)
   circle_df
 
   hub_df <- stat_out[[3]] %>%
-    dplyr::distinct(Experiment, .keep_all = T) %>%
+    dplyr::distinct(., Experiment, .keep_all = T) %>%
     dplyr::select(start2, end2) %>%
     purrr::set_names(c("x", "y"))
 

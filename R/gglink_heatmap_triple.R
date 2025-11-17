@@ -44,6 +44,7 @@ gglink_heatmap_triple <- function(
 
   # layout
   layout_manual <- create_layout2(graph_obj,
+                                  stat_out = stat_out,
                                   hub_names = NULL,
                                   r = r)
 
