@@ -56,7 +56,7 @@ gglink_heatmaps <- function(
     spec,
     env_select = NULL,
     spec_select = NULL,
-    spec_layout = "circle",
+    spec_layout = "circle_outline",
     spec_orientation = c("up","down","left","right"),
     spec_relation = TRUE,
     relation_method = c("correlation", "mantel"),
