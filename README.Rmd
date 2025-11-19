@@ -172,7 +172,7 @@ data("Spedf")
 ```
 
 
-```{r}
+```{r fig.align='center', fig.width=15, fig.height=15}
 out1 <- gglink_heatmaps(
   env = Envdf_4st,
   spec = Spedf,
@@ -196,7 +196,7 @@ out1[[1]]
 
 ## Example3
 
-```{r}
+```{r fig.align='center', fig.width=15, fig.height=15}
 out2 <- gglink_heatmaps(
   env = Envdf_4st,
   spec = Spedf,

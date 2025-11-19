@@ -236,7 +236,7 @@ out1 <- gglink_heatmaps(
 out1[[1]]
 ```
 
-<img src="man/figures/README-unnamed-chunk-11-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-11-1.png" width="100%" style="display: block; margin: auto;" />
 
 ## Example3
 
@@ -260,7 +260,7 @@ out2 <- gglink_heatmaps(
 out2[[2]]
 ```
 
-<img src="man/figures/README-unnamed-chunk-12-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-12-1.png" width="100%" style="display: block; margin: auto;" />
 
 ## sessionInfo
 
