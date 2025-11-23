@@ -24,7 +24,7 @@ get_network_topology <- function(graph_obj, bootstrap = 1000){
     edge_number <- igraph::ecount(ig)
 
     # degree
-    degree_vals <- igraph::degree(ig, mode = "all")
+    degree_average <- mean(igraph::degree(ig, mode = "all"))
 
     # mean_distance
     avg_path <- igraph::mean_distance(ig, directed = FALSE)
@@ -45,20 +45,36 @@ get_network_topology <- function(graph_obj, bootstrap = 1000){
     # eigen_centrality
     eigen_vals <- igraph::eigen_centrality(ig)$vector
 
-    # 模块度 / 社区划分
-    modularity <- igraph::modularity(fast_greedy_com)
+    # modularity
+    fc <- igraph::cluster_fast_greedy(ig)
+    modularity <- igraph::modularity(ig, igraph::membership(fc))
 
-    # Robustness
+    # Position Cohesion
+    kcore_vals  <- igraph::coreness(ig)
+    kcore_mean  <- mean(kcore_vals)
+    kcore_max   <- max(kcore_vals)
+    kcore_min   <- min(kcore_vals)
 
-    # Vulenrability
-
-    # Stability
-
-    # Cohension
+    # Cohension from igraph
+    cohesion <- igraph::cohesion(ig)
+    vertex_cohesion <- igraph::vertex_connectivity(ig)
+    edge_cohesion   <- igraph::edge_connectivity(ig)
 
     # Position Cohension
 
     # Negative Cohension
+
+    # Robustness
+
+
+
+    # Vulenrability
+
+
+
+    # Stability
+
+
 
 
 
