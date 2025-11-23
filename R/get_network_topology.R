@@ -9,13 +9,20 @@
 #' @examples NULL
 get_network_topology <- function(graph_obj, bootstrap = 1000){
 
+  # create igraph object
+  ig <- tidygraph::as.igraph(graph_obj)
+
 
   # get node and edge number
-  .get_topology <- function(graph_obj){
-    # create igraph object
-    ig <- tidygraph::as.igraph(graph_obj)
+  .get_topology <- function(ig){
 
     # compute network topology
+    # node number
+    node_number <- igraph::vcount(ig)
+
+    # edge number
+    edge_number <- igraph::ecount(ig)
+
     # degree
     degree_vals <- igraph::degree(ig, mode = "all")
 
@@ -43,6 +50,8 @@ get_network_topology <- function(graph_obj, bootstrap = 1000){
 
     # Robustness
 
+    # Vulenrability
+
     # Stability
 
     # Cohension
@@ -51,14 +60,41 @@ get_network_topology <- function(graph_obj, bootstrap = 1000){
 
     # Negative Cohension
 
-    # Vulenrability
 
 
   }
 
+  # node topology
+
+
+  # # node number
+  # node_number <- graph_obj %>%
+  #   tidygraph::activate(nodes) %>%
+  #   tidygraph::as_tibble() %>%
+  #   dim() %>%
+  #   .[1]
+
+
+  # # edge number
+  # edge_number <- graph_obj %>%
+  #   tidygraph::activate(edges) %>%
+  #   tidygraph::as_tibble() %>%
+  #   dim() %>%
+  #   .[1]
+
+  # random topology
   random_topology <- list()
   # random network and topology
   for (i in 1:bootstrap) {
+
+    random_graph <- igraph::sample_gnm(n = node_number,
+                                       m = edge_number,
+                                       directed = F,
+                                       loops = F)
+
+    # 获取属性
+    .get_topology(ig = random_graph)
+
 
   }
 
@@ -75,7 +111,6 @@ get_network_topology <- function(graph_obj, bootstrap = 1000){
     closeness_vals = closeness_vals,
     eigen_vals = eigen_vals,
     modularity = modularity
-
   )
 
   return(out)
