@@ -253,6 +253,7 @@ ggNetView <- function(graph_obj,
     }
 
 
+
     # outlier df location
     .build_mask_table <- function(){
       maskTable <- mascarade::generateMask(dims= ly1_1[["layout"]],
