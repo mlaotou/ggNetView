@@ -34,7 +34,9 @@
 #' The point size rang.
 #' @param pointstroke Integer  (default = 0.3).
 #' @param group.by Character (default = "Modularity").
-#' Change variable for group
+#' Change group for nodes
+#' @param fill.by Character (default = "Modularity").
+#' Change fill for nodes
 #' @param jitter Logical (default = FALSE).
 #' Whether to apply jitter to points.
 #' @param jitter_sd  Integer  (default = 0.1).
@@ -97,6 +99,7 @@ ggNetView <- function(graph_obj,
                       pointsize = c(1,10),
                       pointstroke = 0.3,
                       group.by = "Modularity",
+                      fill.by = "Modularity",
                       jitter = FALSE,
                       jitter_sd = 0.1,
                       mapping_line = FALSE,
@@ -145,55 +148,57 @@ ggNetView <- function(graph_obj,
                    angle = angle)
   }
 
+  # get ly1_1
+  # 圆形布局 添加模块化 获取模块
+  if (layout.module == "random") {
+    ly1_1 <- module_layout(graph_obj,
+                           layout = ly1,
+                           center = center,
+                           idx = idx,
+                           shrink = shrink# ,
+                           # seed = seed
+    )
+  }
+
+  if (layout.module == "adjacent") {
+    ly1_1 <- module_layout3(graph_obj,
+                            layout = ly1,
+                            center = center,
+                            k_nn = k_nn,
+                            push_others_delta = push_others_delta,
+                            shrink = shrink# ,
+                            # seed = seed
+    )
+  }
+
+  if (layout.module == "order" & func_name != "create_layout_rings") {
+    ly1_1 <- module_layout4(graph_obj,
+                            layout = ly1,
+                            center = center,
+                            k_nn = k_nn,
+                            push_others_delta = push_others_delta,
+                            shrink = shrink# ,
+                            # seed = seed
+    )
+  }
+
+  if (layout.module == "order" & func_name == "create_layout_multirings") {
+    ly1_1 <- module_layout5(graph_obj,
+                            layout = ly1,
+                            center = center,
+                            k_nn = k_nn,
+                            push_others_delta = push_others_delta,
+                            shrink = shrink# ,
+                            # seed = seed
+    )
+  }
+
   # Normal layout
   # 只有当我们需要模块的时候，我们才要获取模块的布局
   # 并且只有模块化之后，我们才有必要去remove无模块的节点
   if (group.by != "pie") {
-    # 圆形布局 添加模块化 获取模块
-    if (layout.module == "random") {
-      ly1_1 <- module_layout(graph_obj,
-                             layout = ly1,
-                             center = center,
-                             idx = idx,
-                             shrink = shrink# ,
-                             # seed = seed
-      )
-    }
 
-    if (layout.module == "adjacent") {
-      ly1_1 <- module_layout3(graph_obj,
-                              layout = ly1,
-                              center = center,
-                              k_nn = k_nn,
-                              push_others_delta = push_others_delta,
-                              shrink = shrink# ,
-                              # seed = seed
-      )
-    }
-
-    if (layout.module == "order" & func_name != "create_layout_rings") {
-      ly1_1 <- module_layout4(graph_obj,
-                              layout = ly1,
-                              center = center,
-                              k_nn = k_nn,
-                              push_others_delta = push_others_delta,
-                              shrink = shrink# ,
-                              # seed = seed
-      )
-    }
-
-    if (layout.module == "order" & func_name == "create_layout_multirings") {
-      ly1_1 <- module_layout5(graph_obj,
-                              layout = ly1,
-                              center = center,
-                              k_nn = k_nn,
-                              push_others_delta = push_others_delta,
-                              shrink = shrink# ,
-                              # seed = seed
-      )
-    }
-
-
+    # 为了变得更加普适性
 
     module_number <- ly1_1$graph_ly_final$Modularity %>% as.character() %>% unique() %>% length()
 
