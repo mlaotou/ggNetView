@@ -112,6 +112,7 @@ p1 <- ggNetView(
   layout = "gephi",
   layout.module = "adjacent",
   group.by = "Modularity",
+  fill.by = "Modularity",
   pointsize = c(1, 5),
   center = F,
   jitter = F,
@@ -132,6 +133,7 @@ p2 <- ggNetView(
   layout = "gephi",
   layout.module = "random",
   group.by = "Modularity",
+  fill.by = "Modularity",
   pointsize = c(1, 5),
   center = F,
   jitter = TRUE,
@@ -148,6 +150,29 @@ p2
 ```
 
 
+```{r fig.align='center', fig.width=15, fig.height=15}
+p3 <- ggNetView(
+  graph_obj = obj,
+  layout = "gephi",
+  layout.module = "random",
+  group.by = "Modularity",
+  fill.by = "Phylum",
+  pointsize = c(1, 5),
+  center = F,
+  jitter = TRUE,
+  jitter_sd = 0.15,
+  mapping_line = TRUE,
+  shrink = 0.9,
+  linealpha = 0.2,
+  linecolor = "#d9d9d9",
+  add_outer = T,
+  label = T
+) 
+
+p3
+```
+
+
 ### Step5: save plot
 
 ```
@@ -161,6 +186,12 @@ ggsave(file = "Output/p2.pdf",
        plot = p2,
        height = 10,
        width = 10)
+       
+ggsave(file = "Output/p3.pdf",
+       plot = p3,
+       height = 10,
+       width = 10)
+
 ```
 
 ## Example2

@@ -58,6 +58,7 @@ library(ggNetView)
 #>   Run browseVignettes('ggNetView') for documentation.
 #> 
 library(ggplot2)
+#> Warning: package 'ggplot2' was built under R version 4.5.2
 library(ggnewscale)
 ```
 
@@ -145,6 +146,7 @@ p1 <- ggNetView(
   layout = "gephi",
   layout.module = "adjacent",
   group.by = "Modularity",
+  fill.by = "Modularity",
   pointsize = c(1, 5),
   center = F,
   jitter = F,
@@ -153,8 +155,6 @@ p1 <- ggNetView(
   linealpha = 0.2,
   linecolor = "#d9d9d9"
 ) 
-#> Scale for fill is already present.
-#> Adding another scale for fill, which will replace the existing scale.
 
 p1
 ```
@@ -167,6 +167,7 @@ p2 <- ggNetView(
   layout = "gephi",
   layout.module = "random",
   group.by = "Modularity",
+  fill.by = "Modularity",
   pointsize = c(1, 5),
   center = F,
   jitter = TRUE,
@@ -178,12 +179,8 @@ p2 <- ggNetView(
   add_outer = T,
   label = T
 ) 
-#> Scale for fill is already present.
-#> Adding another scale for fill, which will replace the existing scale.
 #> Large array (1004 rows x 997 columns x 17 images) broken into 4 pieces to avoid memory limits
-#> 
 #> Each piece of the raster consists of 710 rows and 705 columns
-#> 
 #> Coordinate system already present.
 #> ℹ Adding new coordinate system, which will replace the existing one.
 
@@ -193,6 +190,36 @@ p2
 ```
 
 <img src="man/figures/README-unnamed-chunk-9-1.png" width="100%" style="display: block; margin: auto;" />
+
+``` r
+p3 <- ggNetView(
+  graph_obj = obj,
+  layout = "gephi",
+  layout.module = "random",
+  group.by = "Modularity",
+  fill.by = "Phylum",
+  pointsize = c(1, 5),
+  center = F,
+  jitter = TRUE,
+  jitter_sd = 0.15,
+  mapping_line = TRUE,
+  shrink = 0.9,
+  linealpha = 0.2,
+  linecolor = "#d9d9d9",
+  add_outer = T,
+  label = T
+) 
+#> Large array (1004 rows x 997 columns x 17 images) broken into 4 pieces to avoid memory limits
+#> Each piece of the raster consists of 710 rows and 705 columns
+#> Coordinate system already present.
+#> ℹ Adding new coordinate system, which will replace the existing one.
+
+p3
+#> Warning: No shared levels found between `names(values)` of the manual scale and the
+#> data's fill values.
+```
+
+<img src="man/figures/README-unnamed-chunk-10-1.png" width="100%" style="display: block; margin: auto;" />
 
 ### Step5: save plot
 
@@ -204,6 +231,11 @@ p2
 
     ggsave(file = "Output/p2.pdf",
            plot = p2,
+           height = 10,
+           width = 10)
+           
+    ggsave(file = "Output/p3.pdf",
+           plot = p3,
            height = 10,
            width = 10)
 
@@ -236,7 +268,7 @@ out1 <- gglink_heatmaps(
 out1[[1]]
 ```
 
-<img src="man/figures/README-unnamed-chunk-11-1.png" width="100%" style="display: block; margin: auto;" />
+<img src="man/figures/README-unnamed-chunk-12-1.png" width="100%" style="display: block; margin: auto;" />
 
 ## Example3
 
@@ -260,7 +292,7 @@ out2 <- gglink_heatmaps(
 out2[[2]]
 ```
 
-<img src="man/figures/README-unnamed-chunk-12-1.png" width="100%" style="display: block; margin: auto;" />
+<img src="man/figures/README-unnamed-chunk-13-1.png" width="100%" style="display: block; margin: auto;" />
 
 ## sessionInfo
 
@@ -284,7 +316,7 @@ sessionInfo()
 #> [1] stats     graphics  grDevices utils     datasets  methods   base     
 #> 
 #> other attached packages:
-#> [1] ggnewscale_0.5.2 ggplot2_4.0.0    ggNetView_0.1.0 
+#> [1] ggnewscale_0.5.2 ggplot2_4.0.1    ggNetView_0.1.0 
 #> 
 #> loaded via a namespace (and not attached):
 #>   [1] mnormt_2.1.1            DBI_1.2.3               deldir_2.0-4           
@@ -310,7 +342,7 @@ sessionInfo()
 #>  [61] yaml_2.3.10             spatstat.random_3.4-2   spatstat.explore_3.5-3 
 #>  [64] doParallel_1.0.17       codetools_0.2-20        lattice_0.22-7         
 #>  [67] tibble_3.3.0            Biobase_2.68.0          withr_3.0.2            
-#>  [70] KEGGREST_1.48.1         S7_0.2.0                evaluate_1.0.5         
+#>  [70] KEGGREST_1.48.1         S7_0.2.1                evaluate_1.0.5         
 #>  [73] foreign_0.8-90          survival_3.8-3          polyclip_1.10-7        
 #>  [76] Biostrings_2.76.0       pillar_1.11.1           checkmate_2.3.3        
 #>  [79] foreach_1.5.2           stats4_4.5.1            generics_0.1.4         
@@ -322,7 +354,7 @@ sessionInfo()
 #>  [97] GenomeInfoDbData_1.2.14 ggforce_0.5.0           htmlTable_2.4.3        
 #> [100] Formula_1.2-5           cli_3.6.5               spatstat.sparse_3.1-0  
 #> [103] mascarade_0.2.1         viridisLite_0.4.2       dplyr_1.1.4            
-#> [106] gtable_0.3.6            dynamicTreeCut_1.63-1   digest_0.6.38          
+#> [106] gtable_0.3.6            dynamicTreeCut_1.63-1   digest_0.6.39          
 #> [109] BiocGenerics_0.54.0     ggrepel_0.9.6           htmlwidgets_1.6.4      
 #> [112] farver_2.1.2            memoise_2.0.1           htmltools_0.5.8.1      
 #> [115] multtest_2.64.0         lifecycle_1.0.4         httr_1.4.7             
