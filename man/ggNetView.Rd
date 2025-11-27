@@ -21,6 +21,7 @@ ggNetView(
   pointsize = c(1, 10),
   pointstroke = 0.3,
   group.by = "Modularity",
+  fill.by = "Modularity",
   jitter = FALSE,
   jitter_sd = 0.1,
   mapping_line = FALSE,
@@ -92,7 +93,10 @@ The point size rang.}
 \item{pointstroke}{Integer  (default = 0.3).}
 
 \item{group.by}{Character (default = "Modularity").
-Change variable for group}
+Change group for nodes}
+
+\item{fill.by}{Character (default = "Modularity").
+Change fill for nodes}
 
 \item{jitter}{Logical (default = FALSE).
 Whether to apply jitter to points.}

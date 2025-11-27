@@ -123,6 +123,9 @@ ggNetView <- function(graph_obj,
                       ){
 
   set.seed(seed)
+  # stat graph
+  stat_graph <- stat_graph(graph_obj)
+
   # find layout function
   func_name <- paste0("create_layout_", layout)
 
@@ -280,9 +283,7 @@ ggNetView <- function(graph_obj,
                                                      yend = to_y),
                               alpha = linealpha,
                               colour = linecolor) +
-         # ggplot2::coord_fixed() +
-         theme_ggnetview() +
-         scale_fill_ggnetview(levels(ly1_1[["graph_ly_final"]]$Modularity))
+         theme_ggnetview()
 
     }else{
       p1_1 <- p1_1 +
@@ -294,26 +295,25 @@ ggNetView <- function(graph_obj,
                                                      colour = corr_direction),
                               alpha = linealpha) +
         # ggplot2::coord_fixed() +
-        theme_ggnetview() +
-        scale_fill_ggnetview(levels(ly1_1[["graph_ly_final"]]$Modularity))
+        theme_ggnetview()
     }
 
     # point paramers
     if (isFALSE(jitter)) {
       p1_1 <- p1_1 +
         ggplot2::geom_point(data = ly1_1[["ggplot_data"]][[1]],
-                            mapping = ggplot2::aes(x = x, y = y, fill = .data[[group.by]], size = Degree),
+                            mapping = ggplot2::aes(x = x, y = y, fill = .data[[fill.by]], size = Degree),
                             shape = shape,
                             alpha = pointalpha,
                             stroke = pointstroke) +
         ggplot2::scale_size(range = pointsize) +
         ggplot2::coord_fixed() +
         theme_ggnetview() +
-        scale_fill_ggnetview(levels(ly1_1[["graph_ly_final"]]$Modularity))
+        scale_fill_ggnetview(unique(ly1_1[["graph_ly_final"]][[fill.by]]))
     }else{
       p1_1 <- p1_1 +
         ggplot2::geom_jitter(data = ly1_1[["ggplot_data"]][[1]],
-                             mapping = ggplot2::aes(x = x, y = y, fill = .data[[group.by]], size = Degree),
+                             mapping = ggplot2::aes(x = x, y = y, fill = .data[[fill.by]], size = Degree),
                              shape = shape,
                              alpha = pointalpha,
                              stroke = pointstroke,
@@ -321,7 +321,7 @@ ggNetView <- function(graph_obj,
         ggplot2::scale_size(range = pointsize) +
         ggplot2::coord_fixed() +
         theme_ggnetview() +
-        scale_fill_ggnetview(levels(ly1_1[["graph_ly_final"]]$Modularity))
+        scale_fill_ggnetview(unique(ly1_1[["graph_ly_final"]][[fill.by]]))
 
     }
 
@@ -357,8 +357,8 @@ ggNetView <- function(graph_obj,
                                  force = 0.05,
                                  show.legend = F
         ) +
-        scale_fill_ggnetview(levels(lab_df$Modularity)) +
-        scale_color_ggnetview(levels(lab_df$Modularity)) +
+        scale_fill_ggnetview(sort(unique(lab_df$Modularity))) +
+        scale_color_ggnetview(sort(unique(lab_df$Modularity))) +
         ggplot2::coord_equal(clip = "off",
                              xlim = c(xr[1] - pad, xr[2] + pad),
                              ylim = yr) +
@@ -435,6 +435,12 @@ ggNetView <- function(graph_obj,
         theme_ggnetview()
     }
 
+
+    p1_1 <- p1_1 +
+      ggtitle(label = paste0("Node = ", stat_graph$node, "\n",
+                             "Edge = ", stat_graph$edge, "\n",
+                             "Positive = ", stat_graph$position_edge, "\n",
+                             "Negative = ", stat_graph$negative_edge))
 
   }
 

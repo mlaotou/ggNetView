@@ -1,4 +1,4 @@
-.onAttach <- function(libname, pakname){
+.onAttach <- function(libname, pkgname){
   packageStartupMessage(
     "
                                                ░██               ░██
