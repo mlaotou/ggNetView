@@ -1,5 +1,4 @@
 create_layout_rings <- function(graph_obj,
-                                ring_n = NULL,
                                 r = 0.25,
                                 node_add = NULL,
                                 scale = T,

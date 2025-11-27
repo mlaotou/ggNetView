@@ -129,24 +129,14 @@ ggNetView <- function(graph_obj,
   # find layout functions from ggNetView package
   lay_func <- utils::getFromNamespace(func_name, "ggNetView")
 
-  # get real data ly1
-  if (func_name == "create_layout_rings") {
-    ly1 = lay_func(graph_obj = graph_obj,
-                   r = r,
-                   ring_n = ring_n,
-                   scale = scale,
-                   anchor_dist = anchor_dist,
-                   orientation = orientation,
-                   angle = angle)
-  }else{
-    ly1 = lay_func(graph_obj = graph_obj,
-                   node_add = node_add,
-                   r = r,
-                   scale = scale,
-                   anchor_dist = anchor_dist,
-                   orientation = orientation,
-                   angle = angle)
-  }
+  # get ly1
+  ly1 = lay_func(graph_obj = graph_obj,
+                 node_add = node_add,
+                 r = r,
+                 scale = scale,
+                 anchor_dist = anchor_dist,
+                 orientation = orientation,
+                 angle = angle)
 
   # get ly1_1
   # 圆形布局 添加模块化 获取模块
