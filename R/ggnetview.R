@@ -437,7 +437,7 @@ ggNetView <- function(graph_obj,
 
 
     p1_1 <- p1_1 +
-      ggtitle(label = paste0("Node = ", stat_graph$node, "\n",
+      ggplot2::ggtitle(label = paste0("Node = ", stat_graph$node, "\n",
                              "Edge = ", stat_graph$edge, "\n",
                              "Positive = ", stat_graph$position_edge, "\n",
                              "Negative = ", stat_graph$negative_edge))
