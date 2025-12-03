@@ -123,8 +123,14 @@ ggNetView <- function(graph_obj,
                       ){
 
   set.seed(seed)
-  # stat graph
-  stat_graph <- stat_graph(graph_obj)
+
+  if (isTRUE(mapping_line)) {
+    # stat graph
+    stat_graph <- stat_graph(graph_obj, mapping_line)
+  }else{
+    stat_graph <- stat_graph(graph_obj, mapping_line)
+  }
+
 
   # find layout function
   func_name <- paste0("create_layout_", layout)
@@ -436,11 +442,18 @@ ggNetView <- function(graph_obj,
     }
 
 
+    if (isTRUE(mapping_line)) {
+      gglabel = paste0("Node = ", stat_graph$node, "\n",
+                       "Edge = ", stat_graph$edge, "\n",
+                       "Positive = ", stat_graph$position_edge, "\n",
+                       "Negative = ", stat_graph$negative_edge)
+    }else{
+      gglebel = paste0("Node = ", stat_graph$node, "\n",
+                       "Edge = ", stat_graph$edge, "\n")
+    }
+
     p1_1 <- p1_1 +
-      ggplot2::ggtitle(label = paste0("Node = ", stat_graph$node, "\n",
-                             "Edge = ", stat_graph$edge, "\n",
-                             "Positive = ", stat_graph$position_edge, "\n",
-                             "Negative = ", stat_graph$negative_edge))
+      ggplot2::ggtitle(label = gglebel)
 
   }
 
