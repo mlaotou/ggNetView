@@ -128,8 +128,8 @@ gglink_heatmaps <- function(
   #                   Env04 = 43:56)
 
   # split data
-  env_list <- purrr::map(env_select, ~ Envdf_4st[, .x, drop = FALSE])
-  spec_list <- purrr::map(spec_select, ~ Spedf[, .x, drop = FALSE])
+  env_list <- purrr::map(env_select, ~ env[, .x, drop = FALSE])
+  spec_list <- purrr::map(spec_select, ~ spec[, .x, drop = FALSE])
 
   # 这里需要统计一下
   k_vec  <- purrr::map_int(env_list, ncol)
