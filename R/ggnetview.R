@@ -448,12 +448,12 @@ ggNetView <- function(graph_obj,
                        "Positive = ", stat_graph$position_edge, "\n",
                        "Negative = ", stat_graph$negative_edge)
     }else{
-      gglebel = paste0("Node = ", stat_graph$node, "\n",
+      gglabel = paste0("Node = ", stat_graph$node, "\n",
                        "Edge = ", stat_graph$edge, "\n")
     }
 
     p1_1 <- p1_1 +
-      ggplot2::ggtitle(label = gglebel)
+      ggplot2::ggtitle(label = gglabel)
 
   }
 
