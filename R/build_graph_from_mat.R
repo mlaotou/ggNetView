@@ -132,7 +132,6 @@ build_graph_from_mat <- function(mat,
 
   # argument check
   transfrom.method <-  match.arg(transfrom.method)
-  module.method <- match.arg(module.method)
   cor.method <- match.arg(cor.method)
   proc <- match.arg(proc)
   module.method <- match.arg(module.method)

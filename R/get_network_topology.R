@@ -60,43 +60,25 @@ get_network_topology <- function(graph_obj, bootstrap = 1000){
     vertex_cohesion <- igraph::vertex_connectivity(ig)
     edge_cohesion   <- igraph::edge_connectivity(ig)
 
-    # Position Cohension
+    # Positive Cohension
+
 
     # Negative Cohension
 
-    # Robustness
 
+    # Robustness
 
 
     # Vulenrability
 
 
-
     # Stability
-
-
-
 
 
   }
 
   # node topology
 
-
-  # # node number
-  # node_number <- graph_obj %>%
-  #   tidygraph::activate(nodes) %>%
-  #   tidygraph::as_tibble() %>%
-  #   dim() %>%
-  #   .[1]
-
-
-  # # edge number
-  # edge_number <- graph_obj %>%
-  #   tidygraph::activate(edges) %>%
-  #   tidygraph::as_tibble() %>%
-  #   dim() %>%
-  #   .[1]
 
   # random topology
   random_topology <- list()
@@ -114,9 +96,11 @@ get_network_topology <- function(graph_obj, bootstrap = 1000){
 
   }
 
-
-
   # output
+
+
+
+  # output topology
   out <- data.frame(
     degree_vals = degree_vals,
     avg_path = avg_path,
