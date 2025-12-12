@@ -1,12 +1,12 @@
-create_layout_circular_modules_gephi_layout <- function(
+create_layout_consensus_module <- function(
     graph_obj,
+    scale = T,
     r = 1,
-    node_add = 7,
     anchor_dist = 10,
-    scale = TRUE,
+    node_add = 7,
     orientation = c("up","down","left","right"),
-    angle = 0
-){
+    angle = 0){
+
   orientation <- match.arg(orientation)
   base_angle <- switch(
     orientation,
@@ -16,6 +16,7 @@ create_layout_circular_modules_gephi_layout <- function(
     left  = pi/2
   )
   theta_shift <- base_angle + angle
+
 
   # ---- 获取节点和模块信息 ----
   node_df <- graph_obj %>%
@@ -31,20 +32,27 @@ create_layout_circular_modules_gephi_layout <- function(
     dplyr::group_split(Modularity)
 
   n_vec <- purrr::map_int(module_list, nrow)
+  # module size
   n_mod <- length(n_vec)
 
-  if (n_mod < 1) {
-    stop("Circular modules layout 需要至少 1 个模块（来自列 Modularity）。")
-  }
+  # 自动计算行列数（尽量方形）
+  rows <- floor(sqrt(n_mod))
+  cols <- ceiling(n_mod / rows)
 
-  # ---- 在一个大圆上平均分配每个模块的锚点 ----
-  # 先构造“一个模块在正上方”的标准构型，然后最后统一旋转
+  # index：从 0 到 n_mod-1
+  idx <- 0:(n_mod - 1)
 
-  angles <- pi/2 - 2 * pi * (0:(n_mod - 1)) / n_mod
-  anchors <- lapply(angles, function(a) {
-    c(anchor_dist * cos(a), anchor_dist * sin(a))
+  # 行号（从 0 开始）
+  row_id <- idx %/% cols
+
+  # 列号（从 0 开始）
+  col_id <- idx %% cols
+
+  # 生成每个模块的锚点：在 grid 上均匀排布
+  anchors <- lapply(seq_len(n_mod), function(i) {
+    c(col_id[i] * anchor_dist,
+      -row_id[i] * anchor_dist)
   })
-  # 正多边形几何中心自动在(0,0)，不需要质心平移
 
   # ---- 同心圆节点分层 ----
   circle_layout <- function(n, node_add) {
@@ -98,6 +106,7 @@ create_layout_circular_modules_gephi_layout <- function(
     ly
   }
 
+
   # ---- 按模块生成布局 ----
   ly_list <- vector("list", n_mod)
   for (i in seq_len(n_mod)) {
@@ -110,7 +119,7 @@ create_layout_circular_modules_gephi_layout <- function(
 
   ly <- dplyr::bind_rows(ly_list)
 
-  # ---- 统一旋转 ----
+  # ---- rotate ----
   if (theta_shift != 0) {
     Rm <- matrix(
       c(cos(theta_shift), -sin(theta_shift),
@@ -121,6 +130,7 @@ create_layout_circular_modules_gephi_layout <- function(
     ly[, c("x", "y")] <- t(Rm %*% t(xy))
   }
 
+  # reture layout
   rownames(ly) <- NULL
   ly
 }

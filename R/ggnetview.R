@@ -73,7 +73,7 @@
 #' Change  orientation angle.
 #' @param scale Logical  (default = T).
 #' modules applicable to `Bipartite, Tripartite, Quadripartite, Multipartite, Pentapartite Layout` to scale the radius
-#' @param anchor_dist Integer (default = 10)
+#' @param anchor_dist Integer (default = 6)
 #' the distance of each modules, applicable to `Bipartite, Tripartite, Quadripartite, Multipartite, Pentapartite Layout`
 #' @param seed Integer (default = 1115).
 #' Random seed for reproducibility.
