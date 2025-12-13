@@ -1,4 +1,4 @@
-create_layout_consensus_module <- function(
+create_layout_consensus_module_gephi <- function(
     graph_obj,
     scale = T,
     r = 1,
