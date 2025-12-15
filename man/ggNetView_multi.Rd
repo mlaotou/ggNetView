@@ -2,11 +2,23 @@
 % Please edit documentation in R/ggNetView_multi.R
 \name{ggNetView_multi}
 \alias{ggNetView_multi}
-\title{Visualize a network with custom layouts in groups}
+\title{Visualize network with custom layouts in different samples}
 \usage{
 ggNetView_multi(
   mat,
-  group,
+  group_info,
+  transfrom.method = c("none", "scale", "center", "log2", "log10", "ln", "rrarefy",
+    "rrarefy_relative"),
+  r.threshold = 0.7,
+  p.threshold = 0.05,
+  method = c("WGCNA", "SpiecEasi", "SPARCC", "cor"),
+  cor.method = c("pearson", "kendall", "spearman"),
+  proc = c("Bonferroni", "Holm", "Hochberg", "SidakSS", "SidakSD", "BH", "BY", "ABH",
+    "TSBH"),
+  module.method = c("Fast_greedy", "Walktrap", "Edge_betweenness", "Spinglass"),
+  SpiecEasi.method = c("mb", "glasso"),
+  node_annotation = NULL,
+  top_modules = 15,
   layout = NULL,
   node_add = 7,
   ring_n = NULL,
@@ -22,9 +34,12 @@ ggNetView_multi(
   pointsize = c(1, 10),
   pointstroke = 0.3,
   group.by = "Modularity",
+  fill.by = "Modularity",
   jitter = FALSE,
   jitter_sd = 0.1,
   mapping_line = FALSE,
+  curve = F,
+  curvature = 0.25,
   linealpha = 0.25,
   linecolor = "grey70",
   label = FALSE,
@@ -41,15 +56,62 @@ ggNetView_multi(
   angle = 0,
   scale = T,
   anchor_dist = 6,
-  seed = 1115
+  seed = 1115,
+  nrow = NULL
 )
 }
 \arguments{
 \item{mat}{Numeric matrix.
 A numeric matrix with samples in rows and variables in columns.}
 
-\item{group}{DataFrame
-The dataframe of group}
+\item{group_info}{DataFrame
+The group information contains: Sample and Group}
+
+\item{transfrom.method}{Character.
+Data transformation methods applied before correlation analysis.
+Options include:
+"none" (raw data),
+"scale" (z-score standardization),
+"center" (mean centering only),
+"log2" (log2 transfrom),
+"log10" (log10 transfrom),
+"ln" (natural transfrom ),
+"rrarefy" (random rarefaction using \code{vegan::rrarefy}),
+"rrarefy_relative" (rarefy then convert to relative abundance).}
+
+\item{r.threshold}{Numeric.
+Correlation coefficient threshold; edges are kept only if |r| >= r.threshold.}
+
+\item{p.threshold}{p.threshold
+Significance threshold for correlations; edges are kept only if p < p.threshold.}
+
+\item{method}{Character.
+Relationship analysis methods.
+Options include: "WGCNA", "SpiecEasi", "SPARCC" and "cor".}
+
+\item{cor.method}{Character.
+Correlation analysis method.
+Options include "pearson", "kendall", and "spearman".}
+
+\item{proc}{Character.
+Correlation p-value adjustment methods.
+Options include:
+"Bonferroni", "Holm", "Hochberg", "
+SidakSS", "SidakSD","BH",
+"BY", "ABH", and "TSBH".}
+
+\item{module.method}{Character.
+Network community detection (module identification) method.
+Options include "Fast_greedy", "Walktrap", "Edge_betweenness", and "Spinglass".}
+
+\item{SpiecEasi.method}{Character.
+Method used in \code{SpiecEasi} network inference; options include "mb" and "glasso".}
+
+\item{node_annotation}{Data frame.
+Optional node annotation table, containing metadata such as taxonomy or functional categories.}
+
+\item{top_modules}{Integer.
+Number of top-ranked modules to retain for downstream visualization or analysis.}
 
 \item{layout}{Character string.
 Custom layouts; one of "gephi", "square", "square2", "petal",
@@ -98,6 +160,9 @@ The point size rang.}
 \item{group.by}{Character (default = "Modularity").
 Change group for nodes}
 
+\item{fill.by}{Character (default = "Modularity").
+Change fill for nodes}
+
 \item{jitter}{Logical (default = FALSE).
 Whether to apply jitter to points.}
 
@@ -106,6 +171,12 @@ The standard deviation of the jitter applied when `jitter = TRUE`.}
 
 \item{mapping_line}{Logical (default = FALSE).
 Whether to mapping line in ggNetView.}
+
+\item{curve}{Logical (default = FALSE).
+Whether to plot curve line in net plot.}
+
+\item{curvature}{Integer (default = 0.25)
+The curve level of curve line when curve is TRUE}
 
 \item{linealpha}{Integer  (default = 0.25).
 Change  line alpha.}
@@ -152,20 +223,20 @@ Change  orientation angle.}
 \item{scale}{Logical  (default = T).
 modules applicable to `Bipartite, Tripartite, Quadripartite, Multipartite, Pentapartite Layout` to scale the radius}
 
-\item{anchor_dist}{Integer (default = 10)
+\item{anchor_dist}{Integer (default = 6)
 the distance of each modules, applicable to `Bipartite, Tripartite, Quadripartite, Multipartite, Pentapartite Layout`}
 
 \item{seed}{Integer (default = 1115).
 Random seed for reproducibility.}
 
-\item{fill.by}{Character (default = "Modularity").
-Change fill for nodes}
+\item{nrwo}{Integer (default = NULL).
+Then nrow of combinme plot}
 }
 \value{
 A ggplot object representing the network visualization.
 }
 \description{
-Visualize a network with custom layouts in groups
+Visualize network with custom layouts in different samples
 }
 \examples{
 NULL

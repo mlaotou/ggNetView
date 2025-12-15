@@ -2,7 +2,6 @@
 #'
 #' @param mat  Numeric matrix.
 #' A numeric matrix with samples in rows and variables in columns.
-#'
 #' @param transfrom.method Character.
 #'Data transformation methods applied before correlation analysis.
 #' Options include:
@@ -14,32 +13,25 @@
 #' "ln" (natural transfrom ),
 #' "rrarefy" (random rarefaction using \code{vegan::rrarefy}),
 #' "rrarefy_relative" (rarefy then convert to relative abundance).
-#'
 #' @param r.threshold Numeric.
 #' Correlation coefficient threshold; edges are kept only if |r| >= r.threshold.
-#'
 #' @param p.threshold
 #' Significance threshold for correlations; edges are kept only if p < p.threshold.
-#'
 #' @param method Character.
 #' Relationship analysis methods.
 #' Options include: "WGCNA", "SpiecEasi", "SPARCC" and "cor".
-#'
 #' @param cor.method Character.
 #' Correlation analysis method.
 #' Options include "pearson", "kendall", and "spearman".
-#'
 #' @param proc Character.
 #' Correlation p-value adjustment methods.
 #' Options include:
 #' "Bonferroni", "Holm", "Hochberg", "
 #' SidakSS", "SidakSD","BH",
 #' "BY", "ABH", and "TSBH".
-#'
 #' @param module.method Character.
 #' Network community detection (module identification) method.
 #' Options include "Fast_greedy", "Walktrap", "Edge_betweenness", and "Spinglass".
-#'
 #' @param SpiecEasi.method Character.
 #' Method used in \code{SpiecEasi} network inference; options include "mb" and "glasso".
 #'
