@@ -25,9 +25,9 @@ build_graph_from_module <- function(df,
 
   set.seed(seed)
 
-  df = ppi_module$ppi
-  node_annotation = ppi_module$annotation
-  directed = F
+  # df = ppi_module$ppi
+  # node_annotation = ppi_module$annotation
+  # directed = F
 
   # 构建igraph对象
   g <- igraph::graph_from_data_frame(
@@ -52,6 +52,7 @@ build_graph_from_module <- function(df,
   igraph::V(g)$modularity2 <- as.character(igraph::V(g)$Modularity)
 
   table(igraph::V(g)$modularity2) %>% sort(., decreasing = T)
+  factor_levels <- table(igraph::V(g)$modularity2) %>% sort(., decreasing = T) %>% names()
 
   # max model length
   max_model <- length(table(igraph::V(g)$modularity2) %>% sort(., decreasing = T))
@@ -70,8 +71,8 @@ build_graph_from_module <- function(df,
 
   # 构建ggraph对象
   graph_obj <- tidygraph::as_tbl_graph(g) %>%
-    tidygraph::mutate(Modularity = factor(Modularity),
-                      modularity2 = factor(modularity2),
+    tidygraph::mutate(Modularity = factor(Modularity, levels = factor_levels, ordered = T),
+                      modularity2 = factor(modularity2, levels = factor_levels, ordered = T),
                       modularity3 = as.character(modularity2),
                       Modularity = modularity2,
                       Degree = tidygraph::centrality_degree(mode = "out"),
