@@ -43,6 +43,10 @@
 #' The standard deviation of the jitter applied when `jitter = TRUE`.
 #' @param mapping_line  Logical (default = FALSE).
 #' Whether to mapping line in ggNetView.
+#' @param curve  Logical (default = FALSE).
+#' Whether to plot curve line in net plot.
+#' @param curvature Integer (default = 0.25)
+#' The curve level of curve line when curve is TRUE
 #' @param linealpha  Integer  (default = 0.25).
 #' Change  line alpha.
 #' @param linecolor Character  (default = "grey70").
@@ -103,6 +107,8 @@ ggNetView <- function(graph_obj,
                       jitter = FALSE,
                       jitter_sd = 0.1,
                       mapping_line = FALSE,
+                      curve = F,
+                      curvature = 0.25,
                       linealpha = 0.25,
                       linecolor = "grey70",
                       label = FALSE,
@@ -280,29 +286,60 @@ ggNetView <- function(graph_obj,
     p1_1 <- ggplot2::ggplot()
 
     # line parameter
-    if (isFALSE(mapping_line)) {
-       p1_1 <- p1_1 +
-        ggplot2::geom_segment(data = ly1_1[["ggplot_data"]][[2]],
+    if (isFALSE(curve)) {
+      if (isFALSE(mapping_line)) {
+        p1_1 <- p1_1 +
+          ggplot2::geom_segment(data = ly1_1[["ggplot_data"]][[2]],
+                                mapping = ggplot2::aes(x = from_x,
+                                                       xend = to_x,
+                                                       y = from_y,
+                                                       yend = to_y),
+                                alpha = linealpha,
+                                colour = linecolor) +
+          theme_ggnetview()
+
+      }else{
+        p1_1 <- p1_1 +
+          ggplot2::geom_segment(data = ly1_1[["ggplot_data"]][[2]],
+                                mapping = ggplot2::aes(x = from_x,
+                                                       xend = to_x,
+                                                       y = from_y,
+                                                       yend = to_y,
+                                                       colour = corr_direction),
+                                alpha = linealpha) +
+          # ggplot2::coord_fixed() +
+          theme_ggnetview()
+      }
+    }else{
+      if (isFALSE(mapping_line)) {
+        p1_1 <- p1_1 +
+          ggplot2::geom_curve(data = ly1_1[["ggplot_data"]][[2]],
                               mapping = ggplot2::aes(x = from_x,
                                                      xend = to_x,
                                                      y = from_y,
                                                      yend = to_y),
                               alpha = linealpha,
-                              colour = linecolor) +
-         theme_ggnetview()
+                              colour = linecolor,
+                              curvature = curvature
+                              ) +
+          theme_ggnetview()
 
-    }else{
-      p1_1 <- p1_1 +
-        ggplot2::geom_segment(data = ly1_1[["ggplot_data"]][[2]],
+      }else{
+        p1_1 <- p1_1 +
+          ggplot2::geom_curve(data = ly1_1[["ggplot_data"]][[2]],
                               mapping = ggplot2::aes(x = from_x,
                                                      xend = to_x,
                                                      y = from_y,
                                                      yend = to_y,
                                                      colour = corr_direction),
-                              alpha = linealpha) +
-        # ggplot2::coord_fixed() +
-        theme_ggnetview()
+                              alpha = linealpha,
+                              curvature = curvature) +
+          # ggplot2::coord_fixed() +
+          theme_ggnetview()
+      }
     }
+
+
 
     # point paramers
     if (isFALSE(jitter)) {

@@ -25,6 +25,8 @@ ggNetView(
   jitter = FALSE,
   jitter_sd = 0.1,
   mapping_line = FALSE,
+  curve = F,
+  curvature = 0.25,
   linealpha = 0.25,
   linecolor = "grey70",
   label = FALSE,
@@ -106,6 +108,12 @@ The standard deviation of the jitter applied when `jitter = TRUE`.}
 
 \item{mapping_line}{Logical (default = FALSE).
 Whether to mapping line in ggNetView.}
+
+\item{curve}{Logical (default = FALSE).
+Whether to plot curve line in net plot.}
+
+\item{curvature}{Integer (default = 0.25)
+The curve level of curve line when curve is TRUE}
 
 \item{linealpha}{Integer  (default = 0.25).
 Change  line alpha.}

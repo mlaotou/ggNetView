@@ -622,18 +622,18 @@ gglink_heatmaps <- function(
     type_lab <- pack$type_lab
 
     p +
-      geom_tile(data = tile, aes(x = x_tile, y = y_tile, fill = Correlation)) +
-      geom_text(data = tile, aes(x = x_tile, y = y_tile, label = p_signif), size = 5) +
-      geom_text(data = id_lab,   aes(x = x_id,   y = y_id,   label = ID), size = fontsize) +
-      geom_text(data = type_lab, aes(x = x_type, y = y_type, label = Type),
+      ggplot2::geom_tile(data = tile, aes(x = x_tile, y = y_tile, fill = Correlation)) +
+      ggplot2::geom_text(data = tile, aes(x = x_tile, y = y_tile, label = p_signif), size = 5) +
+      ggplot2::geom_text(data = id_lab,   aes(x = x_id,   y = y_id,   label = ID), size = fontsize) +
+      ggplot2::geom_text(data = type_lab, aes(x = x_type, y = y_type, label = Type),
                 hjust = type_lab$hjust_type[1],
                 size = fontsize) +
-      geom_point(data = diag, aes(x = x_diag, y = y_diag),
+      ggplot2::geom_point(data = diag, aes(x = x_diag, y = y_diag),
                  shape = 21, fill = "#de77ae", size = 4) +
-      scale_fill_gradient2(
+      ggplot2::scale_fill_gradient2(
         low = low_pal[idx], mid = "#ffffff", high = high_pal[idx],
         midpoint = 0, name = paste0(scale_name, " ", idx),
-        guide = guide_colorbar(order = idx)
+        guide = ggplot2::guide_colorbar(order = idx)
       )
   }
 
@@ -651,23 +651,23 @@ gglink_heatmaps <- function(
   # 统一叠加连线 & 中圈节点
   p1 <- p0 +
     ggnewscale::new_scale_color() +
-    geom_segment(
+    ggplot2::geom_segment(
       data = cor_spec_env_location,
       aes(x = x, y = y, xend = x_to, yend = y_to, color = Correlation, linetype = p_signif),
       alpha = 0.5
     ) +
-    scale_color_gradient(low = "#fdbb84", high = "#d7301f") +
-    geom_point(
+    ggplot2::scale_color_gradient(low = "#fdbb84", high = "#d7301f") +
+    ggplot2::geom_point(
       data = dplyr::distinct(cor_spec_env_location, ID, .keep_all = TRUE),
       aes(x = x, y = y), shape = 21, fill = "#41b6c4", size = 8.5
     ) +
-    geom_text(
+    ggplot2::geom_text(
       data = dplyr::distinct(cor_spec_env_location, ID, .keep_all = TRUE),
       aes(x = x, y = y, label = ID), size = 5
     ) +
-    coord_cartesian(clip = "off") +
-    theme_void() +
-    theme(
+    ggplot2::coord_cartesian(clip = "off") +
+    ggplot2::theme_void() +
+    ggplot2::theme(
       plot.margin = margin(10,10,10,10),
       aspect.ratio = 1,
       legend.position = "top"
@@ -678,43 +678,43 @@ gglink_heatmaps <- function(
 
   p2 <- p0 +
     ggnewscale::new_scale_color() +
-    geom_segment(
+    ggplot2::geom_segment(
       data = cor_spec_env_location,
       aes(x = x, y = y, xend = x_to, yend = y_to, color = Correlation, linetype = p_signif),
       alpha = 0.5
     ) +
-    scale_color_gradient(low = "#fdbb84", high = "#d7301f") +
-    geom_point(
+    ggplot2::scale_color_gradient(low = "#fdbb84", high = "#d7301f") +
+    ggplot2::geom_point(
       data = dplyr::distinct(cor_spec_env_location, ID, .keep_all = TRUE),
       aes(x = x, y = y), shape = 21, fill = "#41b6c4", size = 8.5
     ) +
-    geom_text(
+    ggplot2::geom_text(
       data = dplyr::distinct(cor_spec_env_location, ID, .keep_all = TRUE),
       aes(x = x, y = y, label = ID),
       size = 5
     ) +
-    coord_cartesian(clip = "off") +
-    theme_void() +
-    theme(
+    ggplot2::coord_cartesian(clip = "off") +
+    ggplot2::theme_void() +
+    ggplot2::theme(
       plot.margin = margin(10,10,10,10),
       aspect.ratio = 1,
       legend.position = "top"
     )
 
   p2 <- p0 +
-    new_scale_fill() +
-    geom_curve(data = cor_spec_env_location,
+    ggplot2::new_scale_fill() +
+    ggplot2::geom_curve(data = cor_spec_env_location,
                mapping = aes(x = x, y = y, xend = x_to, yend = y_to, color = Correlation, linetype = p_signif),
                alpha = 0.5,
                curvature = 0.25
     ) +
-    scale_color_gradient(low = "#fdbb84", high = "#d7301f") +
-    geom_point(data = cor_spec_env_location %>% dplyr::distinct(ID, .keep_all = T),
+    ggplot2::scale_color_gradient(low = "#fdbb84", high = "#d7301f") +
+    ggplot2::geom_point(data = cor_spec_env_location %>% dplyr::distinct(ID, .keep_all = T),
                mapping = aes(x = x, y = y, fill = ID),
                shape = 21,
                fill = "#41b6c4",
                size = 8.5) +
-    geom_text(data = cor_spec_env_location %>% dplyr::distinct(ID, .keep_all = T),
+    ggplot2::geom_text(data = cor_spec_env_location %>% dplyr::distinct(ID, .keep_all = T),
               mapping = aes(x =x, y = y, label = ID),
               size = 5) +
     # geom_line(data = cor_spec_env_location %>% dplyr::distinct(ID, .keep_all = T) %>% dplyr::select(ID, x, y),
@@ -722,9 +722,9 @@ gglink_heatmaps <- function(
     #           linetype = 1,
     #           linewidth = 1.5,
     #           color = "#41b6c4") +
-    coord_cartesian(clip = "off") +
-    theme_void() +
-    theme(
+    ggplot2::coord_cartesian(clip = "off") +
+    ggplot2::theme_void() +
+    ggplot2::theme(
       plot.margin = margin(1,1,1,1,"cm"),
       aspect.ratio = 1,
       legend.position = "top"
