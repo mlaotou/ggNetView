@@ -10,6 +10,7 @@ ggNetView_multi_link <- function(mat,
                                  SpiecEasi.method = c("mb", "glasso"),
                                  node_annotation = NULL,
                                  top_modules = 15,
+                                 select_modules = 8,
                                  layout = NULL,
                                  node_add = 7,
                                  ring_n = NULL,
@@ -50,6 +51,61 @@ ggNetView_multi_link <- function(mat,
                                  seed = 1115,
                                  nrow = NULL
 ){
+  # 参数
+  group_info <- otu_sample
+
+  mat = otu_rare_relative
+
+  transfrom.method = "none"
+  r.threshold = 0.7
+  p.threshold = 0.05
+  method = "WGCNA"
+  cor.method = "pearson"
+  proc = "BH"
+  module.method = "Fast_greedy"
+  SpiecEasi.method = "mb"
+  node_annotation = tax_tab
+  top_modules = 15
+  layout = "gephi"
+  node_add = 7
+  ring_n = NULL
+  r = 1
+  center = TRUE
+  idx = NULL
+  shrink = 0.5
+  k_nn = 8
+  push_others_delta = 0
+  layout.module = "adjacent"
+  shape = 21
+  pointalpha = 1
+  pointsize = c(1,10)
+  pointstroke = 0.3
+  group.by = "Modularity"
+  fill.by = "Modularity"
+  jitter = T
+  jitter_sd = 0.3
+  mapping_line = FALSE
+  curve = F
+  curvature = 0.25
+  linealpha = 0.25
+  linecolor = "grey70"
+  label = FALSE
+  labelsize = 10
+  labelsegmentsize = 1
+  labelsegmentalpha = 1
+  add_outer = FALSE
+  outerwidth = 1.25
+  outerlinetype = 2
+  outeralpha = 0.5
+  nodelabsize = 5
+  remove = FALSE
+  orientation = "up"
+  angle = 0
+  scale = T
+  anchor_dist = 6
+  seed = 1115
+  select_modules = 8
+
 
   graph_list <- list()
 
@@ -154,10 +210,167 @@ ggNetView_multi_link <- function(mat,
   graph_list_length <- length(graph_list)
   graph_info_length <- length(graph_info)
 
-  intersect(graph_info[["KO"]]$ggplot_node_df$name,
-            graph_info[["OE"]]$ggplot_node_df$name)
+
+  # # 在这里搜索一下三个组共有的ASV
+  # insert_name <- Reduce(
+  #   intersect,
+  #   lapply(unique(group_info$Group), function(x){
+  #     graph_info[[x]]$ggplot_node_df$name
+  #   })
+  # )
+  #
+  # # 基于这个我们再探索一下这些共有的ID，隶属于哪个模块
+  # insert_module <- Reduce(
+  #   intersect,
+  #   purrr::map(unique(group_info$Group),
+  #              function(x){
+  #                top_module_tmp <- graph_list[[x]] %>%
+  #                  tidygraph::activate(nodes) %>%
+  #                  tidygraph::as_tibble() %>%
+  #                  tidygraph::pull(Modularity) %>%
+  #                  as.character() %>%
+  #                  table() %>%
+  #                  sort(., decreasing = T) %>%
+  #                  .[names(.) != "Others"] %>%
+  #                  .[1:select_modules] %>%
+  #                  names()
+  #
+  #                group_top_module_tmp <- graph_list[[x]] %>%
+  #                  tidygraph::activate(nodes) %>%
+  #                  tidygraph::as_tibble() %>%
+  #                  tidygraph::filter(name %in% insert_name) %>%
+  #                  tidygraph::pull(Modularity) %>%
+  #                  as.character() %>%
+  #                  table() %>%
+  #                  sort(., decreasing = T) %>%
+  #                  .[names(.) != "Others"] %>%
+  #                  .[1:select_modules] %>%
+  #                  names()
+  #                intersect(top_module_tmp,
+  #                          group_top_module_tmp)
+  #              })
+  # )
+  #
+  # insert_module
+  #
+  #
+  # tmp_insert_name_df <- dplyr::bind_rows(
+  #   graph_info[["KO"]]$ggplot_node_df %>%
+  #     dplyr::filter(name %in% insert_name) %>%
+  #     dplyr::mutate(Group = "KO") %>%
+  #     dplyr::select(name, Modularity, Group) %>%
+  #     dplyr::mutate(Modularity = as.character(Modularity)) %>%
+  #     dplyr::filter(Modularity != "Others"),
+  #   graph_info[["OE"]]$ggplot_node_df %>%
+  #     dplyr::filter(name %in% insert_name) %>%
+  #     dplyr::mutate(Group = "OE") %>%
+  #     dplyr::select(name, Modularity, Group) %>%
+  #     dplyr::mutate(Modularity = as.character(Modularity)) %>%
+  #     dplyr::filter(Modularity != "Others"),
+  #   graph_info[["WT"]]$ggplot_node_df %>%
+  #     dplyr::filter(name %in% insert_name) %>%
+  #     dplyr::mutate(Group = "WT") %>%
+  #     dplyr::select(name, Modularity, Group) %>%
+  #     dplyr::mutate(Modularity = as.character(Modularity)) %>%
+  #     dplyr::filter(Modularity != "Others")
+  # )
+  #
+  # table(tmp_insert_name_df$name,
+  #       tmp_insert_name_df$Group)
+  #
+  # tmp_insert_name_df %>%
+  #   dplyr::mutate(info = str_c(Group, Modularity, sep = "_")) %>%
+  #   dplyr::group_by(name) %>%
+  #   dplyr::mutate(tmp = str_c(info, collapse = ";")) %>%
+  #   dplyr::ungroup() %>%
+  #   dplyr::mutate(number = str_count(tmp, pattern = ";")) %>%
+  #   dplyr::filter(number != 0) %>%
+  #   dplyr::arrange(tmp) %>%
+  #   View()
 
 
+  # graph_info[["KO"]]$ggplot_node_df %>%
+  #   dplyr::select(name, Modularity) %>%
+  #   dplyr::mutate(Group = "KO") %>%
+  #   write.csv(file = "/Users/liuyue/Desktop/tmp/KO_info.csv",
+  #             quote = F,
+  #             row.names = F)
+  #
+  # graph_info[["OE"]]$ggplot_node_df %>%
+  #   dplyr::select(name, Modularity) %>%
+  #   dplyr::mutate(Group = "OE") %>%
+  #   write.csv(file = "/Users/liuyue/Desktop/tmp/OE_info.csv",
+  #             quote = F,
+  #             row.names = F)
+  #
+  # graph_info[["WT"]]$ggplot_node_df %>%
+  #   dplyr::select(name, Modularity) %>%
+  #   dplyr::mutate(Group = "WT") %>%
+  #   write.csv(file = "/Users/liuyue/Desktop/tmp/WT_info.csv",
+  #             quote = F,
+  #             row.names = F)
+
+  # graph_info[["WT"]]$ggplot_node_df %>%
+  #     dplyr::select(name, Modularity) %>%
+  #     dplyr::mutate(Group = "WT") %>%
+  #   dplyr::pull(Modularity) %>%
+  #   table() %>%
+  #   sort(., decreasing = T)
+  #
+  # graph_info[["OE"]]$ggplot_node_df %>%
+  #   dplyr::select(name, Modularity) %>%
+  #   dplyr::mutate(Group = "OE") %>%
+  #   dplyr::pull(Modularity) %>%
+  #   table() %>%
+  #   sort(., decreasing = T)
+
+  # WT vs OE
+  WT_OE <- compare_modules_by_overlap(graph_info[["WT"]]$ggplot_node_df %>%
+                                        dplyr::select(name, Modularity) %>%
+                                        dplyr::mutate(Group = "WT"),
+                                      graph_info[["OE"]]$ggplot_node_df %>%
+                                        dplyr::select(name, Modularity) %>%
+                                        dplyr::mutate(Group = "OE"))
+  WT_OE %>%
+    dplyr::filter(pvalue < 0.05) %>%
+    dplyr::mutate(Group = str_c("WT", "to", "OE", sep = "_"))
+
+  # WT vs KO
+  WT_KO <- compare_modules_by_overlap(graph_info[["WT"]]$ggplot_node_df %>%
+                                        dplyr::select(name, Modularity) %>%
+                                        dplyr::mutate(Group = "WT"),
+                                      graph_info[["KO"]]$ggplot_node_df %>%
+                                        dplyr::select(name, Modularity) %>%
+                                        dplyr::mutate(Group = "KO"))
+
+  WT_KO %>%
+    dplyr::filter(pvalue < 0.05) %>%
+    dplyr::mutate(Group = str_c("WT", "to", "KO", sep = "_"))
+
+  # KO vs OE
+  KO_OE <- compare_modules_by_overlap(graph_info[["KO"]]$ggplot_node_df %>%
+                                        dplyr::select(name, Modularity) %>%
+                                        dplyr::mutate(Group = "KO"),
+                                      graph_info[["OE"]]$ggplot_node_df %>%
+                                        dplyr::select(name, Modularity) %>%
+                                        dplyr::mutate(Group = "OE"))
+  KO_OE %>%
+    dplyr::filter(pvalue < 0.05) %>%
+    dplyr::mutate(Group = str_c("KO", "to", "OE", sep = "_"))
+
+  Module_information <- dplyr::bind_rows(
+    WT_OE %>%
+      dplyr::filter(pvalue < 0.05) %>%
+      dplyr::mutate(Group = str_c("WT", "to", "OE", sep = "_")),
+    WT_KO %>%
+      dplyr::filter(pvalue < 0.05) %>%
+      dplyr::mutate(Group = str_c("WT", "to", "KO", sep = "_")),
+    KO_OE %>%
+      dplyr::filter(pvalue < 0.05) %>%
+      dplyr::mutate(Group = str_c("KO", "to", "OE", sep = "_"))
+  )
+
+  Module_information
 
 
   # 主要是解析一下不同分组之间是否是有相同的变量，然后以后留着进行link的

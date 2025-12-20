@@ -160,7 +160,9 @@ ggNetView <- function(graph_obj,
                            layout = ly1,
                            center = center,
                            idx = idx,
-                           shrink = shrink# ,
+                           shrink = shrink,
+                           jitter = jitter,
+                           jitter_sd = jitter_sd# ,
                            # seed = seed
     )
   }
@@ -171,7 +173,9 @@ ggNetView <- function(graph_obj,
                             center = center,
                             k_nn = k_nn,
                             push_others_delta = push_others_delta,
-                            shrink = shrink# ,
+                            shrink = shrink,
+                            jitter = jitter,
+                            jitter_sd = jitter_sd
                             # seed = seed
     )
   }
@@ -182,7 +186,9 @@ ggNetView <- function(graph_obj,
                             center = center,
                             k_nn = k_nn,
                             push_others_delta = push_others_delta,
-                            shrink = shrink# ,
+                            shrink = shrink,
+                            jitter = jitter,
+                            jitter_sd = jitter_sd
                             # seed = seed
     )
   }
@@ -193,7 +199,9 @@ ggNetView <- function(graph_obj,
                             center = center,
                             k_nn = k_nn,
                             push_others_delta = push_others_delta,
-                            shrink = shrink# ,
+                            shrink = shrink,
+                            jitter = jitter,
+                            jitter_sd = jitter_sd
                             # seed = seed
     )
   }
@@ -354,13 +362,23 @@ ggNetView <- function(graph_obj,
         theme_ggnetview() +
         scale_fill_ggnetview(unique(ly1_1[["graph_ly_final"]][[fill.by]]))
     }else{
+      # p1_1 <- p1_1 +
+      #   ggplot2::geom_jitter(data = ly1_1[["ggplot_data"]][[1]],
+      #                        mapping = ggplot2::aes(x = x, y = y, fill = .data[[fill.by]], size = Degree),
+      #                        shape = shape,
+      #                        alpha = pointalpha,
+      #                        stroke = pointstroke,
+      #                        position = ggplot2::position_jitter(width = jitter_sd, height = jitter_sd, seed = seed)) +
+      #   ggplot2::scale_size(range = pointsize) +
+      #   ggplot2::coord_fixed() +
+      #   theme_ggnetview() +
+      #   scale_fill_ggnetview(unique(ly1_1[["graph_ly_final"]][[fill.by]]))
       p1_1 <- p1_1 +
-        ggplot2::geom_jitter(data = ly1_1[["ggplot_data"]][[1]],
-                             mapping = ggplot2::aes(x = x, y = y, fill = .data[[fill.by]], size = Degree),
-                             shape = shape,
-                             alpha = pointalpha,
-                             stroke = pointstroke,
-                             position = ggplot2::position_jitter(width = jitter_sd, height = jitter_sd, seed = seed)) +
+        ggplot2::geom_point(data = ly1_1[["ggplot_data"]][[1]],
+                            mapping = ggplot2::aes(x = x, y = y, fill = .data[[fill.by]], size = Degree),
+                            shape = shape,
+                            alpha = pointalpha,
+                            stroke = pointstroke) +
         ggplot2::scale_size(range = pointsize) +
         ggplot2::coord_fixed() +
         theme_ggnetview() +

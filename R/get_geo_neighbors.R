@@ -119,7 +119,9 @@ module_layout <- function(graph_obj,
                           layout,
                           center = TRUE,
                           idx = NULL,
-                          shrink = 1
+                          shrink = 1,
+                          jitter,
+                          jitter_sd
                           # seed = seed
                           ){
 
@@ -194,6 +196,14 @@ module_layout <- function(graph_obj,
 
   ly_final <- do.call(rbind, neighbors_list)
 
+  if (isTRUE(jitter)) {
+    ly_final <- ly_final %>%
+      dplyr::mutate(x = x + stats::rnorm(dplyr::n(), mean = 0, sd = jitter_sd),
+                    y = y + stats::rnorm(dplyr::n(), mean = 0, sd = jitter_sd))
+  }else{
+    ly_final <- ly_final
+  }
+
   # combine
 
   graph_ly_final <- dplyr::bind_cols(
@@ -221,7 +231,9 @@ module_layout2 <- function(graph_obj,
                            center = TRUE,
                            shrink = 0.9,
                            k_nn = 8,
-                           push_others_delta = 0.2# ,
+                           push_others_delta = 0.2,
+                           jitter,
+                           jitter_sd
                            # seed = seed
                            ) {
 
@@ -392,6 +404,15 @@ module_layout2 <- function(graph_obj,
 
   ## ---------- 5) 拼装返回 ----------
   graph_ly_final <- dplyr::bind_rows(placed_coords[as.character(need_per_mod$modularity3)])
+
+  if (isTRUE(jitter)) {
+    graph_ly_final <- graph_ly_final %>%
+      dplyr::mutate(x = x + stats::rnorm(dplyr::n(), mean = 0, sd = jitter_sd),
+                    y = y + stats::rnorm(dplyr::n(), mean = 0, sd = jitter_sd))
+  }else{
+    graph_ly_final <- graph_ly_final
+  }
+
   ly_final <- graph_ly_final[, c("x","y")]
 
   # 1) 取节点数据
@@ -441,7 +462,9 @@ module_layout3 <- function(graph_obj,
                            center = TRUE,         # 第一个模块优先靠中心放
                            shrink = 0.9,          # 模块内轻度收紧
                            k_nn = 8,              # layout 邻接度（6~10合适）
-                           push_others_delta = 0.2#, # Others 外移量
+                           push_others_delta = 0.2, # Others 外移量
+                           jitter,
+                           jitter_sd
                            # seed = seed
                            ) {
 
@@ -638,6 +661,15 @@ module_layout3 <- function(graph_obj,
 
   ## ---------- 5) 拼装返回 ----------
   graph_ly_final <- dplyr::bind_rows(placed_coords[as.character(need_per_mod$modularity3)])
+
+  if (isTRUE(jitter)) {
+    graph_ly_final <- graph_ly_final %>%
+      dplyr::mutate(x = x + stats::rnorm(dplyr::n(), mean = 0, sd = jitter_sd),
+                    y = y + stats::rnorm(dplyr::n(), mean = 0, sd = jitter_sd))
+  }else{
+    graph_ly_final <- graph_ly_final
+  }
+
   ly_final <- graph_ly_final[, c("x","y")]
 
   # 1) 取节点数据
@@ -687,7 +719,9 @@ module_layout4 <- function(graph_obj,
                            center = TRUE,         # 第一个模块优先靠中心放
                            shrink = 0.9,          # 模块内轻度收紧
                            k_nn = 8,              # layout 邻接度（6~10合适）
-                           push_others_delta = 0.2#, # Others 外移量
+                           push_others_delta = 0.2, # Others 外移量
+                           jitter,
+                           jitter_sd
                            # seed = seed
 ){
   # set.seed(seed)
@@ -726,6 +760,13 @@ module_layout4 <- function(graph_obj,
   ly_final <- data.frame(x = layout$x,
                          y = layout$y)
 
+  if (isTRUE(jitter)) {
+    ly_final <- ly_final %>%
+      dplyr::mutate(x = x + stats::rnorm(dplyr::n(), mean = 0, sd = jitter_sd),
+                    y = y + stats::rnorm(dplyr::n(), mean = 0, sd = jitter_sd))
+  }else{
+    ly_final <- ly_final
+  }
   # combine
 
   graph_ly_final <- dplyr::bind_cols(
@@ -755,7 +796,9 @@ module_layout5 <- function(graph_obj,
                            center = TRUE,         # 第一个模块优先靠中心放
                            shrink = 0.9,          # 模块内轻度收紧
                            k_nn = 8,              # layout 邻接度（6~10合适）
-                           push_others_delta = 0.2#, # Others 外移量
+                           push_others_delta = 0.2, # Others 外移量
+                           jitter,
+                           jitter_sd
                            # seed = seed
 ){
   # set.seed(seed)
@@ -793,6 +836,14 @@ module_layout5 <- function(graph_obj,
 
   ly_final <- data.frame(x = layout$x,
                          y = layout$y)
+
+  if (isTRUE(jitter)) {
+    ly_final <- ly_final %>%
+      dplyr::mutate(x = x + stats::rnorm(dplyr::n(), mean = 0, sd = jitter_sd),
+                    y = y + stats::rnorm(dplyr::n(), mean = 0, sd = jitter_sd))
+  }else{
+    ly_final <- ly_final
+  }
 
   # combine
 
