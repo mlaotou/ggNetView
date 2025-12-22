@@ -164,7 +164,9 @@ ggNetView_multi_link <- function(mat,
                              layout = ly1,
                              center = center,
                              idx = idx,
-                             shrink = shrink# ,
+                             shrink = shrink,
+                             jitter,
+                             jitter_sd# ,
                              # seed = seed
       )
     }
@@ -175,7 +177,9 @@ ggNetView_multi_link <- function(mat,
                               center = center,
                               k_nn = k_nn,
                               push_others_delta = push_others_delta,
-                              shrink = shrink# ,
+                              shrink = shrink,
+                              jitter,
+                              jitter_sd
                               # seed = seed
       )
     }
@@ -186,7 +190,9 @@ ggNetView_multi_link <- function(mat,
                               center = center,
                               k_nn = k_nn,
                               push_others_delta = push_others_delta,
-                              shrink = shrink# ,
+                              shrink = shrink,
+                              jitter,
+                              jitter_sd
                               # seed = seed
       )
     }
@@ -197,7 +203,9 @@ ggNetView_multi_link <- function(mat,
                               center = center,
                               k_nn = k_nn,
                               push_others_delta = push_others_delta,
-                              shrink = shrink# ,
+                              shrink = shrink,
+                              jitter,
+                              jitter_sd
                               # seed = seed
       )
     }
@@ -209,6 +217,15 @@ ggNetView_multi_link <- function(mat,
 
   graph_list_length <- length(graph_list)
   graph_info_length <- length(graph_info)
+
+
+  ggNetView(
+    graph_obj = graph_list[[1]],
+    layout = "gephi",
+    group.by = "Modularity",
+    fill.by = "Phylum",
+    layout.module = "random"
+  )
 
 
   # # 在这里搜索一下三个组共有的ASV
@@ -372,6 +389,8 @@ ggNetView_multi_link <- function(mat,
 
   Module_information
 
+  # 那么可以直接进行可视化了
+
 
   # 主要是解析一下不同分组之间是否是有相同的变量，然后以后留着进行link的
 
@@ -506,7 +525,7 @@ ggNetView_multi_link <- function(mat,
                                xend = to_x + 1.5,
                                y = from_y + 1.5,
                                yend = to_y + 1.5),
-                 linewidth = 0.1)
+                 linewidth = 0.1) +
     ggnewscale::new_scale_fill() +
     geom_jitter(data = graph_info[["OE"]]$ggplot_node_df %>%
                  dplyr::mutate(
