@@ -101,8 +101,8 @@ ggNetView_multi_link <- function(mat,
   remove = FALSE
   orientation = "up"
   angle = 0
-  scale = T
-  anchor_dist = 6
+  scale = FALSE
+  anchor_dist = 2
   seed = 1115
   select_modules = 8
 
@@ -218,177 +218,128 @@ ggNetView_multi_link <- function(mat,
   graph_list_length <- length(graph_list)
   graph_info_length <- length(graph_info)
 
+  # 首先对3个进行比较
+  names(graph_list)
 
-  # ggNetView(
-  #   graph_obj = graph_list[[1]],
-  #   layout = "gephi",
-  #   group.by = "Modularity",
-  #   fill.by = "Phylum",
-  #   layout.module = "random"
-  # )
+  # 获区比较的分组
+  compare_matrix <- utils::combn(names(graph_list), 2)
 
-
-  # # 在这里搜索一下三个组共有的ASV
-  # insert_name <- Reduce(
-  #   intersect,
-  #   lapply(unique(group_info$Group), function(x){
-  #     graph_info[[x]]$ggplot_node_df$name
-  #   })
-  # )
-  #
-  # # 基于这个我们再探索一下这些共有的ID，隶属于哪个模块
-  # insert_module <- Reduce(
-  #   intersect,
-  #   purrr::map(unique(group_info$Group),
-  #              function(x){
-  #                top_module_tmp <- graph_list[[x]] %>%
-  #                  tidygraph::activate(nodes) %>%
-  #                  tidygraph::as_tibble() %>%
-  #                  tidygraph::pull(Modularity) %>%
-  #                  as.character() %>%
-  #                  table() %>%
-  #                  sort(., decreasing = T) %>%
-  #                  .[names(.) != "Others"] %>%
-  #                  .[1:select_modules] %>%
-  #                  names()
-  #
-  #                group_top_module_tmp <- graph_list[[x]] %>%
-  #                  tidygraph::activate(nodes) %>%
-  #                  tidygraph::as_tibble() %>%
-  #                  tidygraph::filter(name %in% insert_name) %>%
-  #                  tidygraph::pull(Modularity) %>%
-  #                  as.character() %>%
-  #                  table() %>%
-  #                  sort(., decreasing = T) %>%
-  #                  .[names(.) != "Others"] %>%
-  #                  .[1:select_modules] %>%
-  #                  names()
-  #                intersect(top_module_tmp,
-  #                          group_top_module_tmp)
-  #              })
-  # )
-  #
-  # insert_module
-  #
-  #
-  # tmp_insert_name_df <- dplyr::bind_rows(
-  #   graph_info[["KO"]]$ggplot_node_df %>%
-  #     dplyr::filter(name %in% insert_name) %>%
-  #     dplyr::mutate(Group = "KO") %>%
-  #     dplyr::select(name, Modularity, Group) %>%
-  #     dplyr::mutate(Modularity = as.character(Modularity)) %>%
-  #     dplyr::filter(Modularity != "Others"),
-  #   graph_info[["OE"]]$ggplot_node_df %>%
-  #     dplyr::filter(name %in% insert_name) %>%
-  #     dplyr::mutate(Group = "OE") %>%
-  #     dplyr::select(name, Modularity, Group) %>%
-  #     dplyr::mutate(Modularity = as.character(Modularity)) %>%
-  #     dplyr::filter(Modularity != "Others"),
-  #   graph_info[["WT"]]$ggplot_node_df %>%
-  #     dplyr::filter(name %in% insert_name) %>%
-  #     dplyr::mutate(Group = "WT") %>%
-  #     dplyr::select(name, Modularity, Group) %>%
-  #     dplyr::mutate(Modularity = as.character(Modularity)) %>%
-  #     dplyr::filter(Modularity != "Others")
-  # )
-  #
-  # table(tmp_insert_name_df$name,
-  #       tmp_insert_name_df$Group)
-  #
-  # tmp_insert_name_df %>%
-  #   dplyr::mutate(info = str_c(Group, Modularity, sep = "_")) %>%
-  #   dplyr::group_by(name) %>%
-  #   dplyr::mutate(tmp = str_c(info, collapse = ";")) %>%
-  #   dplyr::ungroup() %>%
-  #   dplyr::mutate(number = str_count(tmp, pattern = ";")) %>%
-  #   dplyr::filter(number != 0) %>%
-  #   dplyr::arrange(tmp) %>%
-  #   View()
-
-
-  # graph_info[["KO"]]$ggplot_node_df %>%
-  #   dplyr::select(name, Modularity) %>%
-  #   dplyr::mutate(Group = "KO") %>%
-  #   write.csv(file = "/Users/liuyue/Desktop/tmp/KO_info.csv",
-  #             quote = F,
-  #             row.names = F)
-  #
-  # graph_info[["OE"]]$ggplot_node_df %>%
-  #   dplyr::select(name, Modularity) %>%
-  #   dplyr::mutate(Group = "OE") %>%
-  #   write.csv(file = "/Users/liuyue/Desktop/tmp/OE_info.csv",
-  #             quote = F,
-  #             row.names = F)
-  #
-  # graph_info[["WT"]]$ggplot_node_df %>%
-  #   dplyr::select(name, Modularity) %>%
-  #   dplyr::mutate(Group = "WT") %>%
-  #   write.csv(file = "/Users/liuyue/Desktop/tmp/WT_info.csv",
-  #             quote = F,
-  #             row.names = F)
-
-  # graph_info[["WT"]]$ggplot_node_df %>%
-  #     dplyr::select(name, Modularity) %>%
-  #     dplyr::mutate(Group = "WT") %>%
-  #   dplyr::pull(Modularity) %>%
-  #   table() %>%
-  #   sort(., decreasing = T)
-  #
-  # graph_info[["OE"]]$ggplot_node_df %>%
-  #   dplyr::select(name, Modularity) %>%
-  #   dplyr::mutate(Group = "OE") %>%
-  #   dplyr::pull(Modularity) %>%
-  #   table() %>%
-  #   sort(., decreasing = T)
-
-  # WT vs OE
-  WT_OE <- compare_modules_by_overlap(graph_info[["WT"]]$ggplot_node_df %>%
+  compare_out_list <- list()
+  for (i in 1:dim(compare_matrix)[2]) {
+    print(compare_matrix[1,i])
+    print(compare_matrix[2,i])
+    tmp <- compare_modules_by_overlap(graph_info[[compare_matrix[1,i]]]$ggplot_node_df %>%
                                         dplyr::select(name, Modularity) %>%
-                                        dplyr::mutate(Group = "WT"),
-                                      graph_info[["OE"]]$ggplot_node_df %>%
+                                        dplyr::mutate(Group = compare_matrix[1,i]),
+                                      graph_info[[compare_matrix[2,i]]]$ggplot_node_df %>%
                                         dplyr::select(name, Modularity) %>%
-                                        dplyr::mutate(Group = "OE"))
-  WT_OE %>%
-    dplyr::filter(pvalue < 0.05) %>%
-    dplyr::mutate(Group = str_c("WT", "to", "OE", sep = "_"))
+                                        dplyr::mutate(Group = compare_matrix[2,i])) %>%
+      dplyr::mutate(Group = stringr::str_c(compare_matrix[1,i],
+                                           "to",
+                                           compare_matrix[2,i],
+                                           sep = "_"))
 
-  # WT vs KO
-  WT_KO <- compare_modules_by_overlap(graph_info[["WT"]]$ggplot_node_df %>%
-                                        dplyr::select(name, Modularity) %>%
-                                        dplyr::mutate(Group = "WT"),
-                                      graph_info[["KO"]]$ggplot_node_df %>%
-                                        dplyr::select(name, Modularity) %>%
-                                        dplyr::mutate(Group = "KO"))
+    compare_out_list[[stringr::str_c(compare_matrix[1,i],
+                                     "to",
+                                     compare_matrix[2,i],
+                                     sep = "_")]] <- tmp
 
-  WT_KO %>%
-    dplyr::filter(pvalue < 0.05) %>%
-    dplyr::mutate(Group = str_c("WT", "to", "KO", sep = "_"))
+  }
 
-  # KO vs OE
-  KO_OE <- compare_modules_by_overlap(graph_info[["KO"]]$ggplot_node_df %>%
-                                        dplyr::select(name, Modularity) %>%
-                                        dplyr::mutate(Group = "KO"),
-                                      graph_info[["OE"]]$ggplot_node_df %>%
-                                        dplyr::select(name, Modularity) %>%
-                                        dplyr::mutate(Group = "OE"))
-  KO_OE %>%
-    dplyr::filter(pvalue < 0.05) %>%
-    dplyr::mutate(Group = str_c("KO", "to", "OE", sep = "_"))
-
-  Module_information <- dplyr::bind_rows(
-    WT_OE %>%
-      dplyr::filter(pvalue < 0.05) %>%
-      dplyr::mutate(Group = str_c("WT", "to", "OE", sep = "_")),
-    WT_KO %>%
-      dplyr::filter(pvalue < 0.05) %>%
-      dplyr::mutate(Group = str_c("WT", "to", "KO", sep = "_")),
-    KO_OE %>%
-      dplyr::filter(pvalue < 0.05) %>%
-      dplyr::mutate(Group = str_c("KO", "to", "OE", sep = "_"))
-  )
+  Module_information <- do.call(rbind, compare_out_list) %>%
+    dplyr::filter(pvalue < 0.05)
 
   Module_information
 
+  # 是否是等齐的
+  if (isTRUE(scale)) {
+    # 如果需要做标准化的话, 把坐标都要归一化一下
+    for (i in names(graph_info)) {
+      graph_info[[i]]$ggplot_node_df <- graph_info[[i]]$ggplot_node_df %>%
+        dplyr::mutate(Group = i) %>%
+        dplyr::select(name, x, y, Group) %>%
+        dplyr::mutate(
+          ymin = min(y),
+          ymax = max(y),
+          xmin = min(x),
+          xmax = max(x),
+          xmind = (max(x) + min(x)) / 2,
+          ymind = (max(y) + min(y)) / 2,
+          scale_v = max(xmax - xmin, ymax - ymin),
+          x = (x - xmind)/scale_v,
+          y = (y - xmind)/scale_v
+        )
+
+      graph_info[[i]]$ggplot_edge_df <- graph_info[[i]]$ggplot_edge_df %>%
+        dplyr::mutate(xmid = unique(graph_info[[i]]$ggplot_node_df$xmind),
+                      ymid = unique(graph_info[[i]]$ggplot_node_df$ymind),
+                      scale_v = unique(graph_info[[i]]$ggplot_node_df$scale_v),
+                      from_x = (from_x - xmid)/scale_v,
+                      from_y = (from_y - ymid)/scale_v,
+                      to_x = (to_x - xmid)/scale_v,
+                      to_y = (to_y - ymid)/scale_v)
+
+    }
+    # jitter TRUE
+    if (isTRUE(jitter)) {
+      for (i in names(graph_info)) {
+        graph_info[[i]]$ggplot_node_df <- graph_info[[i]]$ggplot_node_df %>%
+          dplyr::mutate(
+            x = x + stats::rnorm(dplyr::n(), mean = 0, sd = jitter_sd),
+            y = y + stats::rnorm(dplyr::n(), mean = 0, sd = jitter_sd)
+          )
+
+        graph_info[[i]]$ggplot_edge_df <- graph_info[[i]]$ggplot_edge_df %>%
+          dplyr::mutate(
+                        from_x = from_x + stats::rnorm(dplyr::n(), mean = 0, sd = jitter_sd),
+                        from_y = from_y + stats::rnorm(dplyr::n(), mean = 0, sd = jitter_sd),
+                        to_x = to_x + stats::rnorm(dplyr::n(), mean = 0, sd = jitter_sd),
+                        to_y = to_y + stats::rnorm(dplyr::n(), mean = 0, sd = jitter_sd)
+          )
+      }
+    }
+  }
+
+  if (!isTRUE(scale)) {
+    # jitter TRUE
+    if (isTRUE(jitter)) {
+      for (i in names(graph_info)) {
+        graph_info[[i]]$ggplot_node_df <- graph_info[[i]]$ggplot_node_df %>%
+          dplyr::mutate(
+            x = x + stats::rnorm(dplyr::n(), mean = 0, sd = jitter_sd),
+            y = y + stats::rnorm(dplyr::n(), mean = 0, sd = jitter_sd)
+          )
+
+        graph_info[[i]]$ggplot_edge_df <- graph_info[[i]]$ggplot_edge_df %>%
+          dplyr::select(from, to, weight, correlation, corr_direction, from_id, to_id) %>%
+          dplyr::left_join(graph_info[[i]]$ggplot_node_df %>%
+                             dplyr::select(name, x, y),
+                           by = c("from_id" = "name")) %>%
+          dplyr::rename(from_x = x,
+                        from_y = y) %>%
+          dplyr::left_join(graph_info[[i]]$ggplot_node_df %>%
+                             dplyr::select(name, x, y),
+                           by = c("to_id" = "name")) %>%
+          dplyr::rename(to_x = x,
+                        to_y = y)
+      }
+    }
+  }
+
+
+  if (isTRUE(scale)) {
+    anchor_dist = 2
+  }else{
+    anchor_dist = anchor_dist * 15
+  }
+
+  # 寻找点
+  angles <- pi/2 - 2 * pi * (0:(graph_list_length - 1)) / graph_list_length
+  anchors <- lapply(angles, function(a) {
+    c(anchor_dist * cos(a), anchor_dist * sin(a))
+  })
+
+  # plot data
   # 那么可以直接进行可视化了
   # raw data to plot data
 
