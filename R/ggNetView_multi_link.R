@@ -394,8 +394,14 @@ ggNetView_multi_link <- function(mat,
 
   ggplot() +
     # WT point
+    geom_segment(data = graph_info[["WT"]]$ggplot_edge_df,
+                 mapping = aes(x = from_x, xend = to_x,
+                               y = from_y, yend = to_y),
+                 color = "#969696",
+                 alpha = 0.25
+    ) +
     geom_jitter(data = graph_info[["WT"]]$ggplot_node_df,
-                mapping = aes(x = x + 0, y = y - 0, fill = Modularity), shape = 21,
+                mapping = aes(x = x + 0, y = y - 0, fill = Modularity, size = Degree), shape = 21,
                 position = position_jitter(width = jitter_sd, height = jitter_sd)) +
     ggnewscale::new_scale_fill() +
     ggforce::geom_mark_circle(data = graph_info[["WT"]]$ggplot_node_df %>%
@@ -483,7 +489,14 @@ ggNetView_multi_link <- function(mat,
                           linewidth = 1,
                           color = "#7fbc41") +
     # OE point
+    ggnewscale::new_scale("size") +
     ggnewscale::new_scale_fill() +
+    geom_segment(data = graph_info[["OE"]]$ggplot_edge_df,
+                 mapping = aes(x = from_x -30, xend = to_x-30,
+                               y = from_y+30, yend = to_y+30),
+                 color = "#969696",
+                 alpha = 0.25
+    ) +
     geom_jitter(data = graph_info[["OE"]]$ggplot_node_df,
                 mapping = aes(x = x - 30, y = y + 30,  fill = Modularity), shape = 21,
                 position = position_jitter(width = jitter_sd, height = jitter_sd)) +
@@ -506,7 +519,14 @@ ggNetView_multi_link <- function(mat,
     ) +
 
     # KO point
+    ggnewscale::new_scale("size") +
     ggnewscale::new_scale_fill() +
+    geom_segment(data = graph_info[["KO"]]$ggplot_edge_df,
+                 mapping = aes(x = from_x +30, xend = to_x+30,
+                               y = from_y+30, yend = to_y+30),
+                 color = "#969696",
+                 alpha = 0.25
+    ) +
     geom_jitter(data = graph_info[["KO"]]$ggplot_node_df,
                 mapping = aes(x = x + 30, y = y + 30, fill = Modularity), shape = 21,
                 position = position_jitter(width = jitter_sd, height = jitter_sd)) +
