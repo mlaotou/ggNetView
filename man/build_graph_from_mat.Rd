@@ -40,7 +40,8 @@ Options include:
 \item{r.threshold}{Numeric.
 Correlation coefficient threshold; edges are kept only if |r| >= r.threshold.}
 
-\item{p.threshold}{Significance threshold for correlations; edges are kept only if p < p.threshold.}
+\item{p.threshold}{Numeric.
+Significance threshold for correlations; edges are kept only if p < p.threshold.}
 
 \item{method}{Character.
 Relationship analysis methods.

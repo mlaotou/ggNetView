@@ -15,7 +15,7 @@
 #' "rrarefy_relative" (rarefy then convert to relative abundance).
 #' @param r.threshold Numeric.
 #' Correlation coefficient threshold; edges are kept only if |r| >= r.threshold.
-#' @param p.threshold
+#' @param p.threshold Numeric.
 #' Significance threshold for correlations; edges are kept only if p < p.threshold.
 #' @param method Character.
 #' Relationship analysis methods.
@@ -34,13 +34,10 @@
 #' Options include "Fast_greedy", "Walktrap", "Edge_betweenness", and "Spinglass".
 #' @param SpiecEasi.method Character.
 #' Method used in \code{SpiecEasi} network inference; options include "mb" and "glasso".
-#'
 #' @param node_annotation Data frame.
 #' Optional node annotation table, containing metadata such as taxonomy or functional categories.
-#'
 #' @param top_modules Integer.
 #' Number of top-ranked modules to retain for downstream visualization or analysis.
-#'
 #' @param seed Integer (default = 1115).
 #' Random seed for reproducibility..
 #'

@@ -1,3 +1,99 @@
+#' Visualize multiple networks and show the connections between them to highlight key members within the networks
+#'
+#' @param mat Numeric matrix.
+#' A numeric matrix with samples in rows and variables in columns.
+#' @param group_info DataFrame
+#' The group information contains: Sample and Group
+#' @param transfrom.method Character.
+#'Data transformation methods applied before correlation analysis.
+#' Options include:
+#' "none" (raw data),
+#' "scale" (z-score standardization),
+#' "center" (mean centering only),
+#' "log2" (log2 transfrom),
+#' "log10" (log10 transfrom),
+#' "ln" (natural transfrom ),
+#' "rrarefy" (random rarefaction using \code{vegan::rrarefy}),
+#' "rrarefy_relative" (rarefy then convert to relative abundance).
+#' @param r.threshold Numeric.
+#' Correlation coefficient threshold; edges are kept only if |r| >= r.threshold.
+#' @param p.threshold Numeric.
+#' #' Significance threshold for correlations; edges are kept only if p < p.threshold.
+#' @param method Character.
+#' Relationship analysis methods.
+#' Options include: "WGCNA", "SpiecEasi", "SPARCC" and "cor".
+#' @param cor.method Character.
+#' Correlation analysis method.
+#' Options include "pearson", "kendall", and "spearman".
+#' @param proc  Character.
+#' Correlation p-value adjustment methods.
+#' Options include:
+#' "Bonferroni", "Holm", "Hochberg", "
+#' SidakSS", "SidakSD","BH",
+#' "BY", "ABH", and "TSBH".
+#' @param module.method Character.
+#' Network community detection (module identification) method.
+#' Options include "Fast_greedy", "Walktrap", "Edge_betweenness", and "Spinglass".
+#' @param SpiecEasi.method Character.
+#' Method used in \code{SpiecEasi} network inference; options include "mb" and "glasso".
+#' @param node_annotation Data frame.
+#' Optional node annotation table, containing metadata such as taxonomy or functional categories.
+#' @param top_modules Integer.
+#' Number of top-ranked modules to retain for downstream visualization or analysis.
+#' @param layout Character string.
+#' Custom layouts; one of "gephi", "square", "square2", "petal",
+#' "petal2", "heart_centered","diamond", "star", "star_concentric","rectangle,
+#' "rightiso_layers" etc.
+#' @param node_add Integer (default = 7).
+#' Number of nodes to add in each layer of the layout.
+#' @param ring_n Numeric (default = 7)
+#' Numbers of ring in rings layout.
+#' @param r Numeric (default = 1).
+#' Radius increment for concentric or layered layouts.
+#' @param center Logical (default = TRUE).
+#' Whether to place a node at the center of the layout.
+#' @param idx Optional.
+#' Index of nodes to be emphasized or centered in the layout
+#' @param shrink Numeric (default = 1).
+#' Shrinkage factor applied to the center points.
+#' @param k_nn Numeric (default = 8).
+#' Number of nearest neighbors used to build the local adjacency graph.
+#' @param push_others_delta Numeric (default = 0).
+#' Radial offset applied to the "Others" module to slightly
+#' @param layout.module Character  (default = "random")
+#‘ - random : modules are distributed more randomly and independently.
+#' - adjacent : modules are positioned close to each other, minimizing inter-module gaps.
+#' - order : modules are distributed by order, applicable to `Bipartite, Tripartite, Quadripartite, Multipartite, Pentapartite Layout`
+#' @param pointstroke Integer  (default = 0.3).
+#' @param group.by Character (default = "Modularity").
+#' Change group for nodes
+#' @param fill.by Character (default = "Modularity").
+#' Change fill for nodes
+#' @param jitter Logical (default = FALSE).
+#' Whether to apply jitter to points.
+#' @param jitter_sd  Integer  (default = 0.1).
+#' The standard deviation of the jitter applied when `jitter = TRUE`.
+#' @param mapping_line Logical (default = FALSE).
+#' Whether to mapping line in ggNetView.
+#' @param linealpha  Integer  (default = 0.25).
+#' Change  line alpha.
+#' @param linecolor Character  (default = "grey70").
+#' Change  line color.
+#' @param scale Logical  (default = T).
+#' modules applicable to `Bipartite, Tripartite, Quadripartite, Multipartite, Pentapartite Layout` to scale the radius
+#' @param orientation Character string.
+#' Custom orientation; one of "up","down","left","right".
+#' @param angle Integer  (default = 0).
+#' Change  orientation angle.
+#' @param anchor_dist Integer (default = 2)
+#' the distance of each modules, applicable to `Bipartite, Tripartite, Quadripartite, Multipartite, Pentapartite Layout`
+#' @param seed Integer (default = 1115).
+#' Random seed for reproducibility.
+#'
+#' @returns A ggplot object representing the network visualization.
+#' @export
+#'
+#' @examples NULL
 ggNetView_multi_link <- function(mat,
                                  group_info,
                                  transfrom.method = c("none", "scale", "center", "log2", "log10", "ln", "rrarefy", "rrarefy_relative"),
@@ -10,7 +106,6 @@ ggNetView_multi_link <- function(mat,
                                  SpiecEasi.method = c("mb", "glasso"),
                                  node_annotation = NULL,
                                  top_modules = 15,
-                                 select_modules = 8,
                                  layout = NULL,
                                  node_add = 7,
                                  ring_n = NULL,
@@ -21,95 +116,35 @@ ggNetView_multi_link <- function(mat,
                                  k_nn = 8,
                                  push_others_delta = 0,
                                  layout.module = c("random", "adjacent", "order"),
-                                 shape = 21,
-                                 pointalpha = 1,
-                                 pointsize = c(1,10),
-                                 pointstroke = 0.3,
                                  group.by = "Modularity",
                                  fill.by = "Modularity",
                                  jitter = FALSE,
                                  jitter_sd = 0.01,
                                  mapping_line = FALSE,
-                                 curve = F,
-                                 curvature = 0.25,
                                  linealpha = 0.25,
                                  linecolor = "grey70",
-                                 label = FALSE,
-                                 labelsize = 10,
-                                 labelsegmentsize = 1,
-                                 labelsegmentalpha = 1,
-                                 add_outer = FALSE,
-                                 outerwidth = 1.25,
-                                 outerlinetype = 2,
-                                 outeralpha = 0.5,
-                                 nodelabsize = 5,
-                                 remove = FALSE,
-                                 orientation = "up",
-                                 angle = 0,
                                  scale = T,
+                                 orientation = 0,
+                                 angle = 0,
                                  anchor_dist = 6,
-                                 seed = 1115,
-                                 nrow = NULL
+                                 seed = 1115
 ){
   # 参数
-  group_info <- otu_sample
 
-  mat = otu_rare_relative
-
-  transfrom.method = "none"
-  r.threshold = 0.7
-  p.threshold = 0.05
-  method = "WGCNA"
-  cor.method = "pearson"
-  proc = "BH"
-  module.method = "Fast_greedy"
-  SpiecEasi.method = "mb"
-  node_annotation = tax_tab
-  top_modules = 15
-  layout = "star"
-  node_add = 7
-  ring_n = NULL
-  r = 1
-  center = TRUE
-  idx = NULL
-  shrink = 0.5
-  k_nn = 8
-  push_others_delta = 0
-  layout.module = "adjacent"
-  shape = 21
-  pointalpha = 1
-  pointsize = c(1,10)
-  pointstroke = 0.3
-  group.by = "Modularity"
-  fill.by = "Modularity"
-  jitter = T
-  jitter_sd = 0.01
-  mapping_line = FALSE
-  curve = F
-  curvature = 0.25
-  linealpha = 0.25
-  linecolor = "grey70"
-  label = FALSE
-  labelsize = 10
-  labelsegmentsize = 1
-  labelsegmentalpha = 1
-  add_outer = FALSE
-  outerwidth = 1.25
-  outerlinetype = 2
-  outeralpha = 0.5
-  nodelabsize = 5
-  remove = FALSE
-  orientation = "up"
-  angle = 0
-  scale = T
-  anchor_dist = 1
-  seed = 1115
-  select_modules = 8
-
+  color_v <- c('#1f78b4', '#e7298a', '#41ab5d', '#807dba',
+               '#fb9a99', '#4eb3d3', '#bc80bd', '#e31a1c',
+               '#a6cee3', '#b2df8a', '#33a02c', '#fdbf6f',
+               '#ff7f00', '#cab2d6', '#6a3d9a', '#ffff99',
+               '#8dd3c7', '#ffffb3', '#bebada', '#fb8072',
+               '#80b1d3', '#fdb462', '#b3de69', '#fccde5',
+               '#d9d9d9', '#bc80bd', '#ccebc5', '#ffed6f'
+               )
 
   graph_list <- list()
 
   graph_info <- list()
+
+  graph_stat <- list()
 
   for (g in unique(group_info$Group)) {
     print(g)
@@ -213,10 +248,13 @@ ggNetView_multi_link <- function(mat,
     graph_list[[g]] <- graph
 
     graph_info[[g]] <- ly1_1$ggplot_data
+
+    graph_stat[[g]] <- stat_graph(graph, mapping_line)
   }
 
   graph_list_length <- length(graph_list)
   graph_info_length <- length(graph_info)
+  graph_stat_length <- length(graph_stat)
 
   # 首先对3个进行比较
   names(graph_list)
@@ -269,10 +307,6 @@ ggNetView_multi_link <- function(mat,
     as.data.frame() %>%
     purrr::set_names(c("x", "y"))
 
-  ggplot(data = anchors_df) +
-    geom_point(aes(x = x, y = y)) +
-    geom_line(aes(x = x, y = y, group = 1)) +
-    coord_fixed()
 
   # 是否是等齐的, 同时进行位置调整
   if (isTRUE(scale)) {
@@ -439,417 +473,103 @@ ggNetView_multi_link <- function(mat,
                                               fill = Modularity),
                                 n = 100,
                                 expand = unit(1, "mm")
-                                )
+                                ) +
+      ggplot2::annotate(geom = "text",
+                        x = mean(graph_info[[index]]$ggplot_node_df$x),
+                        y = max(graph_info[[index]]$ggplot_node_df$y) + anchor_dist/30,
+                        label = paste0("Group = ",names(graph_info[index]), "\n",
+                                       "Node = ", graph_stat[[index]]$node, "\n",
+                                       "Edge = ", graph_stat[[index]]$edge, "\n"),
+                        size = 4,
+                        fontface = "bold")
 
   }
 
   # 增加连线
+  tmpi = 1
   for (link_type in names(table(Module_information$Group))) {
 
-    Module_information %>%
-      dplyr::filter(Group == "KO_to_OE")
+    # get module
+    modA_tmp <- Module_information %>%
+      dplyr::filter(Group == link_type) %>%
+      dplyr::filter(modA!= "Others" | modB != "Others") %>%
+      dplyr::select(modA, GroupA) %>%
+      dplyr::pull(modA)
 
-    Module_information %>%
-      dplyr::filter(Group == "KO_to_WT")
+    GroupA_tmp <- Module_information %>%
+      dplyr::filter(Group == link_type) %>%
+      dplyr::filter(modA!= "Others" | modB != "Others") %>%
+      dplyr::select(modA, GroupA) %>%
+      dplyr::pull(GroupA) %>%
+      unique()
 
-    Module_information %>%
-      dplyr::filter(Group == "OE_to_WT")
+    modB_tmp <- Module_information %>%
+      dplyr::filter(Group == link_type) %>%
+      dplyr::filter(modA!= "Others" | modB != "Others") %>%
+      dplyr::select(modB, GroupB) %>%
+      dplyr::pull(modB)
+
+    GroupB_tmp <- Module_information %>%
+      dplyr::filter(Group == link_type) %>%
+      dplyr::filter(modA!= "Others" | modB != "Others") %>%
+      dplyr::select(modB, GroupB) %>%
+      dplyr::pull(GroupB) %>%
+      unique()
+
+    # compute location
+    Module_location <- Module_information %>%
+      dplyr::filter(Group == link_type) %>%
+      dplyr::filter(modA!= "Others" | modB != "Others") %>%
+      dplyr::left_join(
+        graph_info[[GroupA_tmp]]$ggplot_node_df %>%
+          dplyr::mutate(Modularity = as.character(Modularity)) %>%
+          dplyr::filter(Modularity %in% modA_tmp) %>%
+          dplyr::select(x, y, Modularity) %>%
+          dplyr::group_by(Modularity) %>%
+          dplyr::summarise(x_center = mean(x),
+                           y_center = mean(y)) %>%
+          purrr::set_names(c("GroupA_Module", "GroupA_x_center", "GroupA_y_center")),
+        by = c("modA" = "GroupA_Module")
+      ) %>%
+      dplyr::left_join(
+        graph_info[[GroupB_tmp]]$ggplot_node_df %>%
+          dplyr::mutate(Modularity = as.character(Modularity)) %>%
+          dplyr::filter(Modularity %in% modB_tmp) %>%
+          dplyr::select(x, y, Modularity) %>%
+          dplyr::group_by(Modularity) %>%
+          dplyr::summarise(x_center = mean(x),
+                           y_center = mean(y)) %>%
+          purrr::set_names(c("GroupB_Module", "GroupB_x_center", "GroupB_y_center")),
+        by = c("modB" = "GroupB_Module")
+      )
+
+    Module_location
+
+    p <- p + ggplot2::geom_segment(data = Module_location,
+                                   mapping = ggplot2::aes(x = GroupA_x_center,
+                                                          xend = GroupB_x_center,
+                                                          y = GroupA_y_center,
+                                                          yend = GroupB_y_center),
+                                   linetype = 2,
+                                   linewidth = 1,
+                                   color = color_v[tmpi])
+
+
+    tmpi = tmpi + 1
 
   }
 
   p <- p +
-    coord_fixed() +
-    theme_ggnetview()
+    coord_fixed(clip = F) +
+    theme_ggnetview() +
+    theme(legend.position = "none")
 
 
-  p
-
-
-
-
-
-  ggplot() +
-    # WT point
-    geom_segment(data = graph_info[["WT"]]$ggplot_edge_df,
-                 mapping = aes(x = from_x, xend = to_x,
-                               y = from_y, yend = to_y),
-                 color = "#969696",
-                 alpha = 0.25
-    ) +
-    geom_jitter(data = graph_info[["WT"]]$ggplot_node_df,
-                mapping = aes(x = x + 0, y = y - 0, fill = Modularity, size = Degree), shape = 21,
-                position = position_jitter(width = jitter_sd, height = jitter_sd)) +
-    ggnewscale::new_scale_fill() +
-    ggforce::geom_mark_circle(data = graph_info[["WT"]]$ggplot_node_df %>%
-                                dplyr::filter(name %in% (graph_list[["WT"]] %>%
-                                                           tidygraph::activate(nodes) %>%
-                                                           tidygraph::as_tibble() %>%
-                                                           dplyr::mutate(Modularity = as.character(Modularity)) %>%
-                                                           dplyr::filter(Modularity %in% (Module_information %>%
-                                                                                            dplyr::filter(str_starts(Group, pattern = "WT")) %>%
-                                                                                            dplyr::pull(modA) %>%
-                                                                                            unique() %>%
-                                                                                            .[.!= "Others"])
-                                                           ) %>%
-                                                           dplyr::pull(name))),
-                              mapping = aes(x = x + 0, y = y + 0, fill = Modularity),
-                              n = 100,
-                              expand = unit(1, "mm")
-    ) +
-    # WT to OE segment
-    ggplot2::geom_segment(data = Module_information %>%
-                            dplyr::filter(Group == "WT_to_OE") %>%
-                            dplyr::select(1,2) %>%
-                            # WT to OE, WT center point
-                            dplyr::left_join(graph_info[["WT"]]$ggplot_node_df %>%
-                                               dplyr::mutate(Modularity = as.character(Modularity)) %>%
-                                               dplyr::filter(Modularity%in% (Module_information %>%
-                                                                               dplyr::filter(Group == "WT_to_OE") %>%
-                                                                               dplyr::pull(modA) %>%
-                                                                               unique())) %>%
-                                               dplyr::group_by(Modularity) %>%
-                                               dplyr::summarise(x_center = mean(x),
-                                                                y_center = mean(y)) %>%
-                                               purrr::set_names(c("WT_Module", "WT_x_center", "WT_y_center")),
-                                             by = c("modA" = "WT_Module")) %>%
-                            # WT to OE, OE center point
-                            dplyr::left_join(graph_info[["OE"]]$ggplot_node_df %>%
-                                               dplyr::mutate(Modularity = as.character(Modularity)) %>%
-                                               dplyr::filter(Modularity%in% (Module_information %>%
-                                                                               dplyr::filter(Group == "WT_to_OE") %>%
-                                                                               dplyr::pull(modB) %>%
-                                                                               unique())) %>%
-                                               dplyr::group_by(Modularity) %>%
-                                               dplyr::summarise(x_center = mean(x)-30,
-                                                                y_center = mean(y)+30) %>%
-                                               purrr::set_names(c("OE_Module", "OE_x_center", "OE_y_center")),
-                                             by = c("modB" = "OE_Module")
-                            ),
-                          mapping = aes(x = WT_x_center, xend = OE_x_center,
-                                        y = WT_y_center, yend = OE_y_center),
-                          linetype = 2,
-                          linewidth = 1,
-                          color = "#c51b7d") +
-    # WT to KO segment
-    ggplot2::geom_segment(data = Module_information %>%
-                            dplyr::filter(Group == "WT_to_KO") %>%
-                            dplyr::select(1,2) %>%
-                            # WT to OE, WT center point
-                            dplyr::left_join(graph_info[["WT"]]$ggplot_node_df %>%
-                                               dplyr::mutate(Modularity = as.character(Modularity)) %>%
-                                               dplyr::filter(Modularity%in% (Module_information %>%
-                                                                               dplyr::filter(Group == "WT_to_KO") %>%
-                                                                               dplyr::pull(modA) %>%
-                                                                               unique())) %>%
-                                               dplyr::group_by(Modularity) %>%
-                                               dplyr::summarise(x_center = mean(x),
-                                                                y_center = mean(y)) %>%
-                                               purrr::set_names(c("WT_Module", "WT_x_center", "WT_y_center")),
-                                             by = c("modA" = "WT_Module")) %>%
-                            # WT to OE, OE center point
-                            dplyr::left_join(graph_info[["KO"]]$ggplot_node_df %>%
-                                               dplyr::mutate(Modularity = as.character(Modularity)) %>%
-                                               dplyr::filter(Modularity%in% (Module_information %>%
-                                                                               dplyr::filter(Group == "WT_to_KO") %>%
-                                                                               dplyr::pull(modB) %>%
-                                                                               unique())) %>%
-                                               dplyr::group_by(Modularity) %>%
-                                               dplyr::summarise(x_center = mean(x)+30,
-                                                                y_center = mean(y)+30) %>%
-                                               purrr::set_names(c("KO_Module", "KO_x_center", "KO_y_center")),
-                                             by = c("modB" = "KO_Module")
-                            ),
-                          mapping = aes(x = WT_x_center, xend = KO_x_center,
-                                        y = WT_y_center, yend = KO_y_center),
-                          linetype = 2,
-                          linewidth = 1,
-                          color = "#7fbc41") +
-    # OE point
-    ggnewscale::new_scale("size") +
-    ggnewscale::new_scale_fill() +
-    geom_segment(data = graph_info[["OE"]]$ggplot_edge_df,
-                 mapping = aes(x = from_x -30, xend = to_x-30,
-                               y = from_y+30, yend = to_y+30),
-                 color = "#969696",
-                 alpha = 0.25
-    ) +
-    geom_jitter(data = graph_info[["OE"]]$ggplot_node_df,
-                mapping = aes(x = x - 30, y = y + 30,  fill = Modularity), shape = 21,
-                position = position_jitter(width = jitter_sd, height = jitter_sd)) +
-    ggnewscale::new_scale_fill() +
-    ggforce::geom_mark_circle(data = graph_info[["OE"]]$ggplot_node_df %>%
-                                dplyr::filter(name %in% (graph_list[["OE"]] %>%
-                                                           tidygraph::activate(nodes) %>%
-                                                           tidygraph::as_tibble() %>%
-                                                           dplyr::mutate(Modularity = as.character(Modularity)) %>%
-                                                           dplyr::filter(Modularity %in% (Module_information %>%
-                                                                                            dplyr::filter(str_ends(Group, pattern = "OE")) %>%
-                                                                                            dplyr::pull(modB) %>%
-                                                                                            unique() %>%
-                                                                                            .[.!= "Others"])
-                                                           ) %>%
-                                                           dplyr::pull(name))),
-                              mapping = aes(x = x - 30, y = y + 30, fill = Modularity),
-                              n = 100,
-                              expand = unit(1, "mm")
-    ) +
-
-    # KO point
-    ggnewscale::new_scale("size") +
-    ggnewscale::new_scale_fill() +
-    geom_segment(data = graph_info[["KO"]]$ggplot_edge_df,
-                 mapping = aes(x = from_x +30, xend = to_x+30,
-                               y = from_y+30, yend = to_y+30),
-                 color = "#969696",
-                 alpha = 0.25
-    ) +
-    geom_jitter(data = graph_info[["KO"]]$ggplot_node_df,
-                mapping = aes(x = x + 30, y = y + 30, fill = Modularity), shape = 21,
-                position = position_jitter(width = jitter_sd, height = jitter_sd)) +
-    ggnewscale::new_scale_fill() +
-    ggforce::geom_mark_circle(data = graph_info[["KO"]]$ggplot_node_df %>%
-                                dplyr::filter(name %in% (graph_list[["KO"]] %>%
-                                                           tidygraph::activate(nodes) %>%
-                                                           tidygraph::as_tibble() %>%
-                                                           dplyr::mutate(Modularity = as.character(Modularity)) %>%
-                                                           dplyr::filter(Modularity %in% (c(Module_information %>%
-                                                                                              dplyr::filter(str_ends(Group, pattern = "KO")) %>%
-                                                                                              dplyr::pull(modB),
-                                                                                            Module_information %>%
-                                                                                              dplyr::filter(str_starts(Group, pattern = "KO")) %>%
-                                                                                              dplyr::pull(modA)) %>%
-                                                                                            unique() %>%
-                                                                                            .[.!= "Others"])
-                                                           ) %>%
-                                                           dplyr::pull(name))),
-                              mapping = aes(x = x + 30, y = y + 30, fill = Modularity),
-                              n = 100,
-                              expand = unit(1, "mm")
-    ) +
-
-    # KO to OE segment
-    ggplot2::geom_segment(data = Module_information %>%
-                            dplyr::filter(Group == "KO_to_OE") %>%
-                            dplyr::select(1,2) %>%
-                            dplyr::filter(modA!= "Others" & modB!= "Others") %>%
-                            # WT to OE, WT center point
-                            dplyr::left_join(graph_info[["KO"]]$ggplot_node_df %>%
-                                               dplyr::mutate(Modularity = as.character(Modularity)) %>%
-                                               dplyr::filter(Modularity%in% (Module_information %>%
-                                                                               dplyr::filter(Group == "KO_to_OE") %>%
-                                                                               dplyr::pull(modA) %>%
-                                                                               unique())) %>%
-                                               dplyr::group_by(Modularity) %>%
-                                               dplyr::summarise(x_center = mean(x)+30,
-                                                                y_center = mean(y)+30) %>%
-                                               purrr::set_names(c("KO_Module", "KO_x_center", "KO_y_center")),
-                                             by = c("modA" = "KO_Module")) %>%
-                            # WT to OE, OE center point
-                            dplyr::left_join(graph_info[["OE"]]$ggplot_node_df %>%
-                                               dplyr::mutate(Modularity = as.character(Modularity)) %>%
-                                               dplyr::filter(Modularity%in% (Module_information %>%
-                                                                               dplyr::filter(Group == "KO_to_OE") %>%
-                                                                               dplyr::pull(modB) %>%
-                                                                               unique())) %>%
-                                               dplyr::group_by(Modularity) %>%
-                                               dplyr::summarise(x_center = mean(x)-30,
-                                                                y_center = mean(y)+30) %>%
-                                               purrr::set_names(c("OE_Module", "OE_x_center", "OE_y_center")),
-                                             by = c("modB" = "OE_Module")
-                            ),
-                          mapping = aes(x = KO_x_center, xend = OE_x_center,
-                                        y = KO_y_center, yend = OE_y_center),
-                          linetype = 2,
-                          linewidth = 1,
-                          color = "#74add1") +
-
-    coord_fixed() +
-    theme_ggnetview()
-
-
-
-
-
-
-
-
-
-  # scaled data to plot
-
-
-
-
-  # 主要是解析一下不同分组之间是否是有相同的变量，然后以后留着进行link的
-
-  # test1 这种情况是仅仅做了平移，但是没有做标准化到统一尺度
-  tmp_df <- dplyr::bind_rows(
-    graph_info[["KO"]]$ggplot_node_df %>% dplyr::mutate(Group = "KO") %>% dplyr::select(name, x, y, Group) %>% dplyr::mutate(x = x + 30, y = y + 30),
-    graph_info[["OE"]]$ggplot_node_df %>% dplyr::mutate(Group = "OE") %>% dplyr::select(name, x, y, Group) %>% dplyr::mutate(x = x - 30, y = y + 30),
-    graph_info[["WT"]]$ggplot_node_df %>% dplyr::mutate(Group = "WT") %>% dplyr::select(name, x, y, Group) %>% dplyr::mutate(x = x + 0, y = y - 0),
-  )
-
-  # test 1
-  ggplot(data = tmp_df) +
-    geom_jitter(aes(x = x, y = y, color = Group), alpha = 1, position = position_jitter(width = jitter_sd, height = jitter_sd)) +
-    facet_wrap(~Group, scale = "free")
-
-  ggplot(data = tmp_df) +
-    geom_jitter(aes(x = x, y = y, color = Group), alpha = 1) +
-    coord_fixed() +
-    theme_ggnetview()
-
-
-  ggplot() +
-    geom_jitter(data = graph_info[["KO"]]$ggplot_node_df,
-               mapping = aes(x = x + 30, y = y + 30, fill = Modularity), shape = 21, position = position_jitter(width = jitter_sd, height = jitter_sd)) +
-    ggnewscale::new_scale_fill() +
-    geom_jitter(data = graph_info[["OE"]]$ggplot_node_df,
-               mapping = aes(x = x - 30, y = y + 30,  fill = Modularity), shape = 21, position = position_jitter(width = jitter_sd, height = jitter_sd)) +
-    ggnewscale::new_scale_fill() +
-    geom_jitter(data = graph_info[["WT"]]$ggplot_node_df,
-               mapping = aes(x = x + 0, y = y - 0, fill = Modularity), shape = 21, position = position_jitter(width = jitter_sd, height = jitter_sd)) +
-    coord_fixed() +
-    theme_ggnetview()
-
-  # test2 分别对每一个布局，进行标准化到同一尺度，然后再平移位置
-
-  tmp_df2 <- dplyr::bind_rows(
-    graph_info[["KO"]]$ggplot_node_df %>%
-      dplyr::mutate(Group = "KO") %>%
-      dplyr::select(name, x, y, Group) %>%
-      dplyr::mutate(
-        ymin = min(y),
-        ymax = max(y),
-        xmin = min(x),
-        xmax = max(x),
-        xmind = (max(x) + min(x)) / 2,
-        ymind = (max(y) + min(y)) / 2,
-        scale_v = max(xmax - xmin, ymax - ymin),
-        x = (x - xmind)/scale_v,
-        y = (y - xmind)/scale_v
-      ),
-    graph_info[["OE"]]$ggplot_node_df %>%
-      dplyr::mutate(Group = "OE") %>%
-      dplyr::select(name, x, y, Group) %>%
-      dplyr::mutate(
-        ymin = min(y),
-        ymax = max(y),
-        xmin = min(x),
-        xmax = max(x),
-        xmind = (max(x) + min(x)) / 2,
-        ymind = (max(y) + min(y)) / 2,
-        scale_v = max(xmax - xmin, ymax - ymin),
-        x = (x - xmind)/scale_v,
-        y = (y - xmind)/scale_v
-      ),
-    graph_info[["WT"]]$ggplot_node_df %>%
-      dplyr::mutate(Group = "WT") %>%
-      dplyr::select(name, x, y, Group) %>%
-      dplyr::mutate(
-        ymin = min(y),
-        ymax = max(y),
-        xmin = min(x),
-        xmax = max(x),
-        xmind = (max(x) + min(x)) / 2,
-        ymind = (max(y) + min(y)) / 2,
-        scale_v = max(xmax - xmin, ymax - ymin),
-        x = (x - xmind)/scale_v,
-        y = (y - xmind)/scale_v
-      )
-  )
-
-
-  ggplot() +
-    geom_point(data = tmp_df2 %>% dplyr::filter(Group == "KO"),
-               mapping = aes(x = x + 1, y = y + 1), shape = 21) +
-    ggnewscale::new_scale_fill() +
-    geom_point(data = tmp_df2 %>% dplyr::filter(Group == "OE"),
-               mapping = aes(x = x - 1, y = y + 1), shape = 21) +
-    ggnewscale::new_scale_fill() +
-    geom_point(data = tmp_df2 %>% dplyr::filter(Group == "WT"),
-               mapping = aes(x = x + 0, y = y - 0), shape = 21) +
-    coord_fixed() +
-    theme_ggnetview()
-
-  tmp_KO <- graph_info[["KO"]]$ggplot_node_df %>%
-    dplyr::mutate(
-      ymin = min(y),
-      ymax = max(y),
-      xmin = min(x),
-      xmax = max(x),
-      xmind = (max(x) + min(x)) / 2,
-      ymind = (max(y) + min(y)) / 2,
-      scale_v = max(xmax - xmin, ymax - ymin),
-      x = (x - xmind)/scale_v,
-      y = (y - xmind)/scale_v
+  return(
+    list(p = p,
+         info = as_tibble(Module_information)
+         )
     )
 
-  ggplot() +
-    geom_point(data = graph_info[["KO"]]$ggplot_node_df %>%
-                 dplyr::mutate(
-                   ymin = min(y),
-                   ymax = max(y),
-                   xmin = min(x),
-                   xmax = max(x),
-                   xmind = (max(x) + min(x)) / 2,
-                   ymind = (max(y) + min(y)) / 2,
-                   scale_v = max(xmax - xmin, ymax - ymin),
-                   x = (x - xmind)/scale_v,
-                   y = (y - xmind)/scale_v
-                 ),
-               mapping = aes(x = x + 1.5, y = y + 1.5, fill = Modularity), shape = 21,
-               # position = position_jitter(width = 0.1, height = 0.1)
-               ) +
-    geom_segment(data = graph_info[["KO"]]$ggplot_edge_df %>%
-                   dplyr::mutate(xmid = unique(tmp_KO$xmind),
-                                 ymid = unique(tmp_KO$ymind),
-                                 scale_v = unique(tmp_KO$scale_v),
-                                 from_x = (from_x - xmid)/scale_v,
-                                 from_y = (from_y - ymid)/scale_v,
-                                 to_x = (to_x - xmid)/scale_v,
-                                 to_y = (to_y - ymid)/scale_v),
-                 mapping = aes(x = from_x + 1.5,
-                               xend = to_x + 1.5,
-                               y = from_y + 1.5,
-                               yend = to_y + 1.5),
-                 linewidth = 0.1) +
-    ggnewscale::new_scale_fill() +
-    geom_jitter(data = graph_info[["OE"]]$ggplot_node_df %>%
-                 dplyr::mutate(
-                   ymin = min(y),
-                   ymax = max(y),
-                   xmin = min(x),
-                   xmax = max(x),
-                   xmind = (max(x) + min(x)) / 2,
-                   ymind = (max(y) + min(y)) / 2,
-                   scale_v = max(xmax - xmin, ymax - ymin),
-                   x = (x - xmind)/scale_v,
-                   y = (y - xmind)/scale_v
-                 ),
-               mapping = aes(x = x - 1.5, y = y + 1.5,  fill = Modularity), shape = 21,
-               position = position_jitter(width = 0.1, height = 0.1)) +
-    ggnewscale::new_scale_fill() +
-    geom_jitter(data = graph_info[["WT"]]$ggplot_node_df %>%
-                 dplyr::mutate(
-                   ymin = min(y),
-                   ymax = max(y),
-                   xmin = min(x),
-                   xmax = max(x),
-                   xmind = (max(x) + min(x)) / 2,
-                   ymind = (max(y) + min(y)) / 2,
-                   scale_v = max(xmax - xmin, ymax - ymin),
-                   x = (x - xmind)/scale_v,
-                   y = (y - xmind)/scale_v
-                 ),
-               mapping = aes(x = x + 0, y = y - 0, fill = Modularity), shape = 21,
-               position = position_jitter(width = 0.1, height = 0.1)) +
-    coord_fixed() +
-    theme_ggnetview()
-
-  tmp_df2$name[tmp_df2$name %>% table() >= 3]
-
-  tmp_df2 %>%
-    dplyr::filter(name %in% tmp_df2$name[tmp_df2$name %>% table() >= 3]) %>%
-    dplyr::pull()
 
 }
