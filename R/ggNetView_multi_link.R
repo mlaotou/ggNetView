@@ -28,7 +28,7 @@ ggNetView_multi_link <- function(mat,
                                  group.by = "Modularity",
                                  fill.by = "Modularity",
                                  jitter = FALSE,
-                                 jitter_sd = 0.1,
+                                 jitter_sd = 0.01,
                                  mapping_line = FALSE,
                                  curve = F,
                                  curvature = 0.25,
@@ -66,7 +66,7 @@ ggNetView_multi_link <- function(mat,
   SpiecEasi.method = "mb"
   node_annotation = tax_tab
   top_modules = 15
-  layout = "gephi"
+  layout = "star"
   node_add = 7
   ring_n = NULL
   r = 1
@@ -83,7 +83,7 @@ ggNetView_multi_link <- function(mat,
   group.by = "Modularity"
   fill.by = "Modularity"
   jitter = T
-  jitter_sd = 0.3
+  jitter_sd = 0.01
   mapping_line = FALSE
   curve = F
   curvature = 0.25
@@ -101,8 +101,8 @@ ggNetView_multi_link <- function(mat,
   remove = FALSE
   orientation = "up"
   angle = 0
-  scale = FALSE
-  anchor_dist = 2
+  scale = T
+  anchor_dist = 1
   seed = 1115
   select_modules = 8
 
@@ -247,17 +247,40 @@ ggNetView_multi_link <- function(mat,
   }
 
   Module_information <- do.call(rbind, compare_out_list) %>%
-    dplyr::filter(pvalue < 0.05)
+    dplyr::filter(pvalue < 0.05) %>%
+    tidyr::separate(col = Group, sep = "_", into = c("GroupA", "to", "GroupB"), remove = F) %>%
+    dplyr::select(-to)
 
   Module_information
 
-  # 是否是等齐的
+  if (isTRUE(scale)) {
+    anchor_dist = 1
+  }else{
+    anchor_dist = anchor_dist * 30
+  }
+
+  # 寻找点
+  angles <- pi/2 - 2 * pi * (0:(graph_list_length - 1)) / graph_list_length
+  anchors <- lapply(angles, function(a) {
+    c(anchor_dist * cos(a), anchor_dist * sin(a))
+  })
+
+  anchors_df <- do.call(rbind, anchors) %>%
+    as.data.frame() %>%
+    purrr::set_names(c("x", "y"))
+
+  ggplot(data = anchors_df) +
+    geom_point(aes(x = x, y = y)) +
+    geom_line(aes(x = x, y = y, group = 1)) +
+    coord_fixed()
+
+  # 是否是等齐的, 同时进行位置调整
   if (isTRUE(scale)) {
     # 如果需要做标准化的话, 把坐标都要归一化一下
-    for (i in names(graph_info)) {
+    for (i in seq_along(names(graph_info))) {
       graph_info[[i]]$ggplot_node_df <- graph_info[[i]]$ggplot_node_df %>%
-        dplyr::mutate(Group = i) %>%
-        dplyr::select(name, x, y, Group) %>%
+        dplyr::mutate(Group = names(graph_info)[i]) %>%
+        # dplyr::select(name, x, y, Group) %>%
         dplyr::mutate(
           ymin = min(y),
           ymax = max(y),
@@ -268,6 +291,10 @@ ggNetView_multi_link <- function(mat,
           scale_v = max(xmax - xmin, ymax - ymin),
           x = (x - xmind)/scale_v,
           y = (y - xmind)/scale_v
+        ) %>%
+        dplyr::mutate(
+          x = x + anchors_df[i,1],
+          y = y + anchors_df[i,2]
         )
 
       graph_info[[i]]$ggplot_edge_df <- graph_info[[i]]$ggplot_edge_df %>%
@@ -277,33 +304,18 @@ ggNetView_multi_link <- function(mat,
                       from_x = (from_x - xmid)/scale_v,
                       from_y = (from_y - ymid)/scale_v,
                       to_x = (to_x - xmid)/scale_v,
-                      to_y = (to_y - ymid)/scale_v)
+                      to_y = (to_y - ymid)/scale_v) %>%
+        dplyr::mutate(
+          from_x = from_x + anchors_df[i,1],
+          from_y = from_y + anchors_df[i,2],
+          to_x = to_x + anchors_df[i,1],
+          to_y = to_y + anchors_df[i,2]
+        )
 
     }
     # jitter TRUE
     if (isTRUE(jitter)) {
-      for (i in names(graph_info)) {
-        graph_info[[i]]$ggplot_node_df <- graph_info[[i]]$ggplot_node_df %>%
-          dplyr::mutate(
-            x = x + stats::rnorm(dplyr::n(), mean = 0, sd = jitter_sd),
-            y = y + stats::rnorm(dplyr::n(), mean = 0, sd = jitter_sd)
-          )
-
-        graph_info[[i]]$ggplot_edge_df <- graph_info[[i]]$ggplot_edge_df %>%
-          dplyr::mutate(
-                        from_x = from_x + stats::rnorm(dplyr::n(), mean = 0, sd = jitter_sd),
-                        from_y = from_y + stats::rnorm(dplyr::n(), mean = 0, sd = jitter_sd),
-                        to_x = to_x + stats::rnorm(dplyr::n(), mean = 0, sd = jitter_sd),
-                        to_y = to_y + stats::rnorm(dplyr::n(), mean = 0, sd = jitter_sd)
-          )
-      }
-    }
-  }
-
-  if (!isTRUE(scale)) {
-    # jitter TRUE
-    if (isTRUE(jitter)) {
-      for (i in names(graph_info)) {
+      for (i in seq_along(names(graph_info))) {
         graph_info[[i]]$ggplot_node_df <- graph_info[[i]]$ggplot_node_df %>%
           dplyr::mutate(
             x = x + stats::rnorm(dplyr::n(), mean = 0, sd = jitter_sd),
@@ -326,22 +338,135 @@ ggNetView_multi_link <- function(mat,
     }
   }
 
+  if (!isTRUE(scale)) {
+    for (i in seq_along(names(graph_info))) {
+      graph_info[[i]]$ggplot_node_df <- graph_info[[i]]$ggplot_node_df %>%
+        dplyr::mutate(
+          x = x + anchors_df[i,1],
+          y = y + anchors_df[i,2]
+        )
 
-  if (isTRUE(scale)) {
-    anchor_dist = 2
-  }else{
-    anchor_dist = anchor_dist * 15
+      graph_info[[i]]$ggplot_edge_df <- graph_info[[i]]$ggplot_edge_df %>%
+        dplyr::select(from, to, weight, correlation, corr_direction, from_id, to_id) %>%
+        dplyr::left_join(graph_info[[i]]$ggplot_node_df %>%
+                           dplyr::select(name, x, y),
+                         by = c("from_id" = "name")) %>%
+        dplyr::rename(from_x = x,
+                      from_y = y) %>%
+        dplyr::left_join(graph_info[[i]]$ggplot_node_df %>%
+                           dplyr::select(name, x, y),
+                         by = c("to_id" = "name")) %>%
+        dplyr::rename(to_x = x,
+                      to_y = y)
+
+    # jitter TRUE
+    if (isTRUE(jitter)) {
+      for (i in seq_along(names(graph_info))) {
+        graph_info[[i]]$ggplot_node_df <- graph_info[[i]]$ggplot_node_df %>%
+          dplyr::mutate(
+            x = x + stats::rnorm(dplyr::n(), mean = 0, sd = jitter_sd),
+            y = y + stats::rnorm(dplyr::n(), mean = 0, sd = jitter_sd)
+          )
+
+        graph_info[[i]]$ggplot_edge_df <- graph_info[[i]]$ggplot_edge_df %>%
+          dplyr::select(from, to, weight, correlation, corr_direction, from_id, to_id) %>%
+          dplyr::left_join(graph_info[[i]]$ggplot_node_df %>%
+                             dplyr::select(name, x, y),
+                           by = c("from_id" = "name")) %>%
+          dplyr::rename(from_x = x,
+                        from_y = y) %>%
+          dplyr::left_join(graph_info[[i]]$ggplot_node_df %>%
+                             dplyr::select(name, x, y),
+                           by = c("to_id" = "name")) %>%
+          dplyr::rename(to_x = x,
+                        to_y = y)
+       }
+     }
+    }
   }
 
-  # 寻找点
-  angles <- pi/2 - 2 * pi * (0:(graph_list_length - 1)) / graph_list_length
-  anchors <- lapply(angles, function(a) {
-    c(anchor_dist * cos(a), anchor_dist * sin(a))
-  })
+
+
 
   # plot data
   # 那么可以直接进行可视化了
   # raw data to plot data
+
+  p <- ggplot()
+
+  # 我们先添加点和线
+  for (index in seq_along(names(graph_info))) {
+    print(index)
+    print(names(graph_info[index]))
+    # plot link
+    p <- p +
+      ggnewscale::new_scale_fill() +
+      ggplot2::geom_segment(data = graph_info[[index]]$ggplot_edge_df,
+                            mapping = ggplot2::aes(x = from_x,
+                                                   xend = to_x,
+                                                   y = from_y,
+                                                   yend = to_y),
+                            color = linecolor,
+                            alpha = linealpha
+                            ) +
+      ggplot2::geom_point(data = graph_info[[index]]$ggplot_node_df,
+                          mapping = ggplot2::aes(x = x,
+                                                 y = y,
+                                                 fill = Modularity,
+                                                 size = Degree),
+                          shape = 21) +
+      ggnewscale::new_scale_fill() +
+      ggforce::geom_mark_circle(data = graph_info[[index]]$ggplot_node_df %>%
+                                  dplyr::filter(name %in% (graph_list[[index]] %>%
+                                                             tidygraph::activate(nodes) %>%
+                                                             tidygraph::as_tibble() %>%
+                                                             dplyr::mutate(Modularity = as.character(Modularity)) %>%
+                                                             dplyr::filter(Modularity %in% (
+                                                               Module_information %>%
+                                                                 dplyr::filter(str_detect(Group, pattern = names(graph_list)[index])) %>%
+                                                                 dplyr::filter(GroupA == names(graph_list)[index] | GroupB == names(graph_list)[index]) %>%
+                                                                 dplyr::mutate(mod_target = dplyr::case_when(
+                                                                   GroupA == names(graph_list)[index] ~ modA,
+                                                                   GroupB == names(graph_list)[index] ~ modB,
+                                                                   .default = NA
+                                                                 )) %>%
+                                                                 dplyr::pull(mod_target) %>%
+                                                                 unique() %>%
+                                                                 .[.!= "Others"])) %>%
+                                                             dplyr::pull(name))),
+                                mapping = aes(x = x,
+                                              y = y,
+                                              fill = Modularity),
+                                n = 100,
+                                expand = unit(1, "mm")
+                                )
+
+  }
+
+  # 增加连线
+  for (link_type in names(table(Module_information$Group))) {
+
+    Module_information %>%
+      dplyr::filter(Group == "KO_to_OE")
+
+    Module_information %>%
+      dplyr::filter(Group == "KO_to_WT")
+
+    Module_information %>%
+      dplyr::filter(Group == "OE_to_WT")
+
+  }
+
+  p <- p +
+    coord_fixed() +
+    theme_ggnetview()
+
+
+  p
+
+
+
+
 
   ggplot() +
     # WT point
