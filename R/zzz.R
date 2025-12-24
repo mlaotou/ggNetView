@@ -12,7 +12,7 @@
  ░███████   ░███████
 
 
-  ggNetView v0.11.1 (2025)
+  ggNetView v0.11.3 (2025)
   Developed by Jiawang's Network Visualization Group
 
   Maintainers:

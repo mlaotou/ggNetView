@@ -79,8 +79,13 @@
 #' modules applicable to `Bipartite, Tripartite, Quadripartite, Multipartite, Pentapartite Layout` to scale the radius
 #' @param anchor_dist Integer (default = 6)
 #' the distance of each modules, applicable to `Bipartite, Tripartite, Quadripartite, Multipartite, Pentapartite Layout`
+#' @param nrow Integer (default = NULL).
+#' the nrow of network with layout is "consensus_module_equal_gephi" or "consensus_module_gephi"
+#' @param ncol Integer (default = NULL).
+#' the ncol of network with layout is "consensus_module_equal_gephi" or "consensus_module_gephi"
 #' @param seed Integer (default = 1115).
 #' Random seed for reproducibility.
+#'
 
 #'
 #' @returns A ggplot object representing the network visualization.
@@ -125,6 +130,9 @@ ggNetView <- function(graph_obj,
                       angle = 0,
                       scale = T,
                       anchor_dist = 6,
+                      nrow = NULL,
+                      ncol = NULL,
+                      snake = FALSE,
                       seed = 1115
                       ){
 
@@ -145,13 +153,27 @@ ggNetView <- function(graph_obj,
   lay_func <- utils::getFromNamespace(func_name, "ggNetView")
 
   # get ly1
-  ly1 = lay_func(graph_obj = graph_obj,
-                 node_add = node_add,
-                 r = r,
-                 scale = scale,
-                 anchor_dist = anchor_dist,
-                 orientation = orientation,
-                 angle = angle)
+  if (layout == "consensus_module_equal_gephi" | layout == "consensus_module_gephi") {
+    ly1 = lay_func(graph_obj = graph_obj,
+                   node_add = node_add,
+                   r = r,
+                   scale = scale,
+                   anchor_dist = anchor_dist,
+                   orientation = orientation,
+                   angle = angle,
+                   nrow = nrow,
+                   ncol = ncol)
+  }else{
+    ly1 = lay_func(graph_obj = graph_obj,
+                   node_add = node_add,
+                   r = r,
+                   scale = scale,
+                   anchor_dist = anchor_dist,
+                   orientation = orientation,
+                   angle = angle)
+  }
+
+
 
   # get ly1_1
   # 圆形布局 添加模块化 获取模块

@@ -43,6 +43,9 @@ ggNetView(
   angle = 0,
   scale = T,
   anchor_dist = 6,
+  nrow = NULL,
+  ncol = NULL,
+  snake = FALSE,
   seed = 1115
 )
 }
@@ -162,6 +165,12 @@ modules applicable to `Bipartite, Tripartite, Quadripartite, Multipartite, Penta
 
 \item{anchor_dist}{Integer (default = 6)
 the distance of each modules, applicable to `Bipartite, Tripartite, Quadripartite, Multipartite, Pentapartite Layout`}
+
+\item{nrow}{Integer (default = NULL).
+the nrow of network with layout is "consensus_module_equal_gephi" or "consensus_module_gephi"}
+
+\item{ncol}{Integer (default = NULL).
+the ncol of network with layout is "consensus_module_equal_gephi" or "consensus_module_gephi"}
 
 \item{seed}{Integer (default = 1115).
 Random seed for reproducibility.}

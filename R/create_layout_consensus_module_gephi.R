@@ -5,7 +5,9 @@ create_layout_consensus_module_gephi <- function(
     anchor_dist = 10,
     node_add = 7,
     orientation = c("up","down","left","right"),
-    angle = 0){
+    angle = 0,
+    nrow = NULL,
+    ncol = NULL){
 
   orientation <- match.arg(orientation)
   base_angle <- switch(
@@ -31,13 +33,27 @@ create_layout_consensus_module_gephi <- function(
   module_list <- node_df %>%
     dplyr::group_split(Modularity)
 
-  n_vec <- purrr::map_int(module_list, nrow)
+  n_vec <- purrr::map_int(module_list, base::nrow)
   # module size
   n_mod <- length(n_vec)
 
-  # 自动计算行列数（尽量方形）
-  rows <- floor(sqrt(n_mod))
-  cols <- ceiling(n_mod / rows)
+  # ---- 计算 grid 的行列（支持 nrow/ncol）----
+  if (!is.null(nrow) && !is.null(ncol)) {
+    rows <- as.integer(nrow)
+    cols <- as.integer(ncol)
+  } else if (!is.null(nrow)) {
+    rows <- as.integer(nrow)
+    cols <- ceiling(n_mod / rows)
+  } else if (!is.null(ncol)) {
+    cols <- as.integer(ncol)
+    rows <- ceiling(n_mod / cols)
+  } else {
+    rows <- floor(sqrt(n_mod))
+    cols <- ceiling(n_mod / rows)
+  }
+
+  rows <- max(1L, rows)
+  cols <- max(1L, cols)
 
   # index：从 0 到 n_mod-1
   idx <- 0:(n_mod - 1)
@@ -47,6 +63,7 @@ create_layout_consensus_module_gephi <- function(
 
   # 列号（从 0 开始）
   col_id <- idx %% cols
+
 
   # 生成每个模块的锚点：在 grid 上均匀排布
   anchors <- lapply(seq_len(n_mod), function(i) {
