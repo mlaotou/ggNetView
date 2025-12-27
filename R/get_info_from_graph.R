@@ -11,7 +11,11 @@ get_info_from_graph <- function(graph_obj){
   # node info
   node_info <-  graph_obj %>%
     tidygraph::activate(nodes) %>%
-    tidygraph::as_tibble()
+    tidygraph::as_tibble() %>%
+    dplyr::select(-modularity,
+                  -modularity2,
+                  -modularity3
+                  )
 
   node_info2 <- graph_obj %>%
     tidygraph::activate(nodes) %>%
