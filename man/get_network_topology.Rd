@@ -4,17 +4,23 @@
 \alias{get_network_topology}
 \title{Create network topology}
 \usage{
-get_network_topology(graph_obj, bootstrap = 1000)
+get_network_topology(graph_obj, matrix, bootstrap = 100)
 }
 \arguments{
 \item{graph_obj}{An graph object from build_graph_from_mat or build_graph_from_df.
 The network object to be visualized.}
+
+\item{matrix}{The matrix to build graph_obj}
+
+\item{bootstrap}{Numeric  (default = 100).
+Number of bootstrap iterations for stability analysis}
 }
 \value{
 data frame of network topolog
 }
 \description{
-Create network topology
+Generates a data frame containing network topology information from either a
+pre-built graph object or directly from an adjacency matrix.
 }
 \examples{
 NULL
