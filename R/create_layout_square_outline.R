@@ -2,6 +2,7 @@ create_layout_square_outline <- function(
     graph_obj,
     r = 6,
     node_add = NULL,
+    scale = T,
     orientation = c("up","down","left","right"),
     anchor_dist = 10,
     angle = 0  # 弧度
