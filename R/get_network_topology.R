@@ -32,8 +32,6 @@ get_network_topology <- function(graph_obj,
   transfrom.method <-  match.arg(transfrom.method)
   cor.method <- match.arg(cor.method)
   proc <- match.arg(proc)
-  module.method <- match.arg(module.method)
-  SpiecEasi.method <- match.arg(SpiecEasi.method)
 
   # data transfrom
   mat <- switch (
