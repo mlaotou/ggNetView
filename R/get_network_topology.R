@@ -22,15 +22,7 @@ get_network_topology <- function(graph_obj,
                                  cor.method = c("pearson", "kendall", "spearman"),
                                  proc = c("Bonferroni", "Holm", "Hochberg", "SidakSS", "SidakSD","BH", "BY","ABH","TSBH"),
                                  bootstrap = 100){
-  graph_obj = graph_obj
-  mat = otu_rare_relative
-  transfrom.method = "none"
-  r.threshold = 0.7
-  p.threshold = 0.05
-  method = "WGCNA"
-  cor.method = "pearson"
-  proc = "Bonferroni"
-  bootstrap = 100
+
 
   # create igraph object
   ig <- tidygraph::as.igraph(graph_obj)
