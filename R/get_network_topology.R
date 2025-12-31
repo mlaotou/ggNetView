@@ -5,7 +5,7 @@
 #'
 #' @param graph_obj An graph object from build_graph_from_mat or build_graph_from_df.
 #'   The network object to be visualized.
-#' @param matrix The matrix to build graph_obj
+#' @param mat The matrix to build graph_obj
 #' @param bootstrap Numeric  (default = 100).
 #' Number of bootstrap iterations for stability analysis
 #'
@@ -14,12 +14,200 @@
 #'
 #' @examples NULL
 get_network_topology <- function(graph_obj,
-                                 matrix,
+                                 mat,
+                                 transfrom.method = c("none", "scale", "center", "log2", "log10", "ln", "rrarefy", "rrarefy_relative"),
+                                 r.threshold = 0.7,
+                                 p.threshold = 0.05,
+                                 method = c("WGCNA", "SpiecEasi", "SPARCC", "cor"),
+                                 cor.method = c("pearson", "kendall", "spearman"),
+                                 proc = c("Bonferroni", "Holm", "Hochberg", "SidakSS", "SidakSD","BH", "BY","ABH","TSBH"),
                                  bootstrap = 100){
+  graph_obj = graph_obj
+  mat = otu_rare_relative
+  transfrom.method = "none"
+  r.threshold = 0.7
+  p.threshold = 0.05
+  method = "WGCNA"
+  cor.method = "pearson"
+  proc = "Bonferroni"
+  bootstrap = 100
 
   # create igraph object
   ig <- tidygraph::as.igraph(graph_obj)
 
+
+
+  # argument check
+  transfrom.method <-  match.arg(transfrom.method)
+  cor.method <- match.arg(cor.method)
+  proc <- match.arg(proc)
+  module.method <- match.arg(module.method)
+  SpiecEasi.method <- match.arg(SpiecEasi.method)
+
+  # data transfrom
+  mat <- switch (
+    transfrom.method,
+    none = mat,
+    scale = t(scale(t(mat), scale = T, center = T)),
+    center = t(scale(t(mat), scale = F, center = T)),
+    log2 = log2(mat + 1),
+    log10 = log10(mat + 1),
+    ln = log(mat + 1),
+    rrarefy = t(vegan::rrarefy(t(mat), min(colSums(mat)))),
+    rrarefy_relative = t(vegan::rrarefy(t(mat), min(colSums(mat)))) / colSums(t(vegan::rrarefy(t(mat), min(colSums(mat)))))
+  )
+
+  # calculate correlation
+
+  # WGCNA
+  if (method == "WGCNA") {
+    sp.ra <- colMeans(t(mat))
+
+    # WGCNA for correlation
+    occor <- WGCNA::corAndPvalue(t(mat), method = cor.method)
+    mtadj <- multtest::mt.rawp2adjp(unlist(occor$p),proc=proc)
+    adpcor <- mtadj$adjp[order(mtadj$index),2]
+    occor.p <- matrix(adpcor, dim(t(mat))[2])
+
+    # R and pvalue
+    occor.r <- occor$cor
+    diag(occor.r) <- 0
+    occor.r[occor.p > p.threshold | abs(occor.r) < r.threshold] = 0
+    occor.r[is.na(occor.r)]=0
+
+    network.raw <- occor.r[colSums(abs(occor.r)) > 0, colSums(abs(occor.r)) > 0]
+    sp.ra2 <- sp.ra[colSums(abs(occor.r))>0]
+
+  }
+
+  # SpiecEasi
+  if (method == "SpiecEasi") {
+    sp.ra <- colMeans(t(mat))
+    # SpiecEasi for correlation
+    SpiecEasi_obj <- SpiecEasi::spiec.easi(as.matrix(t(mat)),
+                                           method = SpiecEasi.method,
+                                           lambda.min.ratio=1e-2,
+                                           nlambda=20,
+                                           pulsar.params=list(rep.num=50)
+    )
+
+    # return adjacency matrix
+    am <- SpiecEasi::getRefit(SpiecEasi_obj)
+
+    rownames(am) <- rownames(mat)
+    colnames(am) <- rownames(mat)
+
+    am2 <- am*(abs(am) >= r.threshold)
+
+    am2[is.na(am2)] <- 0
+    diag(am2) <- 0
+    sum(abs(am2) > 0) / 2
+    sum(colSums(abs(am2)) > 0)
+
+    network.raw <- am2[colSums(abs(am2)) > 0,colSums(abs(am2)) > 0]
+    sp.ra2<-sp.ra[colSums(abs(am2)) > 0]
+    sum(row.names(network.raw) == names(sp.ra2))
+
+  }
+
+  # SparCC
+  if (method == "SparCC") {
+    sp.ra <- colMeans(t(mat))
+    # Sparcc for correlation
+    SparCC_obj <- SpiecEasi::sparcc(as.matrix(t(mat)))
+
+    SparCC_graph <- abs(SparCC_obj$Cor) >= r.threshold
+
+    diag(SparCC_graph) <- 0
+
+    rownames(SparCC_graph) <- rownames(mat)
+    colnames(SparCC_graph) <- rownames(mat)
+
+    SparCC_graph <- Matrix::Matrix(SparCC_graph, sparse=TRUE)
+
+    SparCC_graph2 <- SparCC_graph
+
+    SparCC_graph2[is.na(SparCC_graph2)] <- 0
+    diag(SparCC_graph2) <- 0
+    sum(abs(SparCC_graph2) > 0) / 2
+    sum(colSums(abs(SparCC_graph2)) > 0)
+
+    network.raw <- SparCC_graph2[colSums(abs(SparCC_graph2)) > 0,colSums(abs(SparCC_graph2)) > 0]
+    sp.ra2<-sp.ra[colSums(abs(SparCC_graph2)) > 0]
+  }
+
+  # cor
+  if (method == "cor") {
+    sp.ra <- colMeans(t(mat))
+    # Cor for correlation
+    occor <- psych::corr.test(t(mat), method = cor.method)
+    mtadj <- multtest::mt.rawp2adjp(unlist(occor$p),proc=proc)
+    adpcor <- mtadj$adjp[order(mtadj$index),2]
+    occor.p <- matrix(adpcor, dim(t(mat))[2])
+
+    # R and pvalue
+    occor.r <- occor$r
+    diag(occor.r) <- 0
+    occor.r[occor.p > p.threshold | abs(occor.r) < r.threshold] = 0
+    occor.r[is.na(occor.r)]=0
+
+    network.raw <- occor.r[colSums(abs(occor.r)) > 0, colSums(abs(occor.r)) > 0]
+    sp.ra2 <- sp.ra[colSums(abs(occor.r))>0]
+
+  }
+
+  .rand.remov.once<-function(netRaw, rm.percent, sp.ra, abundance.weighted=T){
+    id.rm<-sample(1:nrow(netRaw), round(nrow(netRaw)*rm.percent))
+    net.Raw=netRaw
+    net.Raw[id.rm,]=0;  net.Raw[,id.rm]=0;
+    if (abundance.weighted){
+      net.stength= net.Raw*sp.ra
+    } else {
+      net.stength= net.Raw
+    }
+
+    sp.meanInteration<-colMeans(net.stength)
+
+    id.rm2<- which(sp.meanInteration<=0)
+    remain.percent<-(nrow(netRaw)-length(id.rm2))/nrow(netRaw)
+
+    remain.percent
+  }
+
+
+  .rmsimu<-function(netRaw, rm.p.list, sp.ra, abundance.weighted=T,bootstrap=bootstrap){
+    t(sapply(rm.p.list,function(x){
+      remains=sapply(1:bootstrap,function(i){
+        .rand.remov.once(netRaw=netRaw, rm.percent=x, sp.ra=sp.ra, abundance.weighted=abundance.weighted)
+      })
+      remain.mean=mean(remains)
+      remain.sd=sd(remains)
+      remain.se=sd(remains)/(bootstrap^0.5)
+      result<-c(remain.mean,remain.sd,remain.se)
+      names(result)<-c("remain.mean","remain.sd","remain.se")
+      result
+    }))
+  }
+
+
+  Weighted.simu <- .rmsimu(netRaw=network.raw,
+                           rm.p.list=seq(0.05,1,by=0.05),
+                           sp.ra=sp.ra2,
+                           abundance.weighted=T,
+                           bootstrap=bootstrap)
+
+  Unweighted.simu <- .rmsimu(netRaw=network.raw,
+                             rm.p.list=seq(0.05,1,by=0.05),
+                             sp.ra=sp.ra2,
+                             abundance.weighted=F,
+                             bootstrap=bootstrap)
+
+  robustness <- data.frame(Proportion.removed = rep(seq(0.05,1,by=0.05),2),
+                           rbind(Weighted.simu, Unweighted.simu),
+                           weighted=rep(c("weighted", "unweighted"), each=length(seq(0.05,1,by=0.05)))
+                           )
+
+  # function
   .network.efficiency <- function(ig){
     dd <- 1/igraph::distances(ig)
     diag(dd) <- NA
@@ -43,7 +231,6 @@ get_network_topology <- function(graph_obj,
     }
     return(count)
   }
-
 
   # get node and edge number
   .get_topology <- function(ig){
@@ -121,11 +308,13 @@ get_network_topology <- function(graph_obj,
 
     # Robustness
     ## Robustness_weight
+    robustness_weight = mean(as.data.frame(Weighted.simu)[["remain.mean"]])
 
     ## Robustness_unweight
-
+    robustness_unweight = mean(as.data.frame(Unweighted.simu)[["remain.mean"]])
 
     # Vulenrability
+    vulenrability = max(.info.centrality.vertex(ig))
 
 
     # Stability
@@ -151,9 +340,9 @@ get_network_topology <- function(graph_obj,
       Network_info.centrality = network_info.centrality,
       Cohension_Positive = NA,
       Cohension_Negative = NA,
-      Robustness_weight = NA,
-      Robustness_unweight = NA,
-      Vulenrability = NA,
+      Robustness_weight = robustness_weight,
+      Robustness_unweight = robustness_unweight,
+      Vulenrability = vulenrability,
       Stability = NA
       )
 
@@ -181,7 +370,13 @@ get_network_topology <- function(graph_obj,
                                        directed = F,
                                        loops = F)
     # 获取属性
-    random_topology[[i]] <- .get_topology(ig = random_graph)
+    random_topology[[i]] <- .get_topology(ig = random_graph) %>%
+      dplyr::mutate(Robustness_weight = NA,
+                    Robustness_unweight = NA,
+                    Cohension_Positive = NA,
+                    Cohension_Negative = NA
+                    )
+
   }
 
   random_topology_df <- do.call(rbind, random_topology)
@@ -195,10 +390,14 @@ get_network_topology <- function(graph_obj,
 
 
   # output topology
-  out <- dplyr::left_join(network_topology,
-                          random_topology_df_mean,
-                          by = "Topology"
-                          )
+  topology_df <- dplyr::left_join(network_topology,
+                                  random_topology_df_mean,
+                                  by = "Topology"
+                                  )
+
+  out <-  list(topology = topology_df,
+               Robustness = robustness
+ )
 
   return(out)
 
