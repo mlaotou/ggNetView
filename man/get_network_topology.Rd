@@ -4,13 +4,25 @@
 \alias{get_network_topology}
 \title{Create network topology}
 \usage{
-get_network_topology(graph_obj, matrix, bootstrap = 100)
+get_network_topology(
+  graph_obj,
+  mat,
+  transfrom.method = c("none", "scale", "center", "log2", "log10", "ln", "rrarefy",
+    "rrarefy_relative"),
+  r.threshold = 0.7,
+  p.threshold = 0.05,
+  method = c("WGCNA", "SpiecEasi", "SPARCC", "cor"),
+  cor.method = c("pearson", "kendall", "spearman"),
+  proc = c("Bonferroni", "Holm", "Hochberg", "SidakSS", "SidakSD", "BH", "BY", "ABH",
+    "TSBH"),
+  bootstrap = 100
+)
 }
 \arguments{
 \item{graph_obj}{An graph object from build_graph_from_mat or build_graph_from_df.
 The network object to be visualized.}
 
-\item{matrix}{The matrix to build graph_obj}
+\item{mat}{The matrix to build graph_obj}
 
 \item{bootstrap}{Numeric  (default = 100).
 Number of bootstrap iterations for stability analysis}

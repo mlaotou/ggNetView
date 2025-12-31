@@ -36,7 +36,6 @@ get_network_topology <- function(graph_obj,
   ig <- tidygraph::as.igraph(graph_obj)
 
 
-
   # argument check
   transfrom.method <-  match.arg(transfrom.method)
   cor.method <- match.arg(cor.method)
@@ -190,22 +189,48 @@ get_network_topology <- function(graph_obj,
   }
 
 
-  Weighted.simu <- .rmsimu(netRaw=network.raw,
-                           rm.p.list=seq(0.05,1,by=0.05),
-                           sp.ra=sp.ra2,
-                           abundance.weighted=T,
-                           bootstrap=bootstrap)
+  .cohension_compute <- function(network.raw){
 
-  Unweighted.simu <- .rmsimu(netRaw=network.raw,
-                             rm.p.list=seq(0.05,1,by=0.05),
-                             sp.ra=sp.ra2,
-                             abundance.weighted=F,
-                             bootstrap=bootstrap)
+    ASV_Correlation <- network.raw %>%
+      as.data.frame() %>%
+      tibble::rownames_to_column(var = "ASV") %>%
+      tidyr::pivot_longer(cols = -ASV, values_to = "Correlation", names_to = "ASV_to") %>%
+      dplyr::filter(ASV != ASV_to) %>%
+      dplyr::filter(Correlation != 0) %>%
+      dplyr::group_by(ASV) %>%
+      dplyr::mutate(r_pos_mean = mean(if_else(Correlation > 0, Correlation, 0), na.rm = T),
+                    r_neg_mean = mean(if_else(Correlation < 0, Correlation, 0), na.rm = T),
+                    t_total = mean(if_else(Correlation < 0, abs(Correlation), abs(Correlation)), na.rm = T)) %>%
+      dplyr::ungroup()  %>%
+      dplyr::distinct(ASV, .keep_all = T) %>%
+      dplyr::select(1,4,5,6)
 
-  robustness <- data.frame(Proportion.removed = rep(seq(0.05,1,by=0.05),2),
-                           rbind(Weighted.simu, Unweighted.simu),
-                           weighted=rep(c("weighted", "unweighted"), each=length(seq(0.05,1,by=0.05)))
-                           )
+
+
+    relative_abundance_df <- mat %>%
+      as.data.frame() %>%
+      tibble::rownames_to_column(var = "ASV") %>%
+      tidyr::pivot_longer(cols = -ASV, values_to = "relative_abundance", names_to = "Groups") %>%
+      dplyr::group_by(ASV) %>%
+      dplyr::summarise(mean_relative_abundance = mean(relative_abundance))
+
+
+    ASV_cohensition <- ASV_Correlation %>%
+      dplyr::left_join(relative_abundance_df, by = "ASV") %>%
+      dplyr::mutate(positive_cohension = r_pos_mean * mean_relative_abundance,
+                    negative_cohension = r_neg_mean * mean_relative_abundance,
+                    total_cohension = t_total * mean_relative_abundance
+                    )
+
+    cohension_list <- list(
+      cohension_position = mean(ASV_cohensition$positive_cohension[ASV_cohensition$positive_cohension != 0]),
+      cohension_negative = mean(ASV_cohensition$negative_cohension[ASV_cohensition$negative_cohension != 0])
+    )
+
+
+    return(cohension_list)
+  }
+
 
   # function
   .network.efficiency <- function(ig){
@@ -224,7 +249,7 @@ get_network_topology <- function(graph_obj,
     }
     count <- c()
     for(i in 1:length(igraph::V(ig))){
-      count <- c(count, (net-.network.efficiency(igraph::delete_vertices(ig, i)))/net)
+      count <- c(count, (net - .network.efficiency(igraph::delete_vertices(ig, i)))/net)
       if(verbose){
         print(paste("node",i,"current\ info\ score", count[i], collapse="\t"))
       }
@@ -301,10 +326,10 @@ get_network_topology <- function(graph_obj,
 
     # Cohension
     ## Positive Cohension
-
+    position_cohension <- cohesion_out$cohension_position
 
     ## Negative Cohension
-
+    negative_cohension <- cohesion_out$cohension_negative
 
     # Robustness
     ## Robustness_weight
@@ -338,18 +363,39 @@ get_network_topology <- function(graph_obj,
       K_core_min = kcore_min,
       Network_efficiency = network_efficiency,
       Network_info.centrality = network_info.centrality,
-      Cohension_Positive = NA,
-      Cohension_Negative = NA,
+      Cohension_Positive = position_cohension,
+      Cohension_Negative = negative_cohension,
       Robustness_weight = robustness_weight,
       Robustness_unweight = robustness_unweight,
       Vulenrability = vulenrability,
-      Stability = NA
+      Stability = mean(robustness_weight, robustness_unweight)
       )
 
     return(out)
 
 
   }
+
+  # compute
+  Weighted.simu <- .rmsimu(netRaw=network.raw,
+                           rm.p.list=seq(0.05,1,by=0.05),
+                           sp.ra=sp.ra2,
+                           abundance.weighted=T,
+                           bootstrap=bootstrap)
+
+  Unweighted.simu <- .rmsimu(netRaw=network.raw,
+                             rm.p.list=seq(0.05,1,by=0.05),
+                             sp.ra=sp.ra2,
+                             abundance.weighted=F,
+                             bootstrap=bootstrap)
+
+  robustness <- data.frame(Proportion.removed = rep(seq(0.05,1,by=0.05),2),
+                           rbind(Weighted.simu, Unweighted.simu),
+                           weighted=rep(c("weighted", "unweighted"), each=length(seq(0.05,1,by=0.05)))
+  )
+
+  cohesion_out <- .cohension_compute(network.raw = network.raw)
+
 
   # node topology
   network_topology <- .get_topology(ig = ig) %>%
@@ -374,7 +420,8 @@ get_network_topology <- function(graph_obj,
       dplyr::mutate(Robustness_weight = NA,
                     Robustness_unweight = NA,
                     Cohension_Positive = NA,
-                    Cohension_Negative = NA
+                    Cohension_Negative = NA,
+                    Stability = NA
                     )
 
   }
@@ -400,6 +447,5 @@ get_network_topology <- function(graph_obj,
  )
 
   return(out)
-
 
 }
