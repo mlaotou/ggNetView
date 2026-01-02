@@ -386,7 +386,7 @@ get_network_topology <- function(graph_obj,
       Robustness_weight = robustness_weight,
       Robustness_unweight = robustness_unweight,
       Vulenrability = vulenrability,
-      Stability = mean(robustness_weight, robustness_unweight)
+      Stability = mean(c(robustness_weight, robustness_unweight))
       )
 
     return(out)
@@ -395,17 +395,32 @@ get_network_topology <- function(graph_obj,
   }
 
   # compute
-  Weighted.simu <- .rmsimu(netRaw=network.raw,
-                           rm.p.list=seq(0.05,1,by=0.05),
-                           sp.ra=sp.ra2,
-                           abundance.weighted=T,
-                           bootstrap=bootstrap)
+  if (is.null(mat)) {
+    Weighted.simu <- data.frame(
+      remain.mean = NA,
+      remain.sd = NA,
+      remain.se = NA
+    )
 
-  Unweighted.simu <- .rmsimu(netRaw=network.raw,
+    Unweighted.simu <- data.frame(
+      remain.mean = NA,
+      remain.sd = NA,
+      remain.se = NA
+    )
+
+  }else{
+    Weighted.simu <- .rmsimu(netRaw=network.raw,
                              rm.p.list=seq(0.05,1,by=0.05),
                              sp.ra=sp.ra2,
-                             abundance.weighted=F,
+                             abundance.weighted=T,
                              bootstrap=bootstrap)
+
+    Unweighted.simu <- .rmsimu(netRaw=network.raw,
+                               rm.p.list=seq(0.05,1,by=0.05),
+                               sp.ra=sp.ra2,
+                               abundance.weighted=F,
+                               bootstrap=bootstrap)
+  }
 
   robustness <- data.frame(Proportion.removed = rep(seq(0.05,1,by=0.05),2),
                            rbind(Weighted.simu, Unweighted.simu),
