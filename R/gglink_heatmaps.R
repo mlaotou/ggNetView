@@ -702,7 +702,7 @@ gglink_heatmaps <- function(
     )
 
   p2 <- p0 +
-    ggplot2::new_scale_fill() +
+    ggnewscale::new_scale_fill() +
     ggplot2::geom_curve(data = cor_spec_env_location,
                mapping = aes(x = x, y = y, xend = x_to, yend = y_to, color = Correlation, linetype = p_signif),
                alpha = 0.5,

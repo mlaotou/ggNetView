@@ -44,7 +44,7 @@ library(ggNetView)
 #>  ░███████   ░███████
 #> 
 #> 
-#>   ggNetView v0.1.0 (2025)
+#>   ggNetView v1.1.1 (2026)
 #>   Developed by Jiawang's Network Visualization Group
 #> 
 #>   Maintainers:
@@ -159,7 +159,7 @@ p1 <- ggNetView(
 p1
 ```
 
-<img src="man/figures/README-unnamed-chunk-8-1.png" width="100%" style="display: block; margin: auto;" />
+<img src="man/figures/README-unnamed-chunk-8-1.png" alt="" width="100%" style="display: block; margin: auto;" />
 
 ``` r
 p2 <- ggNetView(
@@ -189,7 +189,7 @@ p2
 #> data's fill values.
 ```
 
-<img src="man/figures/README-unnamed-chunk-9-1.png" width="100%" style="display: block; margin: auto;" />
+<img src="man/figures/README-unnamed-chunk-9-1.png" alt="" width="100%" style="display: block; margin: auto;" />
 
 ``` r
 p3 <- ggNetView(
@@ -219,7 +219,7 @@ p3
 #> data's fill values.
 ```
 
-<img src="man/figures/README-unnamed-chunk-10-1.png" width="100%" style="display: block; margin: auto;" />
+<img src="man/figures/README-unnamed-chunk-10-1.png" alt="" width="100%" style="display: block; margin: auto;" />
 
 ### Step5: save plot
 
@@ -268,7 +268,7 @@ out1 <- gglink_heatmaps(
 out1[[1]]
 ```
 
-<img src="man/figures/README-unnamed-chunk-12-1.png" width="100%" style="display: block; margin: auto;" />
+<img src="man/figures/README-unnamed-chunk-12-1.png" alt="" width="100%" style="display: block; margin: auto;" />
 
 ## Example3
 
@@ -292,7 +292,7 @@ out2 <- gglink_heatmaps(
 out2[[2]]
 ```
 
-<img src="man/figures/README-unnamed-chunk-13-1.png" width="100%" style="display: block; margin: auto;" />
+<img src="man/figures/README-unnamed-chunk-13-1.png" alt="" width="100%" style="display: block; margin: auto;" />
 
 ## sessionInfo
 
@@ -316,49 +316,49 @@ sessionInfo()
 #> [1] stats     graphics  grDevices utils     datasets  methods   base     
 #> 
 #> other attached packages:
-#> [1] ggnewscale_0.5.2 ggplot2_4.0.1    ggNetView_0.1.0 
+#> [1] ggnewscale_0.5.2 ggplot2_4.0.1    ggNetView_1.1.1 
 #> 
 #> loaded via a namespace (and not attached):
-#>   [1] mnormt_2.1.1            DBI_1.2.3               deldir_2.0-4           
-#>   [4] gridExtra_2.3           rlang_1.1.6             magrittr_2.0.4         
-#>   [7] spatstat.geom_3.6-0     matrixStats_1.5.0       compiler_4.5.1         
-#>  [10] RSQLite_2.4.3           png_0.1-8               vctrs_0.6.5            
-#>  [13] stringr_1.6.0           pkgconfig_2.0.3         crayon_1.5.3           
-#>  [16] fastmap_1.2.0           backports_1.5.0         XVector_0.48.0         
-#>  [19] labeling_0.4.3          ggraph_2.2.2            utf8_1.2.6             
-#>  [22] rmarkdown_2.30          UCSC.utils_1.4.0        preprocessCore_1.70.0  
-#>  [25] purrr_1.2.0             bit_4.6.0               xfun_0.54              
-#>  [28] cachem_1.1.0            GenomeInfoDb_1.44.3     jsonlite_2.0.0         
-#>  [31] goftest_1.2-3           blob_1.2.4              spatstat.utils_3.2-0   
-#>  [34] tweenr_2.0.3            psych_2.5.6             parallel_4.5.1         
-#>  [37] cluster_2.1.8.1         R6_2.6.1                spatstat.data_3.1-8    
-#>  [40] stringi_1.8.7           RColorBrewer_1.1-3      spatstat.univar_3.1-4  
-#>  [43] rpart_4.1.24            Rcpp_1.1.0              iterators_1.0.14       
-#>  [46] knitr_1.50              tensor_1.5.1            WGCNA_1.73             
-#>  [49] base64enc_0.1-3         IRanges_2.42.0          FNN_1.1.4.1            
-#>  [52] Matrix_1.7-4            splines_4.5.1           nnet_7.3-20            
-#>  [55] igraph_2.2.1            tidyselect_1.2.1        abind_1.4-8            
-#>  [58] viridis_0.6.5           rstudioapi_0.17.1       dichromat_2.0-0.1      
-#>  [61] yaml_2.3.10             spatstat.random_3.4-2   spatstat.explore_3.5-3 
-#>  [64] doParallel_1.0.17       codetools_0.2-20        lattice_0.22-7         
-#>  [67] tibble_3.3.0            Biobase_2.68.0          withr_3.0.2            
-#>  [70] KEGGREST_1.48.1         S7_0.2.1                evaluate_1.0.5         
-#>  [73] foreign_0.8-90          survival_3.8-3          polyclip_1.10-7        
-#>  [76] Biostrings_2.76.0       pillar_1.11.1           checkmate_2.3.3        
-#>  [79] foreach_1.5.2           stats4_4.5.1            generics_0.1.4         
-#>  [82] S4Vectors_0.46.0        scales_1.4.0            glue_1.8.0             
-#>  [85] Hmisc_5.2-4             tools_4.5.1             data.table_1.17.8      
-#>  [88] graphlayouts_1.2.2      fastcluster_1.3.0       tidygraph_1.3.1        
-#>  [91] grid_4.5.1              impute_1.82.0           tidyr_1.3.1            
-#>  [94] AnnotationDbi_1.70.0    colorspace_2.1-2        nlme_3.1-168           
-#>  [97] GenomeInfoDbData_1.2.14 ggforce_0.5.0           htmlTable_2.4.3        
-#> [100] Formula_1.2-5           cli_3.6.5               spatstat.sparse_3.1-0  
-#> [103] mascarade_0.2.1         viridisLite_0.4.2       dplyr_1.1.4            
-#> [106] gtable_0.3.6            dynamicTreeCut_1.63-1   digest_0.6.39          
-#> [109] BiocGenerics_0.54.0     ggrepel_0.9.6           htmlwidgets_1.6.4      
-#> [112] farver_2.1.2            memoise_2.0.1           htmltools_0.5.8.1      
-#> [115] multtest_2.64.0         lifecycle_1.0.4         httr_1.4.7             
-#> [118] GO.db_3.21.0            bit64_4.6.0-1           MASS_7.3-65
+#>   [1] mnormt_2.1.1           DBI_1.2.3              deldir_2.0-4          
+#>   [4] gridExtra_2.3          rlang_1.1.6            magrittr_2.0.4        
+#>   [7] otel_0.2.0             spatstat.geom_3.6-1    matrixStats_1.5.0     
+#>  [10] compiler_4.5.1         RSQLite_2.4.5          png_0.1-8             
+#>  [13] vctrs_0.6.5            stringr_1.6.0          pkgconfig_2.0.3       
+#>  [16] crayon_1.5.3           fastmap_1.2.0          backports_1.5.0       
+#>  [19] XVector_0.50.0         labeling_0.4.3         ggraph_2.2.2          
+#>  [22] utf8_1.2.6             rmarkdown_2.30         preprocessCore_1.70.0 
+#>  [25] purrr_1.2.0            bit_4.6.0              xfun_0.55             
+#>  [28] cachem_1.1.0           goftest_1.2-3          blob_1.2.4            
+#>  [31] spatstat.utils_3.2-0   tweenr_2.0.3           psych_2.5.6           
+#>  [34] parallel_4.5.1         cluster_2.1.8.1        R6_2.6.1              
+#>  [37] spatstat.data_3.1-9    stringi_1.8.7          RColorBrewer_1.1-3    
+#>  [40] spatstat.univar_3.1-5  rpart_4.1.24           Rcpp_1.1.0            
+#>  [43] Seqinfo_1.0.0          iterators_1.0.14       knitr_1.51            
+#>  [46] tensor_1.5.1           WGCNA_1.73             base64enc_0.1-3       
+#>  [49] IRanges_2.44.0         FNN_1.1.4.1            Matrix_1.7-4          
+#>  [52] splines_4.5.1          nnet_7.3-20            igraph_2.2.1          
+#>  [55] tidyselect_1.2.1       abind_1.4-8            rstudioapi_0.17.1     
+#>  [58] dichromat_2.0-0.1      yaml_2.3.12            viridis_0.6.5         
+#>  [61] spatstat.random_3.4-3  spatstat.explore_3.6-0 doParallel_1.0.17     
+#>  [64] codetools_0.2-20       lattice_0.22-7         tibble_3.3.0          
+#>  [67] Biobase_2.70.0         withr_3.0.2            KEGGREST_1.50.0       
+#>  [70] S7_0.2.1               evaluate_1.0.5         foreign_0.8-90        
+#>  [73] survival_3.8-3         polyclip_1.10-7        Biostrings_2.78.0     
+#>  [76] pillar_1.11.1          checkmate_2.3.3        foreach_1.5.2         
+#>  [79] stats4_4.5.1           generics_0.1.4         S4Vectors_0.48.0      
+#>  [82] scales_1.4.0           glue_1.8.0             Hmisc_5.2-4           
+#>  [85] tools_4.5.1            data.table_1.18.0      fastcluster_1.3.0     
+#>  [88] graphlayouts_1.2.2     tidygraph_1.3.1        grid_4.5.1            
+#>  [91] impute_1.82.0          tidyr_1.3.2            AnnotationDbi_1.72.0  
+#>  [94] colorspace_2.1-2       nlme_3.1-168           ggforce_0.5.0         
+#>  [97] htmlTable_2.4.3        Formula_1.2-5          cli_3.6.5             
+#> [100] spatstat.sparse_3.1-0  mascarade_0.2.999      viridisLite_0.4.2     
+#> [103] dplyr_1.1.4            gtable_0.3.6           dynamicTreeCut_1.63-1 
+#> [106] digest_0.6.39          BiocGenerics_0.56.0    ggrepel_0.9.6         
+#> [109] htmlwidgets_1.6.4      farver_2.1.2           memoise_2.0.1         
+#> [112] htmltools_0.5.9        multtest_2.64.0        lifecycle_1.0.4       
+#> [115] httr_1.4.7             GO.db_3.22.0           bit64_4.6.0-1         
+#> [118] MASS_7.3-65
 ```
 
 #### Citation
