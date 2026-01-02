@@ -5,7 +5,8 @@
 #'
 #' @param graph_obj An graph object from build_graph_from_mat or build_graph_from_df.
 #'   The network object to be visualized.
-#' @param mat The matrix to build graph_obj
+#' @param mat Numeric Matrix (default = NULL)
+#' The matrix to build graph_obj
 #' @param bootstrap Numeric  (default = 100).
 #' Number of bootstrap iterations for stability analysis
 #'
@@ -14,7 +15,7 @@
 #'
 #' @examples NULL
 get_network_topology <- function(graph_obj,
-                                 mat,
+                                 mat = NULL,
                                  transfrom.method = c("none", "scale", "center", "log2", "log10", "ln", "rrarefy", "rrarefy_relative"),
                                  r.threshold = 0.7,
                                  p.threshold = 0.05,
@@ -27,123 +28,150 @@ get_network_topology <- function(graph_obj,
   # create igraph object
   ig <- tidygraph::as.igraph(graph_obj)
 
-
   # argument check
-  transfrom.method <-  match.arg(transfrom.method)
-  cor.method <- match.arg(cor.method)
-  proc <- match.arg(proc)
+  # transfrom.method <-  match.arg(transfrom.method)
+  # cor.method <- match.arg(cor.method)
+  # proc <- match.arg(proc)
 
-  # data transfrom
-  mat <- switch (
-    transfrom.method,
-    none = mat,
-    scale = t(scale(t(mat), scale = T, center = T)),
-    center = t(scale(t(mat), scale = F, center = T)),
-    log2 = log2(mat + 1),
-    log10 = log10(mat + 1),
-    ln = log(mat + 1),
-    rrarefy = t(vegan::rrarefy(t(mat), min(colSums(mat)))),
-    rrarefy_relative = t(vegan::rrarefy(t(mat), min(colSums(mat)))) / colSums(t(vegan::rrarefy(t(mat), min(colSums(mat)))))
-  )
+  if (is.null(mat)) {
+    graph_obj = graph_obj
 
-  # calculate correlation
+    network.raw = NULL
 
-  # WGCNA
-  if (method == "WGCNA") {
-    sp.ra <- colMeans(t(mat))
-
-    # WGCNA for correlation
-    occor <- WGCNA::corAndPvalue(t(mat), method = cor.method)
-    mtadj <- multtest::mt.rawp2adjp(unlist(occor$p),proc=proc)
-    adpcor <- mtadj$adjp[order(mtadj$index),2]
-    occor.p <- matrix(adpcor, dim(t(mat))[2])
-
-    # R and pvalue
-    occor.r <- occor$cor
-    diag(occor.r) <- 0
-    occor.r[occor.p > p.threshold | abs(occor.r) < r.threshold] = 0
-    occor.r[is.na(occor.r)]=0
-
-    network.raw <- occor.r[colSums(abs(occor.r)) > 0, colSums(abs(occor.r)) > 0]
-    sp.ra2 <- sp.ra[colSums(abs(occor.r))>0]
-
-  }
-
-  # SpiecEasi
-  if (method == "SpiecEasi") {
-    sp.ra <- colMeans(t(mat))
-    # SpiecEasi for correlation
-    SpiecEasi_obj <- SpiecEasi::spiec.easi(as.matrix(t(mat)),
-                                           method = SpiecEasi.method,
-                                           lambda.min.ratio=1e-2,
-                                           nlambda=20,
-                                           pulsar.params=list(rep.num=50)
+    cohesion_out <- data.frame(
+      cohension_position = NA,
+      cohension_negative = NA
     )
 
-    # return adjacency matrix
-    am <- SpiecEasi::getRefit(SpiecEasi_obj)
+    Weighted.simu <- data.frame(
+      remain.mean = NA,
+      remain.sd = NA,
+      remain.se = NA
+    )
 
-    rownames(am) <- rownames(mat)
-    colnames(am) <- rownames(mat)
+    Unweighted.simu <- data.frame(
+      remain.mean = NA,
+      remain.sd = NA,
+      remain.se = NA
+    )
 
-    am2 <- am*(abs(am) >= r.threshold)
 
-    am2[is.na(am2)] <- 0
-    diag(am2) <- 0
-    sum(abs(am2) > 0) / 2
-    sum(colSums(abs(am2)) > 0)
 
-    network.raw <- am2[colSums(abs(am2)) > 0,colSums(abs(am2)) > 0]
-    sp.ra2<-sp.ra[colSums(abs(am2)) > 0]
-    sum(row.names(network.raw) == names(sp.ra2))
+  }else{
+    # data transfrom
+    mat <- switch (
+      transfrom.method,
+      none = mat,
+      scale = t(scale(t(mat), scale = T, center = T)),
+      center = t(scale(t(mat), scale = F, center = T)),
+      log2 = log2(mat + 1),
+      log10 = log10(mat + 1),
+      ln = log(mat + 1),
+      rrarefy = t(vegan::rrarefy(t(mat), min(colSums(mat)))),
+      rrarefy_relative = t(vegan::rrarefy(t(mat), min(colSums(mat)))) / colSums(t(vegan::rrarefy(t(mat), min(colSums(mat)))))
+    )
 
+    # calculate correlation
+
+    # WGCNA
+    if (method == "WGCNA") {
+      sp.ra <- colMeans(t(mat))
+
+      # WGCNA for correlation
+      occor <- WGCNA::corAndPvalue(t(mat), method = cor.method)
+      mtadj <- multtest::mt.rawp2adjp(unlist(occor$p),proc=proc)
+      adpcor <- mtadj$adjp[order(mtadj$index),2]
+      occor.p <- matrix(adpcor, dim(t(mat))[2])
+
+      # R and pvalue
+      occor.r <- occor$cor
+      diag(occor.r) <- 0
+      occor.r[occor.p > p.threshold | abs(occor.r) < r.threshold] = 0
+      occor.r[is.na(occor.r)]=0
+
+      network.raw <- occor.r[colSums(abs(occor.r)) > 0, colSums(abs(occor.r)) > 0]
+      sp.ra2 <- sp.ra[colSums(abs(occor.r))>0]
+
+    }
+
+    # SpiecEasi
+    if (method == "SpiecEasi") {
+      sp.ra <- colMeans(t(mat))
+      # SpiecEasi for correlation
+      SpiecEasi_obj <- SpiecEasi::spiec.easi(as.matrix(t(mat)),
+                                             method = SpiecEasi.method,
+                                             lambda.min.ratio=1e-2,
+                                             nlambda=20,
+                                             pulsar.params=list(rep.num=50)
+      )
+
+      # return adjacency matrix
+      am <- SpiecEasi::getRefit(SpiecEasi_obj)
+
+      rownames(am) <- rownames(mat)
+      colnames(am) <- rownames(mat)
+
+      am2 <- am*(abs(am) >= r.threshold)
+
+      am2[is.na(am2)] <- 0
+      diag(am2) <- 0
+      sum(abs(am2) > 0) / 2
+      sum(colSums(abs(am2)) > 0)
+
+      network.raw <- am2[colSums(abs(am2)) > 0,colSums(abs(am2)) > 0]
+      sp.ra2<-sp.ra[colSums(abs(am2)) > 0]
+      sum(row.names(network.raw) == names(sp.ra2))
+
+    }
+
+    # SparCC
+    if (method == "SparCC") {
+      sp.ra <- colMeans(t(mat))
+      # Sparcc for correlation
+      SparCC_obj <- SpiecEasi::sparcc(as.matrix(t(mat)))
+
+      SparCC_graph <- abs(SparCC_obj$Cor) >= r.threshold
+
+      diag(SparCC_graph) <- 0
+
+      rownames(SparCC_graph) <- rownames(mat)
+      colnames(SparCC_graph) <- rownames(mat)
+
+      SparCC_graph <- Matrix::Matrix(SparCC_graph, sparse=TRUE)
+
+      SparCC_graph2 <- SparCC_graph
+
+      SparCC_graph2[is.na(SparCC_graph2)] <- 0
+      diag(SparCC_graph2) <- 0
+      sum(abs(SparCC_graph2) > 0) / 2
+      sum(colSums(abs(SparCC_graph2)) > 0)
+
+      network.raw <- SparCC_graph2[colSums(abs(SparCC_graph2)) > 0,colSums(abs(SparCC_graph2)) > 0]
+      sp.ra2<-sp.ra[colSums(abs(SparCC_graph2)) > 0]
+    }
+
+    # cor
+    if (method == "cor") {
+      sp.ra <- colMeans(t(mat))
+      # Cor for correlation
+      occor <- psych::corr.test(t(mat), method = cor.method)
+      mtadj <- multtest::mt.rawp2adjp(unlist(occor$p),proc=proc)
+      adpcor <- mtadj$adjp[order(mtadj$index),2]
+      occor.p <- matrix(adpcor, dim(t(mat))[2])
+
+      # R and pvalue
+      occor.r <- occor$r
+      diag(occor.r) <- 0
+      occor.r[occor.p > p.threshold | abs(occor.r) < r.threshold] = 0
+      occor.r[is.na(occor.r)]=0
+
+      network.raw <- occor.r[colSums(abs(occor.r)) > 0, colSums(abs(occor.r)) > 0]
+      sp.ra2 <- sp.ra[colSums(abs(occor.r))>0]
+
+    }
   }
 
-  # SparCC
-  if (method == "SparCC") {
-    sp.ra <- colMeans(t(mat))
-    # Sparcc for correlation
-    SparCC_obj <- SpiecEasi::sparcc(as.matrix(t(mat)))
 
-    SparCC_graph <- abs(SparCC_obj$Cor) >= r.threshold
-
-    diag(SparCC_graph) <- 0
-
-    rownames(SparCC_graph) <- rownames(mat)
-    colnames(SparCC_graph) <- rownames(mat)
-
-    SparCC_graph <- Matrix::Matrix(SparCC_graph, sparse=TRUE)
-
-    SparCC_graph2 <- SparCC_graph
-
-    SparCC_graph2[is.na(SparCC_graph2)] <- 0
-    diag(SparCC_graph2) <- 0
-    sum(abs(SparCC_graph2) > 0) / 2
-    sum(colSums(abs(SparCC_graph2)) > 0)
-
-    network.raw <- SparCC_graph2[colSums(abs(SparCC_graph2)) > 0,colSums(abs(SparCC_graph2)) > 0]
-    sp.ra2<-sp.ra[colSums(abs(SparCC_graph2)) > 0]
-  }
-
-  # cor
-  if (method == "cor") {
-    sp.ra <- colMeans(t(mat))
-    # Cor for correlation
-    occor <- psych::corr.test(t(mat), method = cor.method)
-    mtadj <- multtest::mt.rawp2adjp(unlist(occor$p),proc=proc)
-    adpcor <- mtadj$adjp[order(mtadj$index),2]
-    occor.p <- matrix(adpcor, dim(t(mat))[2])
-
-    # R and pvalue
-    occor.r <- occor$r
-    diag(occor.r) <- 0
-    occor.r[occor.p > p.threshold | abs(occor.r) < r.threshold] = 0
-    occor.r[is.na(occor.r)]=0
-
-    network.raw <- occor.r[colSums(abs(occor.r)) > 0, colSums(abs(occor.r)) > 0]
-    sp.ra2 <- sp.ra[colSums(abs(occor.r))>0]
-
-  }
 
   .rand.remov.once<-function(netRaw, rm.percent, sp.ra, abundance.weighted=T){
     id.rm<-sample(1:nrow(netRaw), round(nrow(netRaw)*rm.percent))
@@ -384,7 +412,18 @@ get_network_topology <- function(graph_obj,
                            weighted=rep(c("weighted", "unweighted"), each=length(seq(0.05,1,by=0.05)))
   )
 
-  cohesion_out <- .cohension_compute(network.raw = network.raw)
+
+  if (is.null(network.raw)) {
+
+    cohesion_out <- data.frame(
+      cohension_position = NA,
+      cohension_negative = NA
+    )
+
+  }else{
+    cohesion_out <- .cohension_compute(network.raw = network.raw)
+  }
+
 
 
   # node topology

@@ -6,7 +6,7 @@
 \usage{
 get_network_topology(
   graph_obj,
-  mat,
+  mat = NULL,
   transfrom.method = c("none", "scale", "center", "log2", "log10", "ln", "rrarefy",
     "rrarefy_relative"),
   r.threshold = 0.7,
@@ -22,7 +22,8 @@ get_network_topology(
 \item{graph_obj}{An graph object from build_graph_from_mat or build_graph_from_df.
 The network object to be visualized.}
 
-\item{mat}{The matrix to build graph_obj}
+\item{mat}{Numeric Matrix (default = NULL)
+The matrix to build graph_obj}
 
 \item{bootstrap}{Numeric  (default = 100).
 Number of bootstrap iterations for stability analysis}
