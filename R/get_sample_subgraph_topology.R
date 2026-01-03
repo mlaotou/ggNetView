@@ -23,6 +23,12 @@ get_sample_subgraph_topology <- function(graph_obj,
                                          cor.method = c("pearson", "kendall", "spearman"),
                                          proc = c("Bonferroni", "Holm", "Hochberg", "SidakSS", "SidakSD","BH", "BY","ABH","TSBH"),
                                          bootstrap = 100){
+  # argument
+  transfrom.method <-  match.arg(transfrom.method)
+  method <- match.arg(method)
+  cor.method <- match.arg(cor.method)
+  proc <- match.arg(proc)
+
   # create igraph object
   ig <- tidygraph::as.igraph(graph_obj)
 
