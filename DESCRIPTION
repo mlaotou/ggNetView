@@ -1,7 +1,7 @@
 Type: Package
 Package: ggNetView
 Title: An R Package for Reproducible and Deterministic Network Analysis and Visualization.
-Version: 1.2.1
+Version: 1.2.2
 Authors@R: 
     person("Yue", "Liu", , "yueliu@iae.ac.cn", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-6180-8068"))
@@ -12,6 +12,8 @@ Depends:
     R (>= 3.5)
 Imports: 
     dplyr,
+    future,
+    future.apply,
     ggforce,
     ggnewscale,
     ggplot2,
@@ -23,6 +25,7 @@ Imports:
     mascarade,
     Matrix,
     multtest,
+    progressr,
     psych,
     purrr,
     qgraph,

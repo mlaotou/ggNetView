@@ -243,9 +243,9 @@ get_network_topology <- function(graph_obj,
       dplyr::filter(ASV != ASV_to) %>%
       dplyr::filter(Correlation != 0) %>%
       dplyr::group_by(ASV) %>%
-      dplyr::mutate(r_pos_mean = mean(if_else(Correlation > 0, Correlation, 0), na.rm = T),
-                    r_neg_mean = mean(if_else(Correlation < 0, Correlation, 0), na.rm = T),
-                    t_total = mean(if_else(Correlation < 0, abs(Correlation), abs(Correlation)), na.rm = T)) %>%
+      dplyr::mutate(r_pos_mean = mean(dplyr::if_else(Correlation > 0, Correlation, 0), na.rm = T),
+                    r_neg_mean = mean(dplyr::if_else(Correlation < 0, Correlation, 0), na.rm = T),
+                    t_total = mean(dplyr::if_else(Correlation < 0, abs(Correlation), abs(Correlation)), na.rm = T)) %>%
       dplyr::ungroup()  %>%
       dplyr::distinct(ASV, .keep_all = T) %>%
       dplyr::select(1,4,5,6)

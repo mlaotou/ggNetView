@@ -10,7 +10,7 @@
 #' @param top_modules Integer.
 #' Number of top-ranked modules to retain for downstream visualization or analysis.
 #' @param seed Integer (default = 1115).
-#' Random seed for reproducibility..
+#' Random seed for reproducibility.
 #'
 #' @returns A graph object representing the correlation-based microbial network.
 #' Node/edge attributes include correlation statistics and (optionally) module labels.

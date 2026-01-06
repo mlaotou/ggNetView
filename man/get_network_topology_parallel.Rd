@@ -17,7 +17,8 @@ get_network_topology_parallel(
     "TSBH"),
   bootstrap = 100,
   parallel = FALSE,
-  n_workers = 1
+  n_workers = NULL,
+  seed = 1115
 )
 }
 \arguments{
@@ -56,18 +57,23 @@ Options include "pearson", "kendall", and "spearman".}
 \item{proc}{Character.
 Correlation p-value adjustment methods.
 Options include:
-"Bonferroni", "Holm", "Hochberg", "
-SidakSS", "SidakSD","BH",
+"Bonferroni", "Holm", "Hochberg",
+"SidakSS", "SidakSD","BH",
 "BY", "ABH", and "TSBH".}
 
 \item{bootstrap}{Numeric  (default = 100).
 Number of bootstrap iterations for stability analysis}
 
-\item{n_workers}{}
+\item{parallel}{Logical (default = FALSE).
+Whether to enable parallel computation.}
+
+\item{n_workers}{Integer (default = NULL)
+Number of parallel workers to use when \code{parallel = TRUE}}
+
+\item{seed}{Integer (default = 1115).
+Random seed for reproducibility.}
 }
 \value{
-data frame of network topolog
-
 data frame of network topolog
 }
 \description{
@@ -75,6 +81,5 @@ Generates a data frame containing network topology information from either a
 pre-built graph object or directly from an adjacency matrix.
 }
 \examples{
-NULL
 NULL
 }
