@@ -18,7 +18,7 @@ Edge list with columns \code{from}, \code{to}, and optionally \code{weight}.
 If \code{weight} is absent, an unweighted graph is constructed.}
 
 \item{node_annotation}{Data Frame
-#' The annotation file of nodes in network contain \code{node} and \code{Modularity}}
+The annotation file of nodes in network contain \code{node} and \code{Modularity}}
 
 \item{directed}{Logical (default: \code{FALSE}).
 Whether edges between nodes are directed.}
@@ -31,7 +31,7 @@ Random seed for reproducibility.}
 }
 \value{
 An graph object representing the correlation network.
-  Node/edge attributes include correlation statistics and (optionally) module labels.
+Node/edge attributes include correlation statistics and (optionally) module labels.
 }
 \description{
 Build a graph object from a data frame and module Info

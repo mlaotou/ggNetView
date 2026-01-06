@@ -2,6 +2,7 @@
 
 export("%>%")
 export(build_graph_from_adj_mat)
+export(build_graph_from_adj_mat_module)
 export(build_graph_from_df)
 export(build_graph_from_enrichGO)
 export(build_graph_from_igraph)
@@ -27,4 +28,5 @@ export(scale_color_ggnetview)
 export(scale_fill_ggnetview)
 export(theme_ggnetview)
 export(trans_TOM_in_WGCNA)
+export(trans_adjacency_matrix_to_df)
 importFrom(magrittr,"%>%")

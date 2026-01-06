@@ -15,7 +15,7 @@ pre-built graph object or directly from an adjacency matrix."><meta property="og
 
     <a class="navbar-brand me-2" href="../index.html">ggNetView</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.2.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.3.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -65,7 +65,8 @@ pre-built graph object or directly from an adjacency matrix.</p>
 <span>    <span class="st">"TSBH"</span><span class="op">)</span>,</span>
 <span>  bootstrap <span class="op">=</span> <span class="fl">100</span>,</span>
 <span>  parallel <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>  n_workers <span class="op">=</span> <span class="fl">1</span></span>
+<span>  n_workers <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  seed <span class="op">=</span> <span class="fl">1115</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -123,8 +124,8 @@ Options include "pearson", "kendall", and "spearman".</p></dd>
 <dd><p>Character.
 Correlation p-value adjustment methods.
 Options include:
-"Bonferroni", "Holm", "Hochberg", "
-SidakSS", "SidakSD","BH",
+"Bonferroni", "Holm", "Hochberg",
+"SidakSS", "SidakSD","BH",
 "BY", "ABH", and "TSBH".</p></dd>
 
 
@@ -133,21 +134,29 @@ SidakSS", "SidakSD","BH",
 Number of bootstrap iterations for stability analysis</p></dd>
 
 
+<dt id="arg-parallel">parallel<a class="anchor" aria-label="anchor" href="#arg-parallel"></a></dt>
+<dd><p>Logical (default = FALSE).
+Whether to enable parallel computation.</p></dd>
+
+
 <dt id="arg-n-workers">n_workers<a class="anchor" aria-label="anchor" href="#arg-n-workers"></a></dt>
-<dd></dd>
+<dd><p>Integer (default = NULL)
+Number of parallel workers to use when <code>parallel = TRUE</code></p></dd>
+
+
+<dt id="arg-seed">seed<a class="anchor" aria-label="anchor" href="#arg-seed"></a></dt>
+<dd><p>Integer (default = 1115).
+Random seed for reproducibility.</p></dd>
 
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>data frame of network topolog</p>
-<p>data frame of network topolog</p>
     </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="cn">NULL</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> NULL</span>
-<span class="r-in"><span><span class="cn">NULL</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> NULL</span>
 </code></pre></div>
     </div>

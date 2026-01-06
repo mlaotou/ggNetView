@@ -5,6 +5,7 @@
 <url><loc>https://jiawang1209.github.io/ggNetView/authors.html</loc></url>
 <url><loc>https://jiawang1209.github.io/ggNetView/index.html</loc></url>
 <url><loc>https://jiawang1209.github.io/ggNetView/reference/build_graph_from_adj_mat.html</loc></url>
+<url><loc>https://jiawang1209.github.io/ggNetView/reference/build_graph_from_adj_mat_module.html</loc></url>
 <url><loc>https://jiawang1209.github.io/ggNetView/reference/build_graph_from_df.html</loc></url>
 <url><loc>https://jiawang1209.github.io/ggNetView/reference/build_graph_from_enrichGO.html</loc></url>
 <url><loc>https://jiawang1209.github.io/ggNetView/reference/build_graph_from_igraph.html</loc></url>
@@ -32,5 +33,6 @@
 <url><loc>https://jiawang1209.github.io/ggNetView/reference/scale_fill_ggnetview.html</loc></url>
 <url><loc>https://jiawang1209.github.io/ggNetView/reference/theme_ggnetview.html</loc></url>
 <url><loc>https://jiawang1209.github.io/ggNetView/reference/trans_TOM_in_WGCNA.html</loc></url>
+<url><loc>https://jiawang1209.github.io/ggNetView/reference/trans_adjacency_matrix_to_df.html</loc></url>
 </urlset>
 

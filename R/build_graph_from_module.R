@@ -1,19 +1,19 @@
 #' Build a graph object from a data frame and module Info
 #'
 #' @param df Data frame.
-#'   Edge list with columns \code{from}, \code{to}, and optionally \code{weight}.
-#'   If \code{weight} is absent, an unweighted graph is constructed.
+#' Edge list with columns \code{from}, \code{to}, and optionally \code{weight}.
+#' If \code{weight} is absent, an unweighted graph is constructed.
 #' @param node_annotation Data Frame
-#' #' The annotation file of nodes in network contain \code{node} and \code{Modularity}
+#' The annotation file of nodes in network contain \code{node} and \code{Modularity}
 #' @param directed Logical (default: \code{FALSE}).
-#'   Whether edges between nodes are directed.
+#' Whether edges between nodes are directed.
 #' @param top_modules  Integer.
-#'   Number of top-ranked modules to select.
+#' Number of top-ranked modules to select.
 #' @param seed Integer (default = 1115).
-#'   Random seed for reproducibility.
+#' Random seed for reproducibility.
 #'
 #' @returns An graph object representing the correlation network.
-#'   Node/edge attributes include correlation statistics and (optionally) module labels.
+#' Node/edge attributes include correlation statistics and (optionally) module labels.
 #' @export
 #'
 #' @examples NULL
