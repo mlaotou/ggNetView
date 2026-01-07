@@ -1,7 +1,7 @@
 #' Build a correlation-based network from a matrix
 #'
 #' @param mat  Numeric matrix.
-#' A numeric matrix with samples in rows and variables in columns.
+#' A numeric matrix with samples in colums and variables in rows
 #' @param transfrom.method Character.
 #'Data transformation methods applied before correlation analysis.
 #' Options include:
@@ -39,7 +39,7 @@
 #' @param top_modules Integer.
 #' Number of top-ranked modules to retain for downstream visualization or analysis.
 #' @param seed Integer (default = 1115).
-#' Random seed for reproducibility..
+#' Random seed for reproducibility.
 #'
 #' @returns A graph object representing the correlation-based microbial network.
 #' Node/edge attributes include correlation statistics and (optionally) module labels.

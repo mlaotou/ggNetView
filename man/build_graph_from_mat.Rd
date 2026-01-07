@@ -23,7 +23,7 @@ build_graph_from_mat(
 }
 \arguments{
 \item{mat}{Numeric matrix.
-A numeric matrix with samples in rows and variables in columns.}
+A numeric matrix with samples in colums and variables in rows}
 
 \item{transfrom.method}{Character.
 Data transformation methods applied before correlation analysis.
@@ -72,7 +72,7 @@ Optional node annotation table, containing metadata such as taxonomy or function
 Number of top-ranked modules to retain for downstream visualization or analysis.}
 
 \item{seed}{Integer (default = 1115).
-Random seed for reproducibility..}
+Random seed for reproducibility.}
 }
 \value{
 A graph object representing the correlation-based microbial network.
