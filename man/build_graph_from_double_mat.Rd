@@ -9,6 +9,7 @@ build_graph_from_double_mat(
   mat2,
   module.method = c("Fast_greedy", "Walktrap", "Edge_betweenness", "Spinglass"),
   node_annotation = NULL,
+  directed = F,
   top_modules = 15,
   seed = 1115
 )
@@ -26,6 +27,9 @@ Options include "Fast_greedy", "Walktrap", "Edge_betweenness", and "Spinglass".}
 
 \item{node_annotation}{Data frame.
 Optional node annotation table, containing metadata such as taxonomy or functional categories.}
+
+\item{directed}{Logical (default: \code{FALSE}).
+Whether edges between nodes are directed.}
 
 \item{top_modules}{Integer.
 Number of top-ranked modules to retain for downstream visualization or analysis.}

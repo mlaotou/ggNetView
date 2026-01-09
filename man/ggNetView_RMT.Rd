@@ -6,10 +6,14 @@
 \usage{
 ggNetView_RMT(
   mat,
+  transfrom.method = c("none", "scale", "center", "log2", "log10", "ln", "rrarefy",
+    "rrarefy_relative"),
+  method = c("WGCNA", "SpiecEasi", "SPARCC", "cor"),
+  cor.method = c("pearson", "kendall", "spearman"),
+  SpiecEasi.method = c("mb", "glasso"),
   nr_thresholds = 51,
   interval = NULL,
   unfold.method = c("gaussian", "spline"),
-  method = c("WGCNA", "SpiecEasi", "SPARCC", "cor"),
   bandwidth = "nrd0",
   nr.fit.points = 51,
   discard.outliers = TRUE,
@@ -18,20 +22,41 @@ ggNetView_RMT(
   max.ev.spacing = 3,
   save_plots = FALSE,
   out_dir = "RMT_plots",
-  verbose = TRUE
+  verbose = TRUE,
+  seed = 1115
 )
 }
 \arguments{
-\item{mat}{Numeric, symmetric, square matrix (e.g., correlation or weighted adjacency).}
+\item{mat}{Numeric matrix.
+A numeric matrix with samples in colums and variables in rows
+#' @param transfrom.method Character.
+Data transformation methods applied before correlation analysis.
+Options include:
+"none" (raw data),
+"scale" (z-score standardization),
+"center" (mean centering only),
+"log2" (log2 transfrom),
+"log10" (log10 transfrom),
+"ln" (natural transfrom ),
+"rrarefy" (random rarefaction using \code{vegan::rrarefy}),
+"rrarefy_relative" (rarefy then convert to relative abundance).}
+
+\item{method}{Character.
+Relationship analysis methods.
+Options include: "WGCNA", "SpiecEasi", "SPARCC" and "cor".}
+
+\item{cor.method}{Character.
+Correlation analysis method.
+Options include "pearson", "kendall", and "spearman".}
+
+\item{SpiecEasi.method}{Character.
+Method used in \code{SpiecEasi} network inference; options include "mb" and "glasso".}
 
 \item{nr_thresholds}{Integer. Number of thresholds to scan (default 51).}
 
 \item{interval}{Optional numeric length-2 vector [min, max] for scanning range over |mat| upper triangle (default auto).}
 
-\item{unfold.method}{"gaussian" or "spline" (default "gaussian").
-#' @param method Character.
-Relationship analysis methods.
-Options include: "WGCNA", "SpiecEasi", "SPARCC" and "cor".}
+\item{unfold.method}{"gaussian" or "spline" (default "gaussian").}
 
 \item{bandwidth}{Bandwidth for gaussian unfolding (passed to stats::density), default "nrd0".}
 
@@ -50,6 +75,9 @@ Options include: "WGCNA", "SpiecEasi", "SPARCC" and "cor".}
 \item{out_dir}{Character. Output directory for plots (default "RMT_plots").}
 
 \item{verbose}{Logical. Print progress (default TRUE).}
+
+\item{seed}{Integer (default = 1115).
+Random seed for reproducibility.}
 }
 \value{
 A list with: chosen_threshold, chosen_reason, tested_thresholds, scores (data.frame),

@@ -1,12 +1,29 @@
 #' One-shot, non-interactive RMT threshold scan with auto selection
 #'
-#' @param mat  Numeric, symmetric, square matrix (e.g., correlation or weighted adjacency).
+#' @param mat   Numeric matrix.
+#' A numeric matrix with samples in colums and variables in rows
+#' #' @param transfrom.method Character.
+#'Data transformation methods applied before correlation analysis.
+#' Options include:
+#' "none" (raw data),
+#' "scale" (z-score standardization),
+#' "center" (mean centering only),
+#' "log2" (log2 transfrom),
+#' "log10" (log10 transfrom),
+#' "ln" (natural transfrom ),
+#' "rrarefy" (random rarefaction using \code{vegan::rrarefy}),
+#' "rrarefy_relative" (rarefy then convert to relative abundance).
+#' @param method Character.
+#' Relationship analysis methods.
+#' Options include: "WGCNA", "SpiecEasi", "SPARCC" and "cor".
+#' @param cor.method Character.
+#' Correlation analysis method.
+#' Options include "pearson", "kendall", and "spearman".
+#' @param SpiecEasi.method Character.
+#' Method used in \code{SpiecEasi} network inference; options include "mb" and "glasso".
 #' @param nr_thresholds Integer. Number of thresholds to scan (default 51).
 #' @param interval Optional numeric length-2 vector [min, max] for scanning range over |mat| upper triangle (default auto).
 #' @param unfold.method "gaussian" or "spline" (default "gaussian").
-#' #' @param method Character.
-#' Relationship analysis methods.
-#' Options include: "WGCNA", "SpiecEasi", "SPARCC" and "cor".
 #' @param bandwidth Bandwidth for gaussian unfolding (passed to stats::density), default "nrd0".
 #' @param nr.fit.points Integer, number of support points for spline unfolding (default 51).
 #' @param discard.outliers Logical. Remove eigenvalue outliers via IQR before unfolding (default TRUE).
@@ -16,6 +33,8 @@
 #' @param save_plots Logical. Save PNGs (non-interactive) into out_dir (default FALSE).
 #' @param out_dir Character. Output directory for plots (default "RMT_plots").
 #' @param verbose Logical. Print progress (default TRUE).
+#' @param seed Integer (default = 1115).
+#' Random seed for reproducibility.
 #'
 #' @returns A list with: chosen_threshold, chosen_reason, tested_thresholds, scores (data.frame),
 #'         unfolded (last-step unfolding), meta (matrix info & params), plots (file paths if saved).
@@ -29,10 +48,13 @@
 #' # res$chosen_threshold
 ggNetView_RMT <- function(
     mat,
+    transfrom.method = c("none", "scale", "center", "log2", "log10", "ln", "rrarefy", "rrarefy_relative"),
+    method = c("WGCNA", "SpiecEasi", "SPARCC", "cor"),
+    cor.method = c("pearson", "kendall", "spearman"),
+    SpiecEasi.method = c("mb", "glasso"),
     nr_thresholds = 51,
     interval = NULL,
     unfold.method = c("gaussian", "spline"),
-    method = c("WGCNA", "SpiecEasi", "SPARCC", "cor"),
     bandwidth = "nrd0",
     nr.fit.points = 51,
     discard.outliers = TRUE,
@@ -41,14 +63,107 @@ ggNetView_RMT <- function(
     max.ev.spacing = 3,
     save_plots = FALSE,
     out_dir = "RMT_plots",
-    verbose = TRUE
+    verbose = TRUE,
+    seed = 1115
 ) {
+
+  set.seed(seed)
+
   ## ---------- validation ----------
-  stopifnot(is.matrix(mat))
-  if (!is.numeric(mat)) stop("'mat' must be numeric.")
-  if (nrow(mat) != ncol(mat)) stop("'mat' must be square.")
-  if (!isSymmetric(mat)) stop("'mat' must be symmetric (real-valued).")
+  # argument check
+  if (is.data.frame(mat)){
+    mat <- as.matrix(mat)
+  }
+
+  if (!is.matrix(mat) || !is.numeric(mat)) {
+    stop("`mat` must be numeric matrix.", call. = FALSE)
+  }
+
+  if (any(!is.finite(mat))) {
+    stop("`mat` dont contain any NA/NaN/Inf. please check mat.", call. = FALSE)
+  }
+
+  if (is.null(colnames(mat))) {
+    stop("`mat` must contains colnames.", call. = FALSE)
+  }
+
+  if (anyDuplicated(colnames(mat))) {
+    dup <- unique(colnames(mat)[duplicated(colnames(mat))])
+    stop(sprintf("`mat` must contain only colname. The duplicated colname: %s", paste(dup, collapse = ", ")), call. = FALSE)
+  }
+
+
   unfold.method <- match.arg(unfold.method)
+  transfrom.method <-  match.arg(transfrom.method)
+  cor.method <- match.arg(cor.method)
+
+  # data transfrom
+  mat <- switch (
+    transfrom.method,
+    none = mat,
+    scale = t(scale(t(mat), scale = T, center = T)),
+    center = t(scale(t(mat), scale = F, center = T)),
+    log2 = log2(mat + 1),
+    log10 = log10(mat + 1),
+    ln = log(mat + 1),
+    rrarefy = t(vegan::rrarefy(t(mat), min(colSums(mat)))),
+    rrarefy_relative = t(vegan::rrarefy(t(mat), min(colSums(mat)))) / colSums(t(vegan::rrarefy(t(mat), min(colSums(mat)))))
+  )
+
+  # correlation
+
+  # WGCNA
+  if (method == "WGCNA") {
+    # WGCNA for correlation
+    occor <- WGCNA::corAndPvalue(t(mat), method = cor.method)
+    # R and pvalue
+    occor.r <- occor$cor
+
+    mat <- occor.r
+  }
+
+  # SpiecEasi
+  if (method == "SpiecEasi") {
+    # SpiecEasi for correlation
+    SpiecEasi_obj <- SpiecEasi::spiec.easi(as.matrix(t(mat)),
+                                           method = SpiecEasi.method,
+                                           lambda.min.ratio=1e-2,
+                                           nlambda=20,
+                                           pulsar.params=list(rep.num=50)
+    )
+
+    # return adjacency matrix
+    am <- SpiecEasi::getRefit(SpiecEasi_obj)
+
+    rownames(am) <- rownames(mat)
+    colnames(am) <- rownames(mat)
+
+    mat <- am
+  }
+
+  # SparCC
+  if (method == "SparCC") {
+    # Sparcc for correlation
+    SparCC_obj <- SpiecEasi::sparcc(as.matrix(t(mat)))
+
+    rownames(SparCC_graph) <- rownames(mat)
+    colnames(SparCC_graph) <- rownames(mat)
+
+    SparCC_graph <- Matrix::Matrix(SparCC_graph, sparse=TRUE)
+
+    mat <- SparCC_graph
+  }
+
+  # cor
+  if (method == "cor") {
+    # WGCNA for correlation
+    # occor <- psych::corr.test(t(mat), method = cor.method)
+    occor <- stats::cor(t(mat), method = cor.method)
+    # R and pvalue
+    occor.r <- occor
+
+    mat <- occor.r
+  }
 
   N <- nrow(mat)
   if (verbose) message(sprintf("[Info] Matrix dimension: %d x %d", N, N))
