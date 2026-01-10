@@ -3,6 +3,7 @@ create_layout_rings <- function(graph_obj,
                                 node_add = NULL,
                                 scale = T,
                                 anchor_dist = 10,
+                                ring_n = NULL,
                                 orientation = c("up","down","left","right"),
                                 angle = 0){
   graph_obj = graph_obj %>%
@@ -22,7 +23,7 @@ create_layout_rings <- function(graph_obj,
   # 对每一个分组，进行统计个数和排序
   node_df_stat <- node_df %>%
     dplyr::group_by(group) %>%
-    dplyr::summarise(n = n())
+    dplyr::summarise(n = dplyr::n())
 
   # 获取边
   graph_obj %>%
