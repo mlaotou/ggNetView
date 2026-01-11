@@ -355,7 +355,7 @@ ggNetView_RMT <- function(
     u <- ev_unfold(effA, method = unfold.method, bw = bandwidth,
                    nfit = nr.fit.points, drop_outliers = discard.outliers)
     sp <- u$ev.spacing
-    met <- nnsd_metrics(sp, max_cut = max.ev.spacing, nbins = 51)
+    met <- nnsd_metrics(sp, max_cut = max.ev.spacing, nbins = nr_thresholds)
 
     nr_zero <- sum(A == 0)
     ev_vals <- eigen(effA, only.values = TRUE)$values
