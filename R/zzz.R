@@ -12,8 +12,8 @@
  ░███████   ░███████
 
 
-  ggNetView v1.4.3 (2026)
-  Developed by Jiawang's Network Visualization Group
+  ggNetView v1.4.3 (2026).
+  Developed by Jiawang's Network Visualization Group.
 
   Maintainers:
    - Yue Liu <yueliu@iae.ac.cn>
