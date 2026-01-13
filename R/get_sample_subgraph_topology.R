@@ -32,6 +32,16 @@ get_sample_subgraph_topology <- function(graph_obj,
   # create igraph object
   ig <- tidygraph::as.igraph(graph_obj)
 
+  # filter mat
+  mat <- mat %>%
+    tibble::rownames_to_column(var = "ID") %>%
+    dplyr::rowwise() %>%
+    dplyr::mutate(sum = sum(dplyr::c_across(where(is.numeric)))) %>%
+    dplyr::ungroup() %>%
+    dplyr::filter(sum != 0) %>%
+    dplyr::select(-sum) %>%
+    tibble::column_to_rownames(var = "ID")
+
   # mat
   mat <- switch (
     transfrom.method,

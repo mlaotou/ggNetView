@@ -37,7 +37,7 @@ ggNetView_multi_link(
   linealpha = 0.25,
   linecolor = "grey70",
   scale = T,
-  orientation = 0,
+  orientation = "up",
   angle = 0,
   anchor_dist = 6,
   seed = 1115

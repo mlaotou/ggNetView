@@ -126,6 +126,17 @@ build_graph_from_mat <- function(mat,
   module.method <- match.arg(module.method)
   SpiecEasi.method <- match.arg(SpiecEasi.method)
 
+  # filter mat
+  mat <- mat %>%
+    as.data.frame() %>%
+    tibble::rownames_to_column(var = "ID") %>%
+    dplyr::rowwise() %>%
+    dplyr::mutate(sum = sum(dplyr::c_across(where(is.numeric)))) %>%
+    dplyr::ungroup() %>%
+    dplyr::filter(sum != 0) %>%
+    dplyr::select(-sum) %>%
+    tibble::column_to_rownames(var = "ID")
+
   # data transfrom
   mat <- switch (
     transfrom.method,

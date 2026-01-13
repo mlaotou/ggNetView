@@ -124,7 +124,7 @@ ggNetView_multi_link <- function(mat,
                                  linealpha = 0.25,
                                  linecolor = "grey70",
                                  scale = T,
-                                 orientation = 0,
+                                 orientation = "up",
                                  angle = 0,
                                  anchor_dist = 6,
                                  seed = 1115
@@ -146,12 +146,15 @@ ggNetView_multi_link <- function(mat,
 
   graph_stat <- list()
 
+  group_info = group_info
+
   for (g in unique(group_info$Group)) {
     print(g)
     group_info_sub <- group_info %>%
       dplyr::filter(Group %in% g)
 
     mat_sub <- mat %>%
+      as.data.frame() %>%
       dplyr::select(all_of(group_info_sub$Sample)) %>%
       tibble::rownames_to_column(var = "ID") %>%
       dplyr::rowwise() %>%
@@ -291,11 +294,11 @@ ggNetView_multi_link <- function(mat,
 
   Module_information
 
-  if (isTRUE(scale)) {
-    anchor_dist = 1
-  }else{
-    anchor_dist = anchor_dist * 30
-  }
+  # if (isTRUE(scale)) {
+  #   anchor_dist = 1
+  # }else{
+  #   anchor_dist = anchor_dist * 30
+  # }
 
   # 寻找点
   angles <- pi/2 - 2 * pi * (0:(graph_list_length - 1)) / graph_list_length
