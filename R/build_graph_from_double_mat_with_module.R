@@ -85,6 +85,7 @@ build_graph_from_double_mat_with_module <- function(mat1,
   ## 设置网络的weight，为计算模块性做准备
   igraph::E(g)$correlation <- igraph::E(g)$weight
   igraph::E(g)$weight <- abs(igraph::E(g)$weight)
+  igraph::E(g)$corr_direction <- ifelse(igraph::E(g)$correlation > 0, "Positive", "Negative")
 
   # 模块化 是自身提供的
 
