@@ -195,17 +195,21 @@ build_graph_from_mat <- function(mat,
     # Sparcc for correlation
     SparCC_obj <- SpiecEasi::sparcc(as.matrix(t(mat)))
 
-    SparCC_graph <- abs(SparCC_obj$Cor) >= r.threshold
+    # SparCC_graph <- abs(SparCC_obj$Cor) >= r.threshold
 
-    diag(SparCC_graph) <- 0
+    occor.r <- SparCC_obj$Cor
 
-    rownames(SparCC_graph) <- rownames(mat)
-    colnames(SparCC_graph) <- rownames(mat)
+    occor.r[abs(occor.r) < r.threshold] = 0
 
-    SparCC_graph <- Matrix::Matrix(SparCC_graph, sparse=TRUE)
+    diag(occor.r) <- 0
+
+    rownames(occor.r) <- rownames(mat)
+    colnames(occor.r) <- rownames(mat)
+
+    occor.r <- Matrix::Matrix(occor.r, sparse=TRUE)
 
     # Create igraph objects
-    g <- igraph::graph_from_adjacency_matrix(SparCC_graph, weighted = TRUE, mode = 'undirected')
+    g <- igraph::graph_from_adjacency_matrix(occor.r, weighted = TRUE, mode = 'undirected')
   }
 
   # cor
