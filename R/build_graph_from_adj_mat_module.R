@@ -69,6 +69,13 @@ build_graph_from_adj_mat_module <- function(adjacency_matrix,
   # create igraph object
   g <- igraph::graph_from_adjacency_matrix(adjacency_matrix, weighted = TRUE, mode = 'undirected')
 
+  tmp_g <- tidygraph::as_tbl_graph(g) %>%
+    tidygraph::left_join(node_annotation %>%
+                           purrr::set_names(c("name", colnames(node_annotation)[-1])),
+                         by = "name")
+
+  g <- tidygraph::as.igraph(tmp_g)
+
   # remove self correlation
   g <- igraph::simplify(g)
 
