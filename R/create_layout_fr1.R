@@ -27,10 +27,17 @@ create_layout_fr1 <- function(
   # as igraph object
   igraph_obj <- tidygraph::as.igraph(graph_obj)
 
-  # layout
-  ly <- igraph::layout_with_fr(igraph_obj, niter = 1000) %>%
+  if(nrow(node_df) <= 1000){
+    ly <- igraph::layout_with_fr(igraph_obj, niter = 1000) %>%
     as.data.frame() %>%
     purrr::set_names(c("x", "y"))
+  }else{
+    ly <- igraph::layout_with_fr(igraph_obj, niter = (nrow(node_df) %/% 1000) * 1000) %>%
+    as.data.frame() %>%
+    purrr::set_names(c("x", "y"))
+  }
+  # layout
+  
 
 
   # ly <- as.data.frame(ly) %>% dplyr::select(1,2)

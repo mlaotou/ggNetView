@@ -44,10 +44,55 @@
 #' Character vector defining which heatmap quadrants to display. Can include any combination of `"top_right"`, `"bottom_right"`, `"top_left"`, and `"bottom_left"`.
 #' @param r Numeric
 #' radius of the central species layout (in plot units).
-#' @param fontsize Numeric (default = 5)
-#' The fontsize in env heatmap
+#' @param HeatmapLabelSize Numeric (default = 5)
+#' Text size for heatmap axis labels (ID/Type).
+#' @param HeatmapSigSize Numeric (default = 5)
+#' Text size for significance symbols (e.g. `*`, `**`, `***`) inside heatmap tiles.
+#' @param HeatmapColorBar NULL or list
+#' Controls the colorbar palettes used by each heatmap quadrant.
 #'
-#' @returns a list of ggplot2
+#' - If `NULL`, the built-in default palettes are used (same as current behavior).
+#' - If a list of length 2 with names `low` and `high`, each should be a character
+#'   vector of colors (recycled if shorter) used across quadrants.
+#' - If a list of length equal to the number of quadrants, each element should be
+#'   either `c(low, high)` or `list(low=..., high=...)` for that quadrant (in order).
+#' - example `HeatmapColorBar = list(
+#'  c("#2166ac", "#b2182b"),  # 第1个象限 low/high
+#'  c("#1b7837", "#762a83"),  # 第2个
+#'  c("#4393c3", "#d6604d"),  # 第3个
+#'  c("#92c5de", "#f4a582")   # 第4个
+#'  )`
+#' @param HeatmapLabelOrient Numeric (default = 0)
+#' Rotation angle (in degrees) for heatmap axis labels (ID/Type).
+#' Use this to avoid overlap of the top/bottom labels; e.g. 45 or 90.
+#'
+#' @param SigLineWidth Numeric vector of length 2 (default = c(0.5, 2))
+#' Controls the minimum and maximum line width for species–environment links,
+#' scaled by significance (p-value). Smaller p leads to thicker lines.
+#' @param SigLineColor Character vector (length 2, default = c("#fdbb84", "#d7301f"))
+#' Colors used for the species–environment link color gradient, corresponding to
+#' low and high correlation values respectively.
+#' @param HeatmapPointSize Numeric (default = 5)
+#' Point size for the heatmap diagonal nodes.
+#' @param CorePointSize Numeric (default = 8.5)
+#' Point size for the central species nodes.
+#' @param HeatmapPointFill Character (default = "#de77ae")
+#' Fill color for heatmap diagonal points.
+#' @param CorePointFill Character (default = "#41b6c4")
+#' Fill color for central species nodes.
+#' @param HeatmapTileColor Character or NA (default = NA)
+#' Border color for heatmap tiles (passed to `geom_tile(colour=...)`).
+#' @param HeatmapTileSize Numeric (default = 0)
+#' Border line width for heatmap tiles (passed to `geom_tile(size=...)`).
+#'
+#' @param fontsize Numeric (default = 5)
+#' (Deprecated) Use `HeatmapLabelSize` instead.
+#'
+#' @returns A list of length 3:
+#' - [[1]]: ggplot object with straight link segments.
+#' - [[2]]: ggplot object with curved link segments.
+#' - [[3]]: data.frame of full species–environment correlation statistics
+#'          (unfiltered, not affected by `drop_nonsig`).
 #' @export
 #'
 #' @examples NULL
@@ -68,6 +113,18 @@ gglink_heatmaps <- function(
     drop_nonsig = FALSE,
     shape = 22,
     distance = 3,
+    HeatmapLabelSize = 5,
+    HeatmapSigSize = 5,
+    HeatmapColorBar = NULL,
+    HeatmapLabelOrient = 0,
+    SigLineWidth = c(0.5, 2),
+    SigLineColor = c("#fdbb84", "#d7301f"),
+    HeatmapPointSize = 5,
+    CorePointSize = 8.5,
+    HeatmapPointFill = "#de77ae",
+    CorePointFill = "#41b6c4",
+    HeatmapTileColor = NA,
+    HeatmapTileSize = 0,
     fontsize = 5,
     orientation = c("top_right", "bottom_right", "top_left","bottom_left"),
     r = 6
@@ -103,6 +160,49 @@ gglink_heatmaps <- function(
 
 
   radius = r
+
+  HeatmapLabelSize <- as.numeric(HeatmapLabelSize)
+  HeatmapSigSize   <- as.numeric(HeatmapSigSize)
+  HeatmapLabelOrient <- as.numeric(HeatmapLabelOrient)
+  SigLineWidth    <- as.numeric(SigLineWidth)
+  SigLineColor    <- as.character(SigLineColor)
+  HeatmapPointSize <- as.numeric(HeatmapPointSize)
+  CorePointSize    <- as.numeric(CorePointSize)
+  HeatmapPointFill <- as.character(HeatmapPointFill)
+  CorePointFill    <- as.character(CorePointFill)
+  HeatmapTileColor <- HeatmapTileColor
+  HeatmapTileSize  <- as.numeric(HeatmapTileSize)
+  if (is.na(HeatmapLabelSize) || length(HeatmapLabelSize) != 1 || HeatmapLabelSize <= 0) {
+    stop("`HeatmapLabelSize` must be a single positive numeric value.")
+  }
+  if (is.na(HeatmapSigSize) || length(HeatmapSigSize) != 1 || HeatmapSigSize <= 0) {
+    stop("`HeatmapSigSize` must be a single positive numeric value.")
+  }
+  if (length(HeatmapLabelOrient) != 1 || !is.finite(HeatmapLabelOrient)) {
+    stop("`HeatmapLabelOrient` must be a single finite numeric value (angle in degrees).")
+  }
+  if (length(SigLineWidth) != 2 || any(!is.finite(SigLineWidth)) || any(SigLineWidth <= 0)) {
+    stop("`SigLineWidth` must be a numeric vector of length 2 with positive values.")
+  }
+  SigLineWidth <- sort(SigLineWidth)
+  if (length(SigLineColor) != 2L || any(!nzchar(SigLineColor))) {
+    stop("`SigLineColor` must be a character vector of length 2 (low, high).")
+  }
+  if (length(HeatmapPointSize) != 1 || !is.finite(HeatmapPointSize) || HeatmapPointSize <= 0) {
+    stop("`HeatmapPointSize` must be a single positive numeric value.")
+  }
+  if (length(CorePointSize) != 1 || !is.finite(CorePointSize) || CorePointSize <= 0) {
+    stop("`CorePointSize` must be a single positive numeric value.")
+  }
+  if (length(HeatmapPointFill) != 1L || !nzchar(HeatmapPointFill)) {
+    stop("`HeatmapPointFill` must be a non-empty character string.")
+  }
+  if (length(CorePointFill) != 1L || !nzchar(CorePointFill)) {
+    stop("`CorePointFill` must be a non-empty character string.")
+  }
+  if (length(HeatmapTileSize) != 1 || !is.finite(HeatmapTileSize) || HeatmapTileSize < 0) {
+    stop("`HeatmapTileSize` must be a single non-negative numeric value.")
+  }
   # if env_select = NULL & spec_select = NULL
   # 说明是最简单的方式 1个点，1个矩阵
 
@@ -135,7 +235,17 @@ gglink_heatmaps <- function(
   k_vec  <- purrr::map_int(env_list, ncol)
   k_ref  <- max(k_vec)
 
-  length_dist <- max(k_vec)  + 0.5 * radius
+  # distance controls the extra gap between the central species layout (radius)
+  # and the environmental heatmaps.
+  distance <- as.numeric(distance)
+  if (is.na(distance) || length(distance) != 1) {
+    stop("`distance` must be a single numeric value.")
+  }
+  if (distance < 0) {
+    stop("`distance` must be non-negative.")
+  }
+
+  length_dist <- max(k_vec) + 0.5 * radius + distance
 
   # 真实不够的，我们需要使用gap去补充
   k_gap <- length_dist - k_vec
@@ -397,7 +507,6 @@ gglink_heatmaps <- function(
         cor_env_list_tmp_r_p <- cbind(cor_env_list_tmp_r,
                                       cor_env_list_tmp_p %>% dplyr::select(3,4))
 
-
         cor_spec_env_list[[p]] <- cor_env_list_tmp_r_p
 
       }
@@ -571,9 +680,19 @@ gglink_heatmaps <- function(
   cor_spec_env_location <- cor_spec_env_list_out %>%
     dplyr::mutate(ID = as.character(ID), Type = as.character(Type)) %>%
     dplyr::left_join(cor_spec_env, by = "ID") %>%
-    dplyr::left_join(xy_targets, by = c("Type" = "ID"))
+    dplyr::left_join(xy_targets, by = c("Type" = "ID")) %>%
+    dplyr::mutate(
+      line_type = dplyr::if_else(.data$Pvalue <= 0.05, "solid", "dashed")
+    )
 
-  .offset_env <- function(df, ori, k_gap, length_dist){
+  # Filter only at plotting stage to avoid dropping central nodes
+  link_df <- cor_spec_env_location
+  if (isTRUE(drop_nonsig)) {
+    link_df <- link_df %>% dplyr::filter(.data$Pvalue <= 0.05)
+  }
+
+  .offset_env <- function(df, ori, k_gap, length_dist, HeatmapLabelOrient = 0,
+                          y_top_all = NULL, y_bottom_all = NULL){
     stopifnot(ori %in% c("top_right","bottom_right","top_left","bottom_left"))
     df <- df %>% dplyr::mutate(ID = as.character(ID), Type = as.character(Type))
 
@@ -590,7 +709,19 @@ gglink_heatmaps <- function(
     diag    <- diag_df %>% dplyr::transmute(ID, x_diag, y_diag, orientation = ori)
 
     # 轴标签位置
-    y_id_lab   <- if (ori %in% c("top_right","top_left")) length_dist + 1 else 0 - length_dist
+    # HeatmapLabelOrient == 0: 保持原来的相对位置
+    # HeatmapLabelOrient != 0: 使用全局的顶部/底部边界，再外移 1 个单位，保证上下各象限对齐
+    if (HeatmapLabelOrient == 0 || is.null(y_top_all) || is.null(y_bottom_all)) {
+      y_id_lab <- if (ori %in% c("top_right","top_left")) length_dist + 1 else 0 - length_dist
+    } else {
+      if (ori %in% c("top_right","top_left")) {
+        # 顶部两个象限：在全局热图最上边界基础上再向上挪动 1 个单位
+        y_id_lab <- y_top_all + 1
+      } else {
+        # 底部两个象限：在全局热图最下边界基础上再向下挪动 1 个单位
+        y_id_lab <- y_bottom_all - 1
+      }
+    }
     x_type_lab <- if (ori %in% c("top_right","bottom_right")) length_dist + 1 else 0 - length_dist
     hjust_type <- if (ori %in% c("top_right","bottom_right")) "left" else "right"
 
@@ -614,6 +745,11 @@ gglink_heatmaps <- function(
                                    pack,
                                    idx,
                                    scale_name = "Env",
+                                  HeatmapLabelSize = 5,
+                                  HeatmapSigSize = 5,
+                                  HeatmapLabelOrient = 0,
+                                  HeatmapTileColor = NA,
+                                  HeatmapTileSize = 0,
                                    low_pal  = c("#4d9221", "#8073ac", "#4393c3", "#66bd63"),
                                    high_pal = c("#c51b7d", "#e08214", "#d6604d", "#f46d43")){
     tile     <- pack$tile
@@ -621,15 +757,37 @@ gglink_heatmaps <- function(
     id_lab   <- pack$id_lab
     type_lab <- pack$type_lab
 
+    # 根据象限为水平 ID 标签设置对齐方式
+    ori_lab <- unique(id_lab$orientation)[1]
+    hjust_id <- dplyr::case_when(
+      ori_lab %in% c("top_right", "top_left")       ~ 0,  # 左上/右上：左对齐
+      ori_lab %in% c("bottom_right", "bottom_left") ~ 1,  # 左下/右下：右对齐
+      TRUE ~ 0.5
+    )
+    vjust_id <- dplyr::case_when(
+      ori_lab %in% c("top_right", "top_left")       ~ -0.25, # 左上/右上：向上偏移
+      ori_lab %in% c("bottom_right", "bottom_left") ~  0.25, # 左下/右下：向下偏移
+      TRUE ~ 0.5
+    )
+
     p +
-      ggplot2::geom_tile(data = tile, aes(x = x_tile, y = y_tile, fill = Correlation)) +
-      ggplot2::geom_text(data = tile, aes(x = x_tile, y = y_tile, label = p_signif), size = 5) +
-      ggplot2::geom_text(data = id_lab,   aes(x = x_id,   y = y_id,   label = ID), size = fontsize) +
+      ggplot2::geom_tile(
+        data = tile,
+        aes(x = x_tile, y = y_tile, fill = Correlation),
+        colour = HeatmapTileColor,
+        linewidth = HeatmapTileSize
+      ) +
+      ggplot2::geom_text(data = tile, aes(x = x_tile, y = y_tile, label = p_signif), size = HeatmapSigSize) +
+      ggplot2::geom_text(data = id_lab, aes(x = x_id,   y = y_id,   label = ID),
+                size = HeatmapLabelSize,
+                vjust = vjust_id,
+                hjust = hjust_id,
+                angle = HeatmapLabelOrient) +
       ggplot2::geom_text(data = type_lab, aes(x = x_type, y = y_type, label = Type),
                 hjust = type_lab$hjust_type[1],
-                size = fontsize) +
+                size = HeatmapLabelSize) +
       ggplot2::geom_point(data = diag, aes(x = x_diag, y = y_diag),
-                 shape = 21, fill = "#de77ae", size = 4) +
+                 shape = 21, fill = HeatmapPointFill, size = HeatmapPointSize) +
       ggplot2::scale_fill_gradient2(
         low = low_pal[idx], mid = "#ffffff", high = high_pal[idx],
         midpoint = 0, name = paste0(scale_name, " ", idx),
@@ -637,14 +795,105 @@ gglink_heatmaps <- function(
       )
   }
 
+  # Resolve heatmap palettes (per-quadrant low/high)
+  .resolve_heatmap_pal <- function(heatmap_colorbar, n_quad,
+                                   low_default, high_default) {
+    low <- rep(low_default, length.out = n_quad)
+    high <- rep(high_default, length.out = n_quad)
+
+    if (is.null(heatmap_colorbar)) {
+      return(list(low = low, high = high))
+    }
+
+    if (is.list(heatmap_colorbar) &&
+        length(heatmap_colorbar) == 2 &&
+        all(c("low", "high") %in% names(heatmap_colorbar))) {
+      low_in <- heatmap_colorbar$low
+      high_in <- heatmap_colorbar$high
+      if (!is.character(low_in) || !is.character(high_in)) {
+        stop("`heatmap_colorbar$low` and `heatmap_colorbar$high` must be character color vectors.")
+      }
+      low <- rep(low_in, length.out = n_quad)
+      high <- rep(high_in, length.out = n_quad)
+      return(list(low = low, high = high))
+    }
+
+    if (is.list(heatmap_colorbar) && length(heatmap_colorbar) == n_quad) {
+      for (i in seq_len(n_quad)) {
+        el <- heatmap_colorbar[[i]]
+        if (is.list(el) && all(c("low", "high") %in% names(el))) {
+          low[i] <- as.character(el$low)[1]
+          high[i] <- as.character(el$high)[1]
+        } else if (is.atomic(el) && length(el) >= 2) {
+          low[i] <- as.character(el[[1]])[1]
+          high[i] <- as.character(el[[2]])[1]
+        } else {
+          stop("`heatmap_colorbar[[i]]` must be `c(low, high)` or `list(low=..., high=...)`.")
+        }
+      }
+      return(list(low = low, high = high))
+    }
+
+    stop("`heatmap_colorbar` must be NULL, a list(low=..., high=...), or a per-quadrant list.")
+  }
+
+  # 先计算所有象限中 tile 的全局顶部/底部边界，便于对齐标签
+  .compute_y_range <- function(df, ori, k_gap, length_dist){
+    df <- df %>% dplyr::mutate(ID = as.character(ID), Type = as.character(Type))
+    x_tile <- if (ori %in% c("top_right","bottom_right")) df$ID2 + k_gap[[ori]] else df$ID2 - length_dist
+    y_tile <- if (ori %in% c("top_right","top_left"))      df$Type2 + k_gap[[ori]] else df$Type2 - length_dist
+    data.frame(
+      orientation = ori,
+      ymin = min(y_tile, na.rm = TRUE),
+      ymax = max(y_tile, na.rm = TRUE)
+    )
+  }
+
+  y_ranges <- purrr::imap_dfr(
+    env_cor_self_list[orientation],
+    ~ .compute_y_range(.x, .y, k_gap, length_dist)
+  )
+
+  y_top_all <- y_ranges %>%
+    dplyr::filter(.data$orientation %in% c("top_right","top_left")) %>%
+    dplyr::pull(.data$ymax) %>%
+    max(na.rm = TRUE)
+
+  y_bottom_all <- y_ranges %>%
+    dplyr::filter(.data$orientation %in% c("bottom_right","bottom_left")) %>%
+    dplyr::pull(.data$ymin) %>%
+    min(na.rm = TRUE)
+
   # 先为每个方位算好偏移后的数据包
-  packs <- purrr::imap(env_cor_self_list, ~ .offset_env(.x, .y, k_gap, length_dist))
+  packs <- purrr::imap(
+    env_cor_self_list[orientation],
+    ~ .offset_env(.x, .y, k_gap, length_dist,
+                  HeatmapLabelOrient = HeatmapLabelOrient,
+                  y_top_all = y_top_all,
+                  y_bottom_all = y_bottom_all)
+  )
+
+  # 汇总所有象限中热图对角线上的点，用于在连线之后再次绘制，避免被遮挡
+  diag_all <- purrr::map_dfr(packs, "diag")
 
   p0 <- ggplot2::ggplot()
 
+  pal_default_low  <- c("#4d9221", "#8073ac", "#4393c3", "#66bd63")
+  pal_default_high <- c("#c51b7d", "#e08214", "#d6604d", "#f46d43")
+  pal <- .resolve_heatmap_pal(HeatmapColorBar, length(packs), pal_default_low, pal_default_high)
+
   for (i in seq_along(packs)) {
     if (i > 1) p0 <- p0 + ggnewscale::new_scale_fill()
-    p0 <- .add_quadrant_layers(p0, packs[[i]], idx = i, scale_name = "Env")
+    p0 <- .add_quadrant_layers(
+      p0, packs[[i]], idx = i, scale_name = "Env",
+      HeatmapLabelSize = HeatmapLabelSize,
+      HeatmapSigSize = HeatmapSigSize,
+      HeatmapLabelOrient = HeatmapLabelOrient,
+      HeatmapTileColor = HeatmapTileColor,
+      HeatmapTileSize = HeatmapTileSize,
+      low_pal = pal$low,
+      high_pal = pal$high
+    )
   }
 
   p0
@@ -652,17 +901,28 @@ gglink_heatmaps <- function(
   p1 <- p0 +
     ggnewscale::new_scale_color() +
     ggplot2::geom_segment(
-      data = cor_spec_env_location,
-      aes(x = x, y = y, xend = x_to, yend = y_to, color = Correlation, linetype = p_signif),
+      data = link_df,
+      aes(x = x, y = y, xend = x_to, yend = y_to,
+          color = Correlation,
+          linetype = line_type,
+          linewidth = -log10(Pvalue)),
       alpha = 0.5
     ) +
-    ggplot2::scale_color_gradient(low = "#fdbb84", high = "#d7301f") +
+    ggplot2::scale_color_gradient(low = SigLineColor[1], high = SigLineColor[2]) +
+    ggplot2::scale_linewidth_continuous(range = SigLineWidth) +
+    ggplot2::scale_linetype_identity() +
+    # 再次覆盖绘制热图对角点，保证在线段上方
     ggplot2::geom_point(
-      data = dplyr::distinct(cor_spec_env_location, ID, .keep_all = TRUE),
-      aes(x = x, y = y), shape = 21, fill = "#41b6c4", size = 8.5
+      data = diag_all,
+      aes(x = x_diag, y = y_diag),
+      shape = 21, fill = HeatmapPointFill, size = HeatmapPointSize
+    ) +
+    ggplot2::geom_point(
+      data = cor_spec_env,
+      aes(x = x, y = y), shape = 21, fill = CorePointFill, size = CorePointSize
     ) +
     ggplot2::geom_text(
-      data = dplyr::distinct(cor_spec_env_location, ID, .keep_all = TRUE),
+      data = cor_spec_env,
       aes(x = x, y = y, label = ID), size = 5
     ) +
     ggplot2::coord_cartesian(clip = "off") +
@@ -679,17 +939,27 @@ gglink_heatmaps <- function(
   p2 <- p0 +
     ggnewscale::new_scale_color() +
     ggplot2::geom_segment(
-      data = cor_spec_env_location,
-      aes(x = x, y = y, xend = x_to, yend = y_to, color = Correlation, linetype = p_signif),
+      data = link_df,
+      aes(x = x, y = y, xend = x_to, yend = y_to,
+          color = Correlation,
+          linetype = line_type,
+          linewidth = -log10(Pvalue)),
       alpha = 0.5
     ) +
-    ggplot2::scale_color_gradient(low = "#fdbb84", high = "#d7301f") +
+    ggplot2::scale_color_gradient(low = SigLineColor[1], high = SigLineColor[2]) +
+    ggplot2::scale_linewidth_continuous(range = SigLineWidth) +
+    ggplot2::scale_linetype_identity() +
     ggplot2::geom_point(
-      data = dplyr::distinct(cor_spec_env_location, ID, .keep_all = TRUE),
-      aes(x = x, y = y), shape = 21, fill = "#41b6c4", size = 8.5
+      data = diag_all,
+      aes(x = x_diag, y = y_diag),
+      shape = 21, fill = HeatmapPointFill, size = HeatmapPointSize
+    ) +
+    ggplot2::geom_point(
+      data = cor_spec_env,
+      aes(x = x, y = y), shape = 21, fill = CorePointFill, size = CorePointSize
     ) +
     ggplot2::geom_text(
-      data = dplyr::distinct(cor_spec_env_location, ID, .keep_all = TRUE),
+      data = cor_spec_env,
       aes(x = x, y = y, label = ID),
       size = 5
     ) +
@@ -703,18 +973,28 @@ gglink_heatmaps <- function(
 
   p2 <- p0 +
     ggnewscale::new_scale_fill() +
-    ggplot2::geom_curve(data = cor_spec_env_location,
-               mapping = aes(x = x, y = y, xend = x_to, yend = y_to, color = Correlation, linetype = p_signif),
+    ggplot2::geom_curve(data = link_df,
+              mapping = aes(x = x, y = y, xend = x_to, yend = y_to,
+                            color = Correlation,
+                            linetype = line_type,
+                            linewidth = -log10(Pvalue)),
                alpha = 0.5,
                curvature = 0.25
     ) +
-    ggplot2::scale_color_gradient(low = "#fdbb84", high = "#d7301f") +
-    ggplot2::geom_point(data = cor_spec_env_location %>% dplyr::distinct(ID, .keep_all = T),
+    ggplot2::scale_color_gradient(low = SigLineColor[1], high = SigLineColor[2]) +
+    ggplot2::scale_linewidth_continuous(range = SigLineWidth) +
+    ggplot2::scale_linetype_identity() +
+    ggplot2::geom_point(
+      data = diag_all,
+      aes(x = x_diag, y = y_diag),
+      shape = 21, fill = HeatmapPointFill, size = HeatmapPointSize
+    ) +
+    ggplot2::geom_point(data = cor_spec_env,
                mapping = aes(x = x, y = y, fill = ID),
                shape = 21,
-               fill = "#41b6c4",
-               size = 8.5) +
-    ggplot2::geom_text(data = cor_spec_env_location %>% dplyr::distinct(ID, .keep_all = T),
+               fill = CorePointFill,
+               size = CorePointSize) +
+    ggplot2::geom_text(data = cor_spec_env,
               mapping = aes(x =x, y = y, label = ID),
               size = 5) +
     # geom_line(data = cor_spec_env_location %>% dplyr::distinct(ID, .keep_all = T) %>% dplyr::select(ID, x, y),
@@ -732,7 +1012,7 @@ gglink_heatmaps <- function(
 
   p2
 
-  return(list(p1, p2))
+  return(list(p1, p2, cor_spec_env_list_out))
 
 }
 
