@@ -37,6 +37,10 @@
 #' Change group for nodes
 #' @param fill.by Character (default = "Modularity").
 #' Change fill for nodes
+#' @param fill Named vector of colors for node fill (e.g. \code{c("M1" = "red", "M2" = "blue")}).
+#' If \code{NULL} (default), uses \code{scale_fill_ggnetview}; if provided, uses \code{scale_fill_manual(values = fill)}.
+#' @param color Named vector of colors for node/edge/label color.
+#' If \code{NULL} (default), uses \code{scale_color_ggnetview}; if provided, uses \code{scale_color_manual(values = color)}.
 #' @param jitter Logical (default = FALSE).
 #' Whether to apply jitter to points.
 #' @param jitter_sd  Integer  (default = 0.1).
@@ -109,6 +113,8 @@ ggNetView <- function(graph_obj,
                       pointstroke = 0.3,
                       group.by = "Modularity",
                       fill.by = "Modularity",
+                      fill = NULL,
+                      color = NULL,
                       jitter = FALSE,
                       jitter_sd = 0.1,
                       mapping_line = FALSE,
@@ -372,6 +378,11 @@ ggNetView <- function(graph_obj,
 
 
     # point paramers
+    fill_scale_points <- if (is.null(fill)) {
+      scale_fill_ggnetview(unique(ly1_1[["graph_ly_final"]][[fill.by]]))
+    } else {
+      ggplot2::scale_fill_manual(values = fill)
+    }
     if (isFALSE(jitter)) {
       p1_1 <- p1_1 +
         ggplot2::geom_point(data = ly1_1[["ggplot_data"]][[1]],
@@ -382,7 +393,7 @@ ggNetView <- function(graph_obj,
         ggplot2::scale_size(range = pointsize) +
         ggplot2::coord_fixed() +
         theme_ggnetview() +
-        scale_fill_ggnetview(unique(ly1_1[["graph_ly_final"]][[fill.by]]))
+        fill_scale_points
     }else{
       # p1_1 <- p1_1 +
       #   ggplot2::geom_jitter(data = ly1_1[["ggplot_data"]][[1]],
@@ -404,7 +415,7 @@ ggNetView <- function(graph_obj,
         ggplot2::scale_size(range = pointsize) +
         ggplot2::coord_fixed() +
         theme_ggnetview() +
-        scale_fill_ggnetview(unique(ly1_1[["graph_ly_final"]][[fill.by]]))
+        fill_scale_points
 
     }
 
@@ -418,6 +429,10 @@ ggNetView <- function(graph_obj,
     if (isTRUE(label) & isFALSE(add_outer)) {
 
       .build_label_location()
+
+      lab_classes <- sort(unique(lab_df$Modularity))
+      fill_scale_lab <- if (is.null(fill)) scale_fill_ggnetview(lab_classes) else ggplot2::scale_fill_manual(values = fill)
+      color_scale_lab <- if (is.null(color)) scale_color_ggnetview(lab_classes) else ggplot2::scale_color_manual(values = color)
 
       p1_1 <- p1_1 +
         ggnewscale::new_scale_fill() +
@@ -440,8 +455,8 @@ ggNetView <- function(graph_obj,
                                  force = 0.05,
                                  show.legend = F
         ) +
-        scale_fill_ggnetview(sort(unique(lab_df$Modularity))) +
-        scale_color_ggnetview(sort(unique(lab_df$Modularity))) +
+        fill_scale_lab +
+        color_scale_lab +
         ggplot2::coord_equal(clip = "off",
                              xlim = c(xr[1] - pad, xr[2] + pad),
                              ylim = yr) +
@@ -455,6 +470,10 @@ ggNetView <- function(graph_obj,
 
       maskTable <- maskTable %>% dplyr::mutate(cluster = factor(cluster, levels = levels(ly1_1[["graph_ly_final"]]$Modularity), ordered = T))
 
+      mask_classes <- levels(maskTable$cluster)
+      fill_scale_mask <- if (is.null(fill)) scale_fill_ggnetview(mask_classes) else ggplot2::scale_fill_manual(values = fill)
+      color_scale_mask <- if (is.null(color)) scale_color_ggnetview(mask_classes) else ggplot2::scale_color_manual(values = color)
+
       p1_1 <- p1_1 +
         ggnewscale::new_scale_fill() +
         ggnewscale::new_scale_color() +
@@ -465,8 +484,8 @@ ggNetView <- function(graph_obj,
                               linetype = outerlinetype,
                               alpha = outeralpha,
                               show.legend = F) +
-        scale_fill_ggnetview(levels(maskTable$cluster)) +
-        scale_color_ggnetview(levels(maskTable$cluster)) +
+        fill_scale_mask +
+        color_scale_mask +
         ggplot2::coord_equal(clip = "off") +
         theme_ggnetview()
     }
@@ -478,6 +497,13 @@ ggNetView <- function(graph_obj,
       maskTable <- .build_mask_table()
 
       maskTable <- maskTable %>% dplyr::mutate(cluster = factor(cluster, levels = levels(ly1_1[["graph_ly_final"]]$Modularity), ordered = T))
+
+      lab_classes_outer <- levels(lab_df$Modularity)
+      mask_classes_outer <- levels(maskTable$cluster)
+      fill_scale_lab_outer <- if (is.null(fill)) scale_fill_ggnetview(lab_classes_outer) else ggplot2::scale_fill_manual(values = fill)
+      color_scale_lab_outer <- if (is.null(color)) scale_color_ggnetview(lab_classes_outer) else ggplot2::scale_color_manual(values = color)
+      fill_scale_mask_outer <- if (is.null(fill)) scale_fill_ggnetview(mask_classes_outer, na_value = NA) else ggplot2::scale_fill_manual(values = fill)
+      color_scale_mask_outer <- if (is.null(color)) scale_color_ggnetview(mask_classes_outer, na_value = NA) else ggplot2::scale_color_manual(values = color)
 
       p1_1 <- p1_1 +
         ggnewscale::new_scale_fill() +
@@ -500,8 +526,8 @@ ggNetView <- function(graph_obj,
                                  force = 0.05,
                                  show.legend = F
         ) +
-        scale_fill_ggnetview(levels(lab_df$Modularity)) +
-        scale_color_ggnetview(levels(lab_df$Modularity)) +
+        fill_scale_lab_outer +
+        color_scale_lab_outer +
         ggnewscale::new_scale_fill() +
         ggnewscale::new_scale_color() +
         ggplot2::geom_polygon(data= maskTable %>% dplyr::filter(cluster != "Others"),
@@ -510,8 +536,8 @@ ggNetView <- function(graph_obj,
                               linetype = outerlinetype,
                               alpha = outeralpha,
                               show.legend = F) +
-        scale_fill_ggnetview(levels(maskTable$cluster), na_value = NA) +
-        scale_color_ggnetview(levels(maskTable$cluster), na_value = NA) +
+        fill_scale_mask_outer +
+        color_scale_mask_outer +
         ggplot2::coord_equal(clip = "off",
                              xlim = c(xr[1] - pad, xr[2] + pad),
                              ylim = yr) +
@@ -536,6 +562,18 @@ ggNetView <- function(graph_obj,
 
   # specific layout dendrogram
   if (func_name == "create_layout_rings") {
+    fill_default_rings <- c('#8dd3c7','#ffffb3','#bebada','#fb8072','#80b1d3',
+                            '#fdb462','#b3de69','#fccde5','#cab2d6','#bc80bd',
+                            '#ccebc5','#ffed6f','#a6cee3','#b2df8a', '#fb9a99',
+                            '#bdbdbd',
+                            '#a6cee3','#1f78b4','#b2df8a','#33a02c','#fb9a99',
+                            '#e31a1c','#fdbf6f','#ff7f00','#cab2d6','#6a3d9a',
+                            '#ffff99','#b15928')
+    fill_scale_rings <- if (is.null(fill)) {
+      ggplot2::scale_fill_manual(values = fill_default_rings, name = "Group")
+    } else {
+      ggplot2::scale_fill_manual(values = fill)
+    }
     p1_1 <- ggraph::ggraph(ly1)  +
       ggraph::geom_edge_link(alpha = linealpha, colour = linecolor) +
       ggraph::geom_node_point(ggplot2::aes(fill = group, size = Degree), shape = 21, alpha = pointalpha) +
@@ -547,15 +585,7 @@ ggNetView <- function(graph_obj,
         size = nodelabsize, hjust = 'outward'
       ) +
       ggplot2::scale_shape_manual(values = 20:25) +
-      # scale_edge_color_gradientn(colors = c("#74add1","#abd9e9","#ffffbf","#fdae61","#f46d43"))+
-      ggplot2::scale_fill_manual(values = c('#8dd3c7','#ffffb3','#bebada','#fb8072','#80b1d3',
-                                            '#fdb462','#b3de69','#fccde5','#cab2d6','#bc80bd',
-                                            '#ccebc5','#ffed6f','#a6cee3','#b2df8a', '#fb9a99',
-                                            '#bdbdbd',
-                                            '#a6cee3','#1f78b4','#b2df8a','#33a02c','#fb9a99',
-                                            '#e31a1c','#fdbf6f','#ff7f00','#cab2d6','#6a3d9a',
-                                            '#ffff99','#b15928'),
-                                 name = "Group") +
+      fill_scale_rings +
       ggraph::scale_edge_width(range = c(0.1, 1)) +
       ggplot2::coord_equal(clip = "off") +
       theme_ggnetview()
@@ -563,11 +593,17 @@ ggNetView <- function(graph_obj,
   }
 
   if (layout == "dendrogram") {
+    color_default_dendro <- c('#66c2a5','#fc8d62','#a6d854','#e78ac3')
+    color_scale_dendro <- if (is.null(color)) {
+      color_default_dendro
+    } else {
+      color
+    }
     p1_1 <- ggraph::ggraph(graph_obj,layout = layout, circular = TRUE) +
       ggraph::geom_node_point(ggplot2::aes(size=node_size, color=type),alpha=pointalpha) +
       ggraph::geom_edge_diagonal(ggplot2::aes(color = node1.node), alpha=linealpha) +
-      ggraph::scale_edge_color_manual(values = c('#66c2a5','#fc8d62','#a6d854','#e78ac3')) +
-      ggplot2::scale_color_manual(values = c('#66c2a5','#fc8d62','#a6d854','#e78ac3')) +
+      ggraph::scale_edge_color_manual(values = color_scale_dendro) +
+      ggplot2::scale_color_manual(values = color_scale_dendro) +
       ggplot2::scale_size(range = c(3,15)) +
       ggraph::geom_node_text(
         ggplot2::aes(
@@ -604,6 +640,12 @@ ggNetView <- function(graph_obj,
     col_index = colnames(ly)[(col_index_start+1) : (col_index_end -1)]
 
     # 然后开始可视化
+    fill_default_pie <- c('#66c2a5','#fc8d62','#a6d854','#e78ac3')
+    fill_scale_pie <- if (is.null(fill)) {
+      ggplot2::scale_fill_manual(values = fill_default_pie)
+    } else {
+      ggplot2::scale_fill_manual(values = fill)
+    }
     p1_1 <- ggraph::ggraph(ly, layout = "manual", x = ly[["x"]], y = ly[["y"]]) +
       ggraph::geom_edge_link(color = "#6baed6") +
       scatterpie::geom_scatterpie(
@@ -612,7 +654,7 @@ ggNetView <- function(graph_obj,
         colour = "#000000",
         pie_scale = 2
       ) +
-      ggplot2::scale_fill_manual(values = c('#66c2a5','#fc8d62','#a6d854','#e78ac3')) +
+      fill_scale_pie +
       ggplot2::coord_fixed() +
       theme_ggnetview()
 

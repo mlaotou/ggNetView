@@ -22,6 +22,8 @@ ggNetView(
   pointstroke = 0.3,
   group.by = "Modularity",
   fill.by = "Modularity",
+  fill = NULL,
+  color = NULL,
   jitter = FALSE,
   jitter_sd = 0.1,
   mapping_line = FALSE,
@@ -102,6 +104,12 @@ Change group for nodes}
 
 \item{fill.by}{Character (default = "Modularity").
 Change fill for nodes}
+
+\item{fill}{Named vector of colors for node fill (e.g. \code{c("M1" = "red", "M2" = "blue")}).
+If \code{NULL} (default), uses \code{scale_fill_ggnetview}; if provided, uses \code{scale_fill_manual(values = fill)}.}
+
+\item{color}{Named vector of colors for node/edge/label color.
+If \code{NULL} (default), uses \code{scale_color_ggnetview}; if provided, uses \code{scale_color_manual(values = color)}.}
 
 \item{jitter}{Logical (default = FALSE).
 Whether to apply jitter to points.}
