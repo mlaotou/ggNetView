@@ -636,7 +636,12 @@ module_layout3 <- function(graph_obj,
 
       if (length(frontier) == 0) {
         stop(sprintf(
-          "模块需要 %d 个连续 slot，但邻接区域内仅能扩展到 %d 个。请增大 k_nn（当前 %d）或更换 layout 以增加连通性。",
+          paste0(
+            "模块需要 %d 个连续 slot，但邻接区域内仅能扩展到 %d 个。请增大 k_nn（当前 %d）或更换 layout 以增加连通性。\n",
+            "The module requires %d consecutive slots, but the adjacent region can only grow to %d. ",
+            "Please increase k_nn (currently %d) or switch to a layout with better connectivity."
+          ),
+          quota, length(region), k_nn,
           quota, length(region), k_nn
         ))
       }
