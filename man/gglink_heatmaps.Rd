@@ -21,6 +21,18 @@ gglink_heatmaps(
   drop_nonsig = FALSE,
   shape = 22,
   distance = 3,
+  HeatmapLabelSize = 5,
+  HeatmapSigSize = 5,
+  HeatmapColorBar = NULL,
+  HeatmapLabelOrient = 0,
+  SigLineWidth = c(0.5, 2),
+  SigLineColor = c("#fdbb84", "#d7301f"),
+  HeatmapPointSize = 5,
+  CorePointSize = 8.5,
+  HeatmapPointFill = "#de77ae",
+  CorePointFill = "#41b6c4",
+  HeatmapTileColor = NA,
+  HeatmapTileSize = 0,
   fontsize = 5,
   orientation = c("top_right", "bottom_right", "top_left", "bottom_left"),
   r = 6
@@ -83,8 +95,59 @@ Integer or numeric specifying the shape of species nodes in the plot (passed to 
 \item{distance}{Numeric
 the offset distance between central nodes and the environmental heatmaps.}
 
+\item{HeatmapLabelSize}{Numeric (default = 5)
+Text size for heatmap axis labels (ID/Type).}
+
+\item{HeatmapSigSize}{Numeric (default = 5)
+Text size for significance symbols (e.g. `*`, `**`, `***`) inside heatmap tiles.}
+
+\item{HeatmapColorBar}{NULL or list
+Controls the colorbar palettes used by each heatmap quadrant.
+
+- If `NULL`, the built-in default palettes are used (same as current behavior).
+- If a list of length 2 with names `low` and `high`, each should be a character
+  vector of colors (recycled if shorter) used across quadrants.
+- If a list of length equal to the number of quadrants, each element should be
+  either `c(low, high)` or `list(low=..., high=...)` for that quadrant (in order).
+- example `HeatmapColorBar = list(
+ c("#2166ac", "#b2182b"),  # 第1个象限 low/high
+ c("#1b7837", "#762a83"),  # 第2个
+ c("#4393c3", "#d6604d"),  # 第3个
+ c("#92c5de", "#f4a582")   # 第4个
+ )`}
+
+\item{HeatmapLabelOrient}{Numeric (default = 0)
+Rotation angle (in degrees) for heatmap axis labels (ID/Type).
+Use this to avoid overlap of the top/bottom labels; e.g. 45 or 90.}
+
+\item{SigLineWidth}{Numeric vector of length 2 (default = c(0.5, 2))
+Controls the minimum and maximum line width for species–environment links,
+scaled by significance (p-value). Smaller p leads to thicker lines.}
+
+\item{SigLineColor}{Character vector (length 2, default = c("#fdbb84", "#d7301f"))
+Colors used for the species–environment link color gradient, corresponding to
+low and high correlation values respectively.}
+
+\item{HeatmapPointSize}{Numeric (default = 5)
+Point size for the heatmap diagonal nodes.}
+
+\item{CorePointSize}{Numeric (default = 8.5)
+Point size for the central species nodes.}
+
+\item{HeatmapPointFill}{Character (default = "#de77ae")
+Fill color for heatmap diagonal points.}
+
+\item{CorePointFill}{Character (default = "#41b6c4")
+Fill color for central species nodes.}
+
+\item{HeatmapTileColor}{Character or NA (default = NA)
+Border color for heatmap tiles (passed to `geom_tile(colour=...)`).}
+
+\item{HeatmapTileSize}{Numeric (default = 0)
+Border line width for heatmap tiles (passed to `geom_tile(size=...)`).}
+
 \item{fontsize}{Numeric (default = 5)
-The fontsize in env heatmap}
+(Deprecated) Use `HeatmapLabelSize` instead.}
 
 \item{orientation}{Character
 Character vector defining which heatmap quadrants to display. Can include any combination of `"top_right"`, `"bottom_right"`, `"top_left"`, and `"bottom_left"`.}
@@ -93,7 +156,11 @@ Character vector defining which heatmap quadrants to display. Can include any co
 radius of the central species layout (in plot units).}
 }
 \value{
-a list of ggplot2
+A list of length 3:
+- [[1]]: ggplot object with straight link segments.
+- [[2]]: ggplot object with curved link segments.
+- [[3]]: data.frame of full species–environment correlation statistics
+         (unfiltered, not affected by `drop_nonsig`).
 }
 \description{
 Visualize multi-orientation environmental–species correlation heatmaps

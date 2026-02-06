@@ -13,7 +13,7 @@ ggNetView(
   center = TRUE,
   idx = NULL,
   shrink = 1,
-  k_nn = 8,
+  k_nn = 12,
   push_others_delta = 0,
   layout.module = c("random", "adjacent", "order"),
   shape = 21,
@@ -36,6 +36,8 @@ ggNetView(
   labelsegmentsize = 1,
   labelsegmentalpha = 1,
   add_outer = FALSE,
+  q_outer = 0.88,
+  expand_outer = 1.02,
   outerwidth = 1.25,
   outerlinetype = 2,
   outeralpha = 0.5,
@@ -146,6 +148,14 @@ Change  label segment alpha.}
 
 \item{add_outer}{Logical (default = FALSE).
 Whether to add an outer circle/border around the layout.}
+
+\item{q_outer}{Numeric (default = 0.88).
+Quantile of radial distance used to construct the smooth outer boundary for each module.
+Higher values make the boundary more expanded; lower values make it tighter.}
+
+\item{expand_outer}{Numeric (default = 1.02).
+Global scaling factor applied to the smoothed radial distances when drawing the outer boundary.
+Values > 1 slightly expand the boundary; values < 1 slightly shrink it.}
 
 \item{outerwidth}{Integer  (default = 1.25).
 Change  outer linewidth.}

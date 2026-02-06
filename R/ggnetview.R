@@ -65,6 +65,12 @@
 #' Change  label segment alpha.
 #' @param add_outer Logical (default = FALSE).
 #' Whether to add an outer circle/border around the layout.
+#' @param q_outer Numeric (default = 0.88).
+#' Quantile of radial distance used to construct the smooth outer boundary for each module.
+#' Higher values make the boundary more expanded; lower values make it tighter.
+#' @param expand_outer Numeric (default = 1.02).
+#' Global scaling factor applied to the smoothed radial distances when drawing the outer boundary.
+#' Values > 1 slightly expand the boundary; values < 1 slightly shrink it.
 #' @param outerwidth Integer  (default = 1.25).
 #' Change  outer linewidth.
 #' @param outerlinetype Integer  (default = 2).
@@ -104,7 +110,7 @@ ggNetView <- function(graph_obj,
                       center = TRUE,
                       idx = NULL,
                       shrink = 1,
-                      k_nn = 8,
+                      k_nn = 12,
                       push_others_delta = 0,
                       layout.module = c("random", "adjacent", "order"),
                       shape = 21,
@@ -127,6 +133,8 @@ ggNetView <- function(graph_obj,
                       labelsegmentsize = 1,
                       labelsegmentalpha = 1,
                       add_outer = FALSE,
+                      q_outer = 0.88,
+                      expand_outer = 1.02,
                       outerwidth = 1.25,
                       outerlinetype = 2,
                       outeralpha = 0.5,
@@ -307,11 +315,14 @@ ggNetView <- function(graph_obj,
 
     # outlier df location
     .build_mask_table <- function(){
-      maskTable <- mascarade::generateMask(dims= ly1_1[["layout"]],
-                              clusters=ly1_1[["graph_obj"]] %>%
-                                tidygraph::activate(nodes) %>%
-                                tidygraph::as_tibble() %>%
-                                dplyr::pull(modularity3)
+      maskTable <- generateMask_ggnetview(
+        dims = ly1_1[["layout"]],
+        clusters = ly1_1[["graph_obj"]] %>%
+          tidygraph::activate(nodes) %>%
+          tidygraph::as_tibble() %>%
+          dplyr::pull(modularity3),
+        q = q_outer,
+        expand = expand_outer
       )
 
       return(maskTable)
@@ -343,6 +354,8 @@ ggNetView <- function(graph_obj,
                                                        yend = to_y,
                                                        colour = corr_direction),
                                 alpha = linealpha) +
+          ggplot2::scale_color_manual(values = c("Positive" = "#d6604d", "Negative" = "#4393c3")) +
+          ggnewscale::new_scale_color() +
           # ggplot2::coord_fixed() +
           theme_ggnetview()
       }
@@ -370,6 +383,8 @@ ggNetView <- function(graph_obj,
                                                      colour = corr_direction),
                               alpha = linealpha,
                               curvature = curvature) +
+          gplot2::scale_color_manual(values = c("Positive" = "#d6604d", "Negative" = "#4393c3")) +
+          ggnewscale::new_scale_color() +
           # ggplot2::coord_fixed() +
           theme_ggnetview()
       }

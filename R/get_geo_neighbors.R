@@ -461,7 +461,7 @@ module_layout3 <- function(graph_obj,
                            layout,                # data.frame(x, y)
                            center = TRUE,         # 第一个模块优先靠中心放
                            shrink = 0.9,          # 模块内轻度收紧
-                           k_nn = 8,              # layout 邻接度（6~10合适）
+                           k_nn = 12,             # layout 邻接度，越大连通性越好，同一模块更易聚在一起
                            push_others_delta = 0.2, # Others 外移量
                            jitter,
                            jitter_sd
@@ -530,25 +530,69 @@ module_layout3 <- function(graph_obj,
     uniq[free[uniq]]
   }
 
-  # 第一模块种子：尽量靠中心（取最内圈若干随机）
-  pick_seed_first <- function(){
+  # free 子图在 k-NN 上的连通分量（保证种子落在足够大的区域内）
+  get_free_components <- function(){
+    visited <- rep(FALSE, nL)
+    comps <- list()
+    for (i in which(free)) {
+      if (visited[i]) next
+      q <- i
+      comp <- integer()
+      while (length(q) > 0) {
+        j <- q[1]; q <- q[-1]
+        if (visited[j]) next
+        visited[j] <- TRUE
+        if (!free[j]) next
+        comp <- c(comp, j)
+        nb <- adj[[j]]
+        nb <- nb[free[nb] & !visited[nb]]
+        q <- c(q, nb)
+      }
+      if (length(comp) > 0) comps <- c(comps, list(comp))
+    }
+    comps
+  }
+
+  # 第一模块种子：从“大小足够”的最大分量中选，尽量靠中心
+  pick_seed_first <- function(k_need){
+    comps <- get_free_components()
+    comps <- comps[order(-sapply(comps, length))]
+    ok <- comps[sapply(comps, length) >= k_need]
+    if (length(ok) == 0) {
+      stop(sprintf("不存在包含 >= %d 个连续 slot 的区域。请增大 k_nn（当前 %d）或更换 layout。", k_need, k_nn))
+    }
+    cand <- ok[[1]]
     if (center) {
-      r <- sqrt(layout$x^2 + layout$y^2)
-      cand <- order(r)[seq_len(max(10, ceiling(0.01 * length(r))))]
-      sample(cand, 1)
+      r <- sqrt(layout$x[cand]^2 + layout$y[cand]^2)
+      cand[order(r)[1]]
     } else {
-      sample(which(free), 1)
+      cand[sample(length(cand), 1)]
     }
   }
 
-  # 后续模块种子：从 frontier 里按“更靠当前已占质心”的概率抽
-  pick_seed_next <- function(){
-    fr <- get_frontier()
-    if (length(fr) == 0) return(sample(which(free), 1))
-    cx <- mean(layout$x[!free], na.rm = TRUE); cy <- mean(layout$y[!free], na.rm = TRUE)
-    dd <- (layout$x[fr] - cx)^2 + (layout$y[fr] - cy)^2
-    prob <- (max(dd) + 1e-9 - dd); prob <- prob / sum(prob)
-    sample(fr, 1, prob = prob)
+  # 后续模块种子：从“大小足够”的分量中选最靠近已占区域的
+  pick_seed_next <- function(k_need){
+    comps <- get_free_components()
+    ok <- comps[sapply(comps, length) >= k_need]
+    if (length(ok) == 0) {
+      stop(sprintf("不存在包含 >= %d 个连续 slot 的区域。请增大 k_nn（当前 %d）或更换 layout。", k_need, k_nn))
+    }
+    cx <- mean(layout$x[!free], na.rm = TRUE)
+    cy <- mean(layout$y[!free], na.rm = TRUE)
+    best <- ok[[1]]
+    best_d <- Inf
+    for (cc in ok) {
+      dc <- (mean(layout$x[cc]) - cx)^2 + (mean(layout$y[cc]) - cy)^2
+      if (dc < best_d) { best_d <- dc; best <- cc }
+    }
+    fr <- intersect(best, get_frontier())
+    if (length(fr) > 0) {
+      dd <- (layout$x[fr] - cx)^2 + (layout$y[fr] - cy)^2
+      fr[order(dd)[1]]
+    } else {
+      dd <- (layout$x[best] - cx)^2 + (layout$y[best] - cy)^2
+      best[order(dd)[1]]
+    }
   }
 
   # BFS 生长（带轻启发式）：从种子扩张到 quota
@@ -578,22 +622,33 @@ module_layout3 <- function(graph_obj,
     region
   }
 
-  # 若 BFS 不足 quota，则从全局 free 里按到 region/seed 最近补齐
+  # 只从与 region 在 k-NN 图上相邻的 free 点迭代扩展，保证同一模块聚在一起
   fill_deficit <- function(region, quota, target_idx){
     need <- quota - length(region)
     if (need <= 0) return(region)
-    free_idx <- which(free)
-    if (length(free_idx) == 0) return(region)
+    tx <- if (length(region) > 0) mean(layout$x[region]) else layout$x[target_idx]
+    ty <- if (length(region) > 0) mean(layout$y[region]) else layout$y[target_idx]
 
-    if (length(region) > 0) {
-      tx <- mean(layout$x[region]); ty <- mean(layout$y[region])
-    } else {
-      tx <- layout$x[target_idx];    ty <- layout$y[target_idx]
+    while (length(region) < quota) {
+      # 只从 region 的 1-hop 邻居（且仍为 free）中选取
+      frontier <- unique(unlist(adj[region], use.names = FALSE))
+      frontier <- frontier[free[frontier]]
+
+      if (length(frontier) == 0) {
+        stop(sprintf(
+          "模块需要 %d 个连续 slot，但邻接区域内仅能扩展到 %d 个。请增大 k_nn（当前 %d）或更换 layout 以增加连通性。",
+          quota, length(region), k_nn
+        ))
+      }
+      # 优先选离 region 质心最近的，保持紧凑
+      dd <- (layout$x[frontier] - tx)^2 + (layout$y[frontier] - ty)^2
+      pick <- frontier[order(dd, frontier)[1]]
+      region <- c(region, pick)
+      free[pick] <<- FALSE
+      tx <- mean(layout$x[region])
+      ty <- mean(layout$y[region])
     }
-    dd <- (layout$x[free_idx] - tx)^2 + (layout$y[free_idx] - ty)^2
-    pick <- head(free_idx[order(dd)], min(need, length(free_idx)))
-    free[pick] <<- FALSE
-    c(region, pick)
+    region
   }
 
   # 逐模块（Others 留到最后）
@@ -607,7 +662,7 @@ module_layout3 <- function(graph_obj,
                    mod, k_need, sum(free)))
     }
 
-    seed_idx <- if (mi == 1) pick_seed_first() else pick_seed_next()
+    seed_idx <- if (mi == 1) pick_seed_first(k_need) else pick_seed_next(k_need)
     region   <- grow_region(seed_idx, k_need)
     if (length(region) < k_need) {
       region <- fill_deficit(region, k_need, target_idx = seed_idx)

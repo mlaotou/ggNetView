@@ -1,7 +1,7 @@
 Type: Package
 Package: ggNetView
 Title: An R Package for Reproducible and Deterministic Network Analysis and Visualization.
-Version: 1.4.10
+Version: 1.4.11
 Authors@R: 
     person("Yue", "Liu", , "yueliu@iae.ac.cn", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-6180-8068"))
@@ -10,7 +10,7 @@ Description: ggNetView is an R package for network analysis and visualization.
 License: GPL (>= 3)
 Depends: 
     R (>= 3.5)
-Imports: 
+Imports:
     dplyr,
     future,
     future.apply,
@@ -22,7 +22,6 @@ Imports:
     grDevices,
     igraph,
     magrittr,
-    mascarade,
     Matrix,
     multtest,
     progressr,

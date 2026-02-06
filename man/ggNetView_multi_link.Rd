@@ -26,7 +26,7 @@ ggNetView_multi_link(
   center = TRUE,
   idx = NULL,
   shrink = 1,
-  k_nn = 8,
+  k_nn = 12,
   push_others_delta = 0,
   layout.module = c("random", "adjacent", "order"),
   group.by = "Modularity",
