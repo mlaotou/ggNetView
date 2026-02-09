@@ -60,7 +60,7 @@ cor_test2 <- function(Environment, Experiment){
                   ID2 = as.numeric(ID),
                   Type2 = as.numeric(Type)
     ) %>%
-    na.omit()
+    stats::na.omit()
 
   cor_self_p <- cor_out_self$p %>% as.data.frame()
   cor_self_p[upper.tri(cor_self_p)] <- NA
@@ -73,7 +73,7 @@ cor_test2 <- function(Environment, Experiment){
                   Type = factor(Type, levels = rev(unique(Type)), ordered = T),
                   ID2 = as.numeric(ID),
                   Type2 = as.numeric(Type)) %>%
-    na.omit() %>%
+    stats::na.omit() %>%
     dplyr::mutate(p_value = case_when(
       Pvalue > 0.05 ~ "",
       Pvalue > 0.01 & Pvalue < 0.05 ~ "*",
@@ -85,31 +85,25 @@ cor_test2 <- function(Environment, Experiment){
 }
 
 
-create_layout2 <- function(graph, stat_out = stat_out, hub_names = NULL, r = 10) {
-  # graph = graph_obj
-  # r = 10
-  hub_names = NULL
-  # get nodes
-  # 自定义布局
-  # 构建自定义布局
+create_layout2 <- function(graph, stat_out, hub_names = NULL, hub_n = NULL, r = 10) {
 
   nodes <- graph %>%
     tidygraph::activate(nodes) %>%
     tidygraph::as_tibble()
 
-  # get edges
-  edges <- graph %>%
-    tidygraph::activate(edges) %>%
-    tidygraph::as_tibble()
-
-  # 如果未指定 hub，自动选择度数最高的前两个节点
+  # 如果未指定 hub，默认使用所有节点；否则按度数取前 hub_n
   if (is.null(hub_names)) {
-    deg_df <- graph %>%
-      tidygraph::mutate(degree = tidygraph::centrality_degree(mode = "out")) %>%
-      tidygraph::as_tibble() %>%
-      tidygraph::arrange(dplyr::desc(degree))
+    if (is.null(hub_n)) {
+      hub_names <- nodes$node
+    } else {
+      deg_df <- graph %>%
+        tidygraph::mutate(degree = tidygraph::centrality_degree(mode = "out")) %>%
+        tidygraph::as_tibble() %>%
+        tidygraph::arrange(dplyr::desc(degree))
 
-    hub_names <- deg_df$node[1:5]
+      hub_n <- min(hub_n, nrow(deg_df))
+      hub_names <- deg_df$node[seq_len(hub_n)]
+    }
   }
 
   # hub
@@ -139,10 +133,8 @@ create_layout2 <- function(graph, stat_out = stat_out, hub_names = NULL, r = 10)
     y = y
   )
 
-  circle_df
-
   hub_df <- stat_out[[3]] %>%
-    dplyr::distinct(., Experiment, .keep_all = T) %>%
+    dplyr::distinct(Experiment, .keep_all = TRUE) %>%
     dplyr::select(start2, end2) %>%
     purrr::set_names(c("x", "y"))
 
@@ -158,10 +150,12 @@ create_layout2 <- function(graph, stat_out = stat_out, hub_names = NULL, r = 10)
                                            y = hub_df$y)
   )
 
-  ly <- ggraph::create_layout(graph,
-                      layout = "manual",
-                      x = layout_manual_2$x,
-                      y = layout_manual_2$y)
+  ly <- ggraph::create_layout(
+    graph,
+    layout = "manual",
+    x = layout_manual_2$x,
+    y = layout_manual_2$y
+  )
 
   return(ly)
 }

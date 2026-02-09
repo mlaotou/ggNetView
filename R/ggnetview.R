@@ -27,7 +27,8 @@
 #' - adjacent : modules are positioned close to each other, minimizing inter-module gaps.
 #' - order : modules are distributed by order, applicable to `Bipartite, Tripartite, Quadripartite, Multipartite, Pentapartite Layout`
 #' @param shape Integer  (default = 21).
-#' The point shape likely in ggplot2.
+#' The point shape likely in ggplot2. If a character string is provided,
+#' it must be a variable name in graph_object for point shape mapping.
 #' @param pointalpha Integer  (default = 1).
 #' The point alpha
 #' @param pointsize Vector (default =  c(1,10))
@@ -37,6 +38,10 @@
 #' Change group for nodes
 #' @param fill.by Character (default = "Modularity").
 #' Change fill for nodes
+#' @param color.by Character (default = NULL).
+#' Change color for nodes. If provided, must be a variable name in
+#' graph_object. Numeric uses \code{scale_color_gradient},
+#' otherwise uses \code{scale_color_manual} or \code{scale_color_ggnetview}.
 #' @param fill Named vector of colors for node fill (e.g. \code{c("M1" = "red", "M2" = "blue")}).
 #' If \code{NULL} (default), uses \code{scale_fill_ggnetview}; if provided, uses \code{scale_fill_manual(values = fill)}.
 #' @param color Named vector of colors for node/edge/label color.
@@ -45,8 +50,11 @@
 #' Whether to apply jitter to points.
 #' @param jitter_sd  Integer  (default = 0.1).
 #' The standard deviation of the jitter applied when `jitter = TRUE`.
+#' @param plot_line  Logical (default = TRUE).
+#' Whether to plot line in net plot.
 #' @param mapping_line  Logical (default = FALSE).
-#' Whether to mapping line in ggNetView.
+#' Whether to mapping line in ggNetView. If a character string is provided,
+#' it must be a variable name in graph_object for line color mapping.
 #' @param curve  Logical (default = FALSE).
 #' Whether to plot curve line in net plot.
 #' @param curvature Integer (default = 0.25)
@@ -96,7 +104,6 @@
 #' @param seed Integer (default = 1115).
 #' Random seed for reproducibility.
 #'
-
 #'
 #' @returns A ggplot object representing the network visualization.
 #' @export
@@ -119,10 +126,12 @@ ggNetView <- function(graph_obj,
                       pointstroke = 0.3,
                       group.by = "Modularity",
                       fill.by = "Modularity",
+                      color.by = NULL,
                       fill = NULL,
                       color = NULL,
                       jitter = FALSE,
                       jitter_sd = 0.1,
+                      plot_line = TRUE,
                       mapping_line = FALSE,
                       curve = F,
                       curvature = 0.25,
@@ -332,9 +341,31 @@ ggNetView <- function(graph_obj,
     # base plot
     p1_1 <- ggplot2::ggplot()
 
-    # line parameter
+  # line parameter
+  line_color_by <- NULL
+  line_scale <- NULL
+  if (isTRUE(plot_line)) {
+    if (is.character(mapping_line)) {
+      if (length(mapping_line) != 1) {
+        stop("`mapping_line` must be a variable name in graph_object.")
+      }
+      if (!mapping_line %in% colnames(ly1_1[["ggplot_data"]][[2]])) {
+        stop("`mapping_line` must be a variable name in graph_object.")
+      }
+      line_color_by <- mapping_line
+      line_values <- ly1_1[["ggplot_data"]][[2]][[line_color_by]]
+      if (is.numeric(line_values)) {
+        line_scale <- ggplot2::scale_color_gradient(low = "#4393c3", high = "#d6604d")
+      } else {
+        line_scale <- if (is.null(color)) {
+          ggplot2::scale_color_manual(values = c("Positive" = "#d6604d", "Negative" = "#4393c3"))
+        } else {
+          ggplot2::scale_color_manual(values = color)
+        }
+      }
+    }
     if (isFALSE(curve)) {
-      if (isFALSE(mapping_line)) {
+      if (isFALSE(mapping_line) && is.null(line_color_by)) {
         p1_1 <- p1_1 +
           ggplot2::geom_segment(data = ly1_1[["ggplot_data"]][[2]],
                                 mapping = ggplot2::aes(x = from_x,
@@ -345,6 +376,18 @@ ggNetView <- function(graph_obj,
                                 colour = linecolor) +
           theme_ggnetview()
 
+      }else if (!is.null(line_color_by)){
+        p1_1 <- p1_1 +
+          ggplot2::geom_segment(data = ly1_1[["ggplot_data"]][[2]],
+                                mapping = ggplot2::aes(x = from_x,
+                                                       xend = to_x,
+                                                       y = from_y,
+                                                       yend = to_y,
+                                                       colour = .data[[line_color_by]]),
+                                alpha = linealpha) +
+          line_scale +
+          ggnewscale::new_scale_color() +
+          theme_ggnetview()
       }else{
         p1_1 <- p1_1 +
           ggplot2::geom_segment(data = ly1_1[["ggplot_data"]][[2]],
@@ -360,7 +403,7 @@ ggNetView <- function(graph_obj,
           theme_ggnetview()
       }
     }else{
-      if (isFALSE(mapping_line)) {
+      if (isFALSE(mapping_line) && is.null(line_color_by)) {
         p1_1 <- p1_1 +
           ggplot2::geom_curve(data = ly1_1[["ggplot_data"]][[2]],
                               mapping = ggplot2::aes(x = from_x,
@@ -373,6 +416,20 @@ ggNetView <- function(graph_obj,
                               ) +
           theme_ggnetview()
 
+      }else if (!is.null(line_color_by)){
+        p1_1 <- p1_1 +
+          ggplot2::geom_curve(data = ly1_1[["ggplot_data"]][[2]],
+                              mapping = ggplot2::aes(x = from_x,
+                                                     xend = to_x,
+                                                     y = from_y,
+                                                     yend = to_y,
+                                                     colour = .data[[line_color_by]]),
+                              alpha = linealpha,
+                              curvature = curvature) +
+          line_scale +
+          ggnewscale::new_scale_color() +
+          # ggplot2::coord_fixed() +
+          theme_ggnetview()
       }else{
         p1_1 <- p1_1 +
           ggplot2::geom_curve(data = ly1_1[["ggplot_data"]][[2]],
@@ -383,32 +440,110 @@ ggNetView <- function(graph_obj,
                                                      colour = corr_direction),
                               alpha = linealpha,
                               curvature = curvature) +
-          gplot2::scale_color_manual(values = c("Positive" = "#d6604d", "Negative" = "#4393c3")) +
+          ggplot2::scale_color_manual(values = c("Positive" = "#d6604d", "Negative" = "#4393c3")) +
           ggnewscale::new_scale_color() +
           # ggplot2::coord_fixed() +
           theme_ggnetview()
       }
     }
+  }
 
 
 
     # point paramers
+    if (is.character(shape)) {
+      if (length(shape) != 1) {
+        stop("`shape` must be a variable name in graph_object.")
+      }
+      if (!shape %in% colnames(ly1_1[["ggplot_data"]][[1]])) {
+        stop("`shape` must be a variable name in graph_object.")
+      }
+    }
+    if (!is.null(color.by)) {
+      if (length(color.by) != 1) {
+        stop("`color.by` must be a single variable name in graph_object.")
+      }
+      if (!color.by %in% colnames(ly1_1[["ggplot_data"]][[1]])) {
+        stop("`color.by` must be a variable name in graph_object.")
+      }
+    }
     fill_scale_points <- if (is.null(fill)) {
       scale_fill_ggnetview(unique(ly1_1[["graph_ly_final"]][[fill.by]]))
     } else {
       ggplot2::scale_fill_manual(values = fill)
     }
+    color_scale_points <- NULL
+    if (!is.null(color.by)) {
+      color_values <- ly1_1[["ggplot_data"]][[1]][[color.by]]
+      if (is.numeric(color_values)) {
+        color_scale_points <- ggplot2::scale_color_gradient(low = "#4393c3", high = "#d6604d")
+      } else if (is.null(color)) {
+        color_scale_points <- scale_color_ggnetview(unique(color_values))
+      } else {
+        color_scale_points <- ggplot2::scale_color_manual(values = color)
+      }
+    }
+    shape_scale_points <- NULL
+    if (is.character(shape)) {
+      shape_classes <- unique(ly1_1[["ggplot_data"]][[1]][[shape]])
+      shape_values <- rep(21:25, length.out = length(shape_classes))
+      shape_scale_points <- ggplot2::scale_shape_manual(values = shape_values)
+    }
+    size_guide_points <- NULL
+    if (isTRUE(pointstroke == 0)) {
+      size_guide_points <- ggplot2::guides(
+        size = ggplot2::guide_legend(
+          override.aes = list(
+            shape = 21,
+            fill = "grey70",
+            colour = "grey70",
+            stroke = 0.3
+          )
+        )
+      )
+    }
+    if (is.character(shape) && !is.null(color.by)) {
+      point_mapping <- ggplot2::aes(x = x, y = y,
+                                    fill = .data[[fill.by]],
+                                    size = Degree,
+                                    shape = .data[[shape]],
+                                    color = .data[[color.by]])
+    } else if (is.character(shape)) {
+      point_mapping <- ggplot2::aes(x = x, y = y,
+                                    fill = .data[[fill.by]],
+                                    size = Degree,
+                                    shape = .data[[shape]])
+    } else if (!is.null(color.by)) {
+      point_mapping <- ggplot2::aes(x = x, y = y,
+                                    fill = .data[[fill.by]],
+                                    size = Degree,
+                                    color = .data[[color.by]])
+    } else {
+      point_mapping <- ggplot2::aes(x = x, y = y, fill = .data[[fill.by]], size = Degree)
+    }
     if (isFALSE(jitter)) {
+      if (is.character(shape)) {
+        p1_1 <- p1_1 +
+          ggplot2::geom_point(data = ly1_1[["ggplot_data"]][[1]],
+                              mapping = point_mapping,
+                              alpha = pointalpha,
+                              stroke = pointstroke)
+      } else {
+        p1_1 <- p1_1 +
+          ggplot2::geom_point(data = ly1_1[["ggplot_data"]][[1]],
+                              mapping = point_mapping,
+                              shape = shape,
+                              alpha = pointalpha,
+                              stroke = pointstroke)
+      }
       p1_1 <- p1_1 +
-        ggplot2::geom_point(data = ly1_1[["ggplot_data"]][[1]],
-                            mapping = ggplot2::aes(x = x, y = y, fill = .data[[fill.by]], size = Degree),
-                            shape = shape,
-                            alpha = pointalpha,
-                            stroke = pointstroke) +
-        ggplot2::scale_size(range = pointsize) +
+        ggplot2::scale_size(range = pointsize, guide = "legend") +
         ggplot2::coord_fixed() +
         theme_ggnetview() +
-        fill_scale_points
+        fill_scale_points +
+        color_scale_points +
+        shape_scale_points +
+        size_guide_points
     }else{
       # p1_1 <- p1_1 +
       #   ggplot2::geom_jitter(data = ly1_1[["ggplot_data"]][[1]],
@@ -421,16 +556,28 @@ ggNetView <- function(graph_obj,
       #   ggplot2::coord_fixed() +
       #   theme_ggnetview() +
       #   scale_fill_ggnetview(unique(ly1_1[["graph_ly_final"]][[fill.by]]))
+      if (is.character(shape)) {
+        p1_1 <- p1_1 +
+          ggplot2::geom_point(data = ly1_1[["ggplot_data"]][[1]],
+                              mapping = point_mapping,
+                              alpha = pointalpha,
+                              stroke = pointstroke)
+      } else {
+        p1_1 <- p1_1 +
+          ggplot2::geom_point(data = ly1_1[["ggplot_data"]][[1]],
+                              mapping = point_mapping,
+                              shape = shape,
+                              alpha = pointalpha,
+                              stroke = pointstroke)
+      }
       p1_1 <- p1_1 +
-        ggplot2::geom_point(data = ly1_1[["ggplot_data"]][[1]],
-                            mapping = ggplot2::aes(x = x, y = y, fill = .data[[fill.by]], size = Degree),
-                            shape = shape,
-                            alpha = pointalpha,
-                            stroke = pointstroke) +
-        ggplot2::scale_size(range = pointsize) +
+        ggplot2::scale_size(range = pointsize, guide = "legend") +
         ggplot2::coord_fixed() +
         theme_ggnetview() +
-        fill_scale_points
+        fill_scale_points +
+        color_scale_points +
+        shape_scale_points +
+        size_guide_points
 
     }
 

@@ -22,10 +22,12 @@ ggNetView(
   pointstroke = 0.3,
   group.by = "Modularity",
   fill.by = "Modularity",
+  color.by = NULL,
   fill = NULL,
   color = NULL,
   jitter = FALSE,
   jitter_sd = 0.1,
+  plot_line = TRUE,
   mapping_line = FALSE,
   curve = F,
   curvature = 0.25,
@@ -91,7 +93,8 @@ Radial offset applied to the "Others" module to slightly}
 - order : modules are distributed by order, applicable to `Bipartite, Tripartite, Quadripartite, Multipartite, Pentapartite Layout`}
 
 \item{shape}{Integer  (default = 21).
-The point shape likely in ggplot2.}
+The point shape likely in ggplot2. If a character string is provided,
+it must be a variable name in graph_object for point shape mapping.}
 
 \item{pointalpha}{Integer  (default = 1).
 The point alpha}
@@ -107,6 +110,11 @@ Change group for nodes}
 \item{fill.by}{Character (default = "Modularity").
 Change fill for nodes}
 
+\item{color.by}{Character (default = NULL).
+Change color for nodes. If provided, must be a variable name in
+graph_object. Numeric uses \code{scale_color_gradient},
+otherwise uses \code{scale_color_manual} or \code{scale_color_ggnetview}.}
+
 \item{fill}{Named vector of colors for node fill (e.g. \code{c("M1" = "red", "M2" = "blue")}).
 If \code{NULL} (default), uses \code{scale_fill_ggnetview}; if provided, uses \code{scale_fill_manual(values = fill)}.}
 
@@ -119,8 +127,12 @@ Whether to apply jitter to points.}
 \item{jitter_sd}{Integer  (default = 0.1).
 The standard deviation of the jitter applied when `jitter = TRUE`.}
 
+\item{plot_line}{Logical (default = TRUE).
+Whether to plot line in net plot.}
+
 \item{mapping_line}{Logical (default = FALSE).
-Whether to mapping line in ggNetView.}
+Whether to mapping line in ggNetView. If a character string is provided,
+it must be a variable name in graph_object for line color mapping.}
 
 \item{curve}{Logical (default = FALSE).
 Whether to plot curve line in net plot.}

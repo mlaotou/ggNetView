@@ -1,13 +1,19 @@
 #' Visualize multi-orientation environmental–species correlation heatmaps2
 #'
-#' @param Environment character
-#' The file Path of Environment data
-#' @param Experiment character
-#' The file Path of Experiment data
-#' @param edge character
-#' The file Path of edge data
-#' @param node character
-#' The file Path of node data
+#' @param Environment character or data.frame
+#' File path or data frame of environment data.
+#' @param Experiment character or data.frame
+#' File path or data frame of experiment data.
+#' @param edge character or data.frame
+#' File path or data frame of edge data.
+#' @param node character or data.frame
+#' File path or data frame of node data.
+#' @param sample_col Character (default = "Sample")
+#' Column name used as sample ID when input is a data frame or file.
+#' @param delim Character (default = ",")
+#' Delimiter for reading input files.
+#' @param hub_n Integer (default = NULL)
+#' Number of hub nodes used in layout; if NULL, uses all nodes.
 #' @param r numeric (default = 6)
 #'
 #' @returns a ggplot2 object
@@ -19,22 +25,53 @@ gglink_heatmap_triple <- function(
     Experiment,
     edge,
     node,
+    sample_col = "Sample",
+    delim = ",",
+    hub_n = NULL,
     r = 6
 ){
 
+  .read_table <- function(x) {
+    if (is.character(x)) {
+      readr::read_delim(file = x, delim = delim)
+    } else if (is.data.frame(x)) {
+      x
+    } else {
+      stop("Inputs must be file paths or data frames.")
+    }
+  }
+
   # Environment Data
-  Environment <- readr::read_delim(file = Environment, delim = ",") %>%
-    tibble::column_to_rownames(var = "Sample")
+  Environment <- .read_table(Environment) %>%
+    tibble::as_tibble()
+  if (!sample_col %in% colnames(Environment)) {
+    stop("`sample_col` not found in Environment.")
+  }
+  Environment <- Environment %>%
+    tibble::column_to_rownames(var = sample_col)
 
   # Experiment Data
-  Experiment <- readr::read_delim(file = Experiment, delim = ",") %>%
-    tibble::column_to_rownames(var = "Sample")
+  Experiment <- .read_table(Experiment) %>%
+    tibble::as_tibble()
+  if (!sample_col %in% colnames(Experiment)) {
+    stop("`sample_col` not found in Experiment.")
+  }
+  Experiment <- Experiment %>%
+    tibble::column_to_rownames(var = sample_col)
 
   # edge Data
-  edge <- readr::read_delim(file = edge, delim = ",")
+  edge <- .read_table(edge) %>%
+    tibble::as_tibble()
+  if (!all(c("from", "to") %in% colnames(edge))) {
+    stop("`edge` must contain columns: from, to.")
+  }
 
   # node Data
-  node <- readr::read_delim(file = node, delim = ",")
+  node <- .read_table(node) %>%
+    tibble::as_tibble()
+  if (!"node" %in% colnames(node)) {
+    stop("`node` must contain column: node.")
+  }
 
 
   # Correlation
@@ -44,9 +81,24 @@ gglink_heatmap_triple <- function(
 
   # layout
   layout_manual <- create_layout2(graph_obj,
-                                  stat_out = stat_out,
-                                  hub_names = NULL,
-                                  r = r)
+                                 stat_out = stat_out,
+                                 hub_names = NULL,
+                                 hub_n = hub_n,
+                                 r = r)
+
+  hm_df <- stat_out[[1]]
+  id_lab <- hm_df %>%
+    dplyr::distinct(ID, ID2, .keep_all = TRUE) %>%
+    dplyr::mutate(
+      x_lab = ID2,
+      y_lab = max(Type2, na.rm = TRUE) + 1
+    )
+  type_lab <- hm_df %>%
+    dplyr::distinct(Type, Type2, .keep_all = TRUE) %>%
+    dplyr::mutate(
+      x_lab = max(ID2, na.rm = TRUE) + 1,
+      y_lab = Type2
+    )
 
   p <- ggraph::ggraph(layout_manual)  +
     ggraph::geom_edge_link(aes(color = weight, width = weight)) +
@@ -58,13 +110,13 @@ gglink_heatmap_triple <- function(
                                           direction = "horizontal",
                                           title.position = "top"))  +
     ggnewscale::new_scale_fill() +
-    ggplot2::geom_tile(data = stat_out[[1]],
+    ggplot2::geom_tile(data = hm_df,
               aes(x = ID2, y = Type2), fill = "white", color = "#000000", linewidth = 0.5, inherit.aes = F) +
-    ggplot2::geom_text(data = stat_out[[1]],
-              aes(x = ID2, y = 13, label = ID),inherit.aes = F) +
-    ggplot2::geom_text(data = stat_out[[1]],
-              aes(x = 13, y = Type2, label = Type), hjust = "left") +
-    ggplot2::geom_point(data = stat_out[[1]],
+    ggplot2::geom_text(data = id_lab,
+              aes(x = x_lab, y = y_lab, label = ID), inherit.aes = FALSE) +
+    ggplot2::geom_text(data = type_lab,
+              aes(x = x_lab, y = y_lab, label = Type), hjust = "left") +
+    ggplot2::geom_point(data = hm_df,
                aes(x = ID2, y = Type2, fill = Value, size = abs(Value)), shape = 21, color = "black") +
     ggplot2::geom_text(data = stat_out[[2]],
               aes(x = ID2, y = Type2, label = p_value),

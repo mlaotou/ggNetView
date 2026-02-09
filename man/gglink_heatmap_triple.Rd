@@ -4,20 +4,38 @@
 \alias{gglink_heatmap_triple}
 \title{Visualize multi-orientation environmental–species correlation heatmaps2}
 \usage{
-gglink_heatmap_triple(Environment, Experiment, edge, node, r = 6)
+gglink_heatmap_triple(
+  Environment,
+  Experiment,
+  edge,
+  node,
+  sample_col = "Sample",
+  delim = ",",
+  hub_n = NULL,
+  r = 6
+)
 }
 \arguments{
-\item{Environment}{character
-The file Path of Environment data}
+\item{Environment}{character or data.frame
+File path or data frame of environment data.}
 
-\item{Experiment}{character
-The file Path of Experiment data}
+\item{Experiment}{character or data.frame
+File path or data frame of experiment data.}
 
-\item{edge}{character
-The file Path of edge data}
+\item{edge}{character or data.frame
+File path or data frame of edge data.}
 
-\item{node}{character
-The file Path of node data}
+\item{node}{character or data.frame
+File path or data frame of node data.}
+
+\item{sample_col}{Character (default = "Sample")
+Column name used as sample ID when input is a data frame or file.}
+
+\item{delim}{Character (default = ",")
+Delimiter for reading input files.}
+
+\item{hub_n}{Integer (default = NULL)
+Number of hub nodes used in layout; if NULL, uses all nodes.}
 
 \item{r}{numeric (default = 6)}
 }

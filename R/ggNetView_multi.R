@@ -75,10 +75,18 @@
 #' Change group for nodes
 #' @param fill.by Character (default = "Modularity").
 #' Change fill for nodes
+#' @param color.by Character (default = NULL).
+#' Change color for nodes
+#' @param fill Named vector of colors for node fill.
+#' If \code{NULL} (default), uses \code{scale_fill_ggnetview}; if provided, uses \code{scale_fill_manual(values = fill)}.
+#' @param color Named vector of colors for node/edge/label color.
+#' If \code{NULL} (default), uses \code{scale_color_ggnetview}; if provided, uses \code{scale_color_manual(values = color)}.
 #' @param jitter Logical (default = FALSE).
 #' Whether to apply jitter to points.
 #' @param jitter_sd  Integer  (default = 0.1).
 #' The standard deviation of the jitter applied when `jitter = TRUE`.
+#' @param plot_line  Logical (default = TRUE).
+#' Whether to plot line in net plot.
 #' @param mapping_line  Logical (default = FALSE).
 #' Whether to mapping line in ggNetView.
 #' @param curve  Logical (default = FALSE).
@@ -156,8 +164,12 @@ ggNetView_multi <- function(mat,
                             pointstroke = 0.3,
                             group.by = "Modularity",
                             fill.by = "Modularity",
+                            color.by = NULL,
+                            fill = NULL,
+                            color = NULL,
                             jitter = FALSE,
                             jitter_sd = 0.1,
+                            plot_line = TRUE,
                             mapping_line = FALSE,
                             curve = F,
                             curvature = 0.25,
@@ -231,8 +243,12 @@ ggNetView_multi <- function(mat,
       pointstroke = pointstroke,
       group.by = group.by,
       fill.by = fill.by,
+      color.by = color.by,
+      fill = fill,
+      color = color,
       jitter = jitter,
       jitter_sd = jitter_sd,
+      plot_line = plot_line,
       mapping_line = mapping_line,
       curve = curve,
       curvature = curvature,
