@@ -20,6 +20,8 @@ ggNetView(
   pointalpha = 1,
   pointsize = c(1, 10),
   pointstroke = 0.3,
+  pointlabel = NULL,
+  pointlabelsize = 5,
   group.by = "Modularity",
   fill.by = "Modularity",
   color.by = NULL,
@@ -103,6 +105,14 @@ The point alpha}
 The point size rang.}
 
 \item{pointstroke}{Integer  (default = 0.3).}
+
+\item{pointlabel}{Character (default = NULL).
+Optional node label mode for top Degree nodes within each module.
+Supported values: \code{"topN"} (e.g. \code{"top1"}, \code{"top7"}, \code{"top20"})
+and \code{"ALL"}.}
+
+\item{pointlabelsize}{Integer (default = 5).
+Change point label size.}
 
 \item{group.by}{Character (default = "Modularity").
 Change group for nodes}

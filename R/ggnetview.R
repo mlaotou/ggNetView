@@ -34,6 +34,12 @@
 #' @param pointsize Vector (default =  c(1,10))
 #' The point size rang.
 #' @param pointstroke Integer  (default = 0.3).
+#' @param pointlabel Character (default = NULL).
+#' Optional node label mode for top Degree nodes within each module.
+#' Supported values: \code{"topN"} (e.g. \code{"top1"}, \code{"top7"}, \code{"top20"})
+#' and \code{"ALL"}.
+#' @param pointlabelsize Integer (default = 5).
+#' Change point label size.
 #' @param group.by Character (default = "Modularity").
 #' Change group for nodes
 #' @param fill.by Character (default = "Modularity").
@@ -65,6 +71,7 @@
 #' Change  line color.
 #' @param label Logical (default = FALSE).
 #' Whether to display node labels in the center points.
+
 #' @param labelsize Integer  (default = 10).
 #' Change Module label size.
 #' @param labelsegmentsize Integer  (default = 1).
@@ -124,6 +131,8 @@ ggNetView <- function(graph_obj,
                       pointalpha = 1,
                       pointsize = c(1,10),
                       pointstroke = 0.3,
+                      pointlabel = NULL,
+                      pointlabelsize = 5,
                       group.by = "Modularity",
                       fill.by = "Modularity",
                       color.by = NULL,
@@ -138,6 +147,7 @@ ggNetView <- function(graph_obj,
                       linealpha = 0.25,
                       linecolor = "grey70",
                       label = FALSE,
+                     
                       labelsize = 10,
                       labelsegmentsize = 1,
                       labelsegmentalpha = 1,
@@ -467,6 +477,51 @@ ggNetView <- function(graph_obj,
         stop("`color.by` must be a variable name in graph_object.")
       }
     }
+    point_label_df <- NULL
+    point_label_col <- NULL
+    if (!is.null(pointlabel)) {
+      if (!is.character(pointlabel) || length(pointlabel) != 1) {
+        stop("`pointlabel` must be NULL, 'ALL', or 'topN' (N is a positive integer, e.g. 'top7').")
+      }
+      pointlabel_clean <- toupper(trimws(pointlabel))
+      is_all <- identical(pointlabel_clean, "ALL")
+      is_top_n <- grepl("^TOP[1-9][0-9]*$", pointlabel_clean)
+      if (!is_all && !is_top_n) {
+        stop("`pointlabel` must be NULL, 'ALL', or 'topN' (N is a positive integer, e.g. 'top7').")
+      }
+
+      point_data <- ly1_1[["ggplot_data"]][[1]]
+      if (!"Degree" %in% colnames(point_data)) {
+        stop("`Degree` column is required in `ly1_1[['ggplot_data']][[1]]` for `pointlabel`.")
+      }
+
+      group_col <- if (group.by %in% colnames(point_data)) {
+        group.by
+      } else if ("Modularity" %in% colnames(point_data)) {
+        "Modularity"
+      } else {
+        stop("No valid module column found for `pointlabel` grouping.")
+      }
+
+      point_label_col <- if ("ID" %in% colnames(point_data)) {
+        "ID"
+      } else if ("name" %in% colnames(point_data)) {
+        "name"
+      } else {
+        stop("`pointlabel` requires an `ID` or `name` column in point data.")
+      }
+
+      if (is_all) {
+        point_label_df <- point_data
+      } else {
+        top_n <- as.integer(sub("^TOP", "", pointlabel_clean))
+
+        point_label_df <- point_data %>%
+          dplyr::group_by(.data[[group_col]]) %>%
+          dplyr::slice_max(order_by = Degree, n = top_n, with_ties = FALSE) %>%
+          dplyr::ungroup()
+      }
+    }
     fill_scale_points <- if (is.null(fill)) {
       scale_fill_ggnetview(unique(ly1_1[["graph_ly_final"]][[fill.by]]))
     } else {
@@ -704,6 +759,17 @@ ggNetView <- function(graph_obj,
                              xlim = c(xr[1] - pad, xr[2] + pad),
                              ylim = yr) +
         theme_ggnetview()
+    }
+
+    # add point labels after module boundary/text layers
+    if (!is.null(point_label_df) && nrow(point_label_df) > 0) {
+      p1_1 <- p1_1 +
+        ggplot2::geom_text(
+          data = point_label_df,
+          mapping = ggplot2::aes(x = x, y = y, label = .data[[point_label_col]]),
+          size = pointlabelsize,
+          show.legend = FALSE
+        )
     }
 
 
