@@ -293,7 +293,7 @@ data("Spedf")
 out1 <- gglink_heatmaps(
   env = Envdf_4st,
   spec = Spedf,
-  env_select = list(Env01 = 1:14,
+  env_select = list(Env01 = 1:14, 
                     Env02 = 15:28,
                     Env03 = 29:42,
                     Env04 = 43:56),
