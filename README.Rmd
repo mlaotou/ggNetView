@@ -263,7 +263,7 @@ p5
 
 
 ```
-ggsave(file = "Output/p3.pdf",
+ggsave(file = "Output/p3.pdf", 
        plot = p5,
        height = 10,
        width = 10)

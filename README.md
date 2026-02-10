@@ -27,34 +27,8 @@ You can install the development version of ggNetView from
 
 ``` r
 library(ggplot2)
-#> Warning: package 'ggplot2' was built under R version 4.5.2
 library(ggnewscale)
 library(ggNetView)
-#> 
-#>                                                ░██               ░██
-#>                                                ░██
-#>  ░████████  ░████████ ░████████   ░███████  ░████████ ░██    ░██ ░██ ░███████  ░██    ░██    ░██
-#> ░██    ░██ ░██    ░██ ░██    ░██ ░██    ░██    ░██    ░██    ░██ ░██░██    ░██ ░██    ░██    ░██
-#> ░██    ░██ ░██    ░██ ░██    ░██ ░█████████    ░██     ░██  ░██  ░██░█████████  ░██  ░████  ░██
-#> ░██   ░███ ░██   ░███ ░██    ░██ ░██           ░██      ░██░██   ░██░██          ░██░██ ░██░██
-#>  ░█████░██  ░█████░██ ░██    ░██  ░███████      ░████    ░███    ░██ ░███████     ░███   ░███
-#>        ░██        ░██
-#>  ░███████   ░███████
-#> 
-#> 
-#>   ggNetView v1.4.14 (2026).
-#>   Developed by Jiawang's Network Visualization Group.
-#> 
-#>   Maintainers:
-#>    - Yue Liu <yueliu@iae.ac.cn>
-#>    - Chao Wang <cwang@iae.ac.cn>
-#> 
-#>   GitHub: https://github.com/Jiawang1209/ggNetView
-#>   Bug Reports: https://github.com/Jiawang1209/ggNetView/issues
-#> 
-#>   Type citation('ggNetView') for how to cite this package.
-#>   Run browseVignettes('ggNetView') for documentation.
-#> 
 ```
 
 ### Step2: load Data
@@ -325,7 +299,7 @@ p5
 
 <img src="man/figures/README-unnamed-chunk-12-1.png" alt="" width="100%" style="display: block; margin: auto;" />
 
-    ggsave(file = "Output/p3.pdf",
+    ggsave(file = "Output/p3.pdf", 
            plot = p5,
            height = 10,
            width = 10)
