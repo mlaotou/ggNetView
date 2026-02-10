@@ -26,9 +26,35 @@ You can install the development version of ggNetView from
 ### Step1: load ggNetView
 
 ``` r
-library(ggNetView)
 library(ggplot2)
+#> Warning: package 'ggplot2' was built under R version 4.5.2
 library(ggnewscale)
+library(ggNetView)
+#> 
+#>                                                ░██               ░██
+#>                                                ░██
+#>  ░████████  ░████████ ░████████   ░███████  ░████████ ░██    ░██ ░██ ░███████  ░██    ░██    ░██
+#> ░██    ░██ ░██    ░██ ░██    ░██ ░██    ░██    ░██    ░██    ░██ ░██░██    ░██ ░██    ░██    ░██
+#> ░██    ░██ ░██    ░██ ░██    ░██ ░█████████    ░██     ░██  ░██  ░██░█████████  ░██  ░████  ░██
+#> ░██   ░███ ░██   ░███ ░██    ░██ ░██           ░██      ░██░██   ░██░██          ░██░██ ░██░██
+#>  ░█████░██  ░█████░██ ░██    ░██  ░███████      ░████    ░███    ░██ ░███████     ░███   ░███
+#>        ░██        ░██
+#>  ░███████   ░███████
+#> 
+#> 
+#>   ggNetView v1.4.14 (2026).
+#>   Developed by Jiawang's Network Visualization Group.
+#> 
+#>   Maintainers:
+#>    - Yue Liu <yueliu@iae.ac.cn>
+#>    - Chao Wang <cwang@iae.ac.cn>
+#> 
+#>   GitHub: https://github.com/Jiawang1209/ggNetView
+#>   Bug Reports: https://github.com/Jiawang1209/ggNetView/issues
+#> 
+#>   Type citation('ggNetView') for how to cite this package.
+#>   Run browseVignettes('ggNetView') for documentation.
+#> 
 ```
 
 ### Step2: load Data
@@ -113,20 +139,19 @@ obj
 #> # An undirected simple graph with 100 components
 #> #
 #> # Node Data: 2,049 × 14 (active)
-#>    name     modularity modularity2 modularity3 Modularity Degree Strength Kingdom Phylum Class Order
-#>    <chr>    <fct>      <ord>       <chr>       <ord>       <dbl>    <dbl> <chr>   <chr>  <chr> <chr>
-#>  1 ASV_916  1          1           1           1              58     50.5 Bacter… Prote… Gamm… Unas…
-#>  2 ASV_777  1          1           1           1              58     48.7 Bacter… Acido… Acid… Unas…
-#>  3 ASV_606  1          1           1           1              55     45.8 Bacter… Actin… Acti… Acti…
-#>  4 ASV_740  1          1           1           1              54     47.2 Bacter… Acido… Acid… Unas…
-#>  5 ASV_1449 1          1           1           1              54     44.5 Bacter… Actin… Acti… Unas…
-#>  6 ASV_2362 1          1           1           1              54     47.4 Bacter… Prote… Alph… Rhiz…
-#>  7 ASV_1572 1          1           1           1              52     45.3 Bacter… Acido… Acid… Unas…
-#>  8 ASV_2433 1          1           1           1              52     43.0 Bacter… Actin… Acti… Acti…
-#>  9 ASV_1992 1          1           1           1              52     43.0 Bacter… Unass… Unas… Unas…
-#> 10 ASV_568  1          1           1           1              51     45.1 Bacter… Unass… Unas… Unas…
+#>    name     modularity modularity2 modularity3 Modularity Degree Strength Kingdom  Phylum        Class Order Family Genus Species
+#>    <chr>    <fct>      <ord>       <chr>       <ord>       <dbl>    <dbl> <chr>    <chr>         <chr> <chr> <chr>  <chr> <chr>  
+#>  1 ASV_916  1          1           1           1              58     50.5 Bacteria Proteobacter… Gamm… Unas… Unass… Unas… Unassi…
+#>  2 ASV_777  1          1           1           1              58     48.7 Bacteria Acidobacteria Acid… Unas… Unass… Gp6   Unassi…
+#>  3 ASV_606  1          1           1           1              55     45.8 Bacteria Actinobacter… Acti… Acti… Nocar… Marm… Unassi…
+#>  4 ASV_740  1          1           1           1              54     47.2 Bacteria Acidobacteria Acid… Unas… Unass… Gp16  Unassi…
+#>  5 ASV_1449 1          1           1           1              54     44.5 Bacteria Actinobacter… Acti… Unas… Unass… Unas… Unassi…
+#>  6 ASV_2362 1          1           1           1              54     47.4 Bacteria Proteobacter… Alph… Rhiz… Hypho… Rhod… Unassi…
+#>  7 ASV_1572 1          1           1           1              52     45.3 Bacteria Acidobacteria Acid… Unas… Unass… Gp3   Unassi…
+#>  8 ASV_2433 1          1           1           1              52     43.0 Bacteria Actinobacter… Acti… Acti… Nocar… Unas… Unassi…
+#>  9 ASV_1992 1          1           1           1              52     43.0 Bacteria Unassigned    Unas… Unas… Unass… Unas… Unassi…
+#> 10 ASV_568  1          1           1           1              51     45.1 Bacteria Unassigned    Unas… Unas… Unass… Unas… Unassi…
 #> # ℹ 2,039 more rows
-#> # ℹ 3 more variables: Family <chr>, Genus <chr>, Species <chr>
 #> #
 #> # Edge Data: 9,602 × 5
 #>    from    to weight correlation corr_direction
@@ -173,7 +198,7 @@ p1
 p2 <- ggNetView(
   graph_obj = obj,
   layout = "gephi",
-  layout.module = "random",
+  layout.module = "adjacent",
   group.by = "Modularity",
   fill.by = "Modularity",
   pointsize = c(1, 5),
@@ -191,8 +216,7 @@ p2 <- ggNetView(
 #> ℹ Adding new coordinate system, which will replace the existing one.
 
 p2
-#> Warning: No shared levels found between `names(values)` of the manual scale and the data's fill
-#> values.
+#> Warning: No shared levels found between `names(values)` of the manual scale and the data's fill values.
 ```
 
 <img src="man/figures/README-unnamed-chunk-9-1.png" alt="" width="100%" style="display: block; margin: auto;" />
@@ -208,7 +232,7 @@ p2
 p3 <- ggNetView(
   graph_obj = obj,
   layout = "gephi",
-  layout.module = "random",
+  layout.module = "adjacent",
   group.by = "Modularity",
   fill.by = "Phylum",
   pointsize = c(1, 5),
@@ -226,8 +250,7 @@ p3 <- ggNetView(
 #> ℹ Adding new coordinate system, which will replace the existing one.
 
 p3
-#> Warning: No shared levels found between `names(values)` of the manual scale and the data's fill
-#> values.
+#> Warning: No shared levels found between `names(values)` of the manual scale and the data's fill values.
 ```
 
 <img src="man/figures/README-unnamed-chunk-10-1.png" alt="" width="100%" style="display: block; margin: auto;" />
@@ -243,7 +266,7 @@ p3
 p4 <- ggNetView(
   graph_obj = obj,
   layout = "gephi",
-  layout.module = "random",
+  layout.module = "adjacent",
   group.by = "Modularity",
   fill.by = "Phylum",
   color.by = "Phylum",
@@ -262,8 +285,7 @@ p4 <- ggNetView(
 #> ℹ Adding new coordinate system, which will replace the existing one.
 
 p4
-#> Warning: No shared levels found between `names(values)` of the manual scale and the data's fill
-#> values.
+#> Warning: No shared levels found between `names(values)` of the manual scale and the data's fill values.
 ```
 
 <img src="man/figures/README-unnamed-chunk-11-1.png" alt="" width="100%" style="display: block; margin: auto;" />
@@ -279,7 +301,7 @@ p4
 p5 <- ggNetView(
   graph_obj = obj,
   layout = "gephi",
-  layout.module = "random",
+  layout.module = "adjacent",
   group.by = "Modularity",
   fill.by = "Modularity",
   pointsize = c(1, 5),
@@ -298,8 +320,7 @@ p5 <- ggNetView(
 #> ℹ Adding new coordinate system, which will replace the existing one.
 
 p5
-#> Warning: No shared levels found between `names(values)` of the manual scale and the data's fill
-#> values.
+#> Warning: No shared levels found between `names(values)` of the manual scale and the data's fill values.
 ```
 
 <img src="man/figures/README-unnamed-chunk-12-1.png" alt="" width="100%" style="display: block; margin: auto;" />
@@ -426,36 +447,27 @@ sessionInfo()
 #> [1] stats     graphics  grDevices utils     datasets  methods   base     
 #> 
 #> other attached packages:
-#> [1] ggnewscale_0.5.2 ggplot2_4.0.2    ggNetView_1.4.14
+#> [1] ggNetView_1.4.14 ggnewscale_0.5.2 ggplot2_4.0.2   
 #> 
 #> loaded via a namespace (and not attached):
-#>   [1] mnormt_2.1.2          gridExtra_2.3         httr2_1.2.1           rlang_1.1.7          
-#>   [5] magrittr_2.0.4        otel_0.2.0            matrixStats_1.5.0     compiler_4.5.1       
-#>   [9] vctrs_0.7.1           stringr_1.6.0         pkgconfig_2.0.3       fastmap_1.2.0        
-#>  [13] backports_1.5.0       labeling_0.4.3        ggraph_2.2.2          utf8_1.2.6           
-#>  [17] rmarkdown_2.30        preprocessCore_1.70.0 purrr_1.2.1           xfun_0.56            
-#>  [21] gert_2.1.5            cachem_1.1.0          jsonlite_2.0.0        tweenr_2.0.3         
-#>  [25] psych_2.6.1           parallel_4.5.1        cluster_2.1.8.1       R6_2.6.1             
-#>  [29] stringi_1.8.7         RColorBrewer_1.1-3    rpart_4.1.24          Rcpp_1.1.1           
-#>  [33] iterators_1.0.14      knitr_1.51            usethis_3.2.1         WGCNA_1.74           
-#>  [37] base64enc_0.1-6       gitcreds_0.1.2        connectcreds_0.1.0    FNN_1.1.4.1          
-#>  [41] Matrix_1.7-4          splines_4.5.1         nnet_7.3-20           igraph_2.2.1         
-#>  [45] tidyselect_1.2.1      rstudioapi_0.18.0     dichromat_2.0-0.1     yaml_2.3.12          
-#>  [49] viridis_0.6.5         doParallel_1.0.17     codetools_0.2-20      curl_7.0.0           
-#>  [53] lattice_0.22-7        tibble_3.3.1          Biobase_2.70.0        withr_3.0.2          
-#>  [57] S7_0.2.1              askpass_1.2.1         evaluate_1.0.5        foreign_0.8-90       
-#>  [61] desc_1.4.3            survival_3.8-3        polyclip_1.10-7       pillar_1.11.1        
-#>  [65] rsconnect_1.6.1       whisker_0.4.1         checkmate_2.3.4       foreach_1.5.2        
-#>  [69] stats4_4.5.1          generics_0.1.4        rprojroot_2.1.1       credentials_2.0.3    
-#>  [73] scales_1.4.0          glue_1.8.0            Hmisc_5.2-5           tools_4.5.1          
-#>  [77] sys_3.4.3             data.table_1.18.2.1   fs_1.6.6              fastcluster_1.3.0    
-#>  [81] graphlayouts_1.2.2    tidygraph_1.3.1       grid_4.5.1            impute_1.82.0        
-#>  [85] tidyr_1.3.2           gh_1.5.0              colorspace_2.1-2      nlme_3.1-168         
-#>  [89] ggforce_0.5.0         htmlTable_2.4.3       Formula_1.2-5         cli_3.6.5            
-#>  [93] rappdirs_0.3.4        viridisLite_0.4.3     dplyr_1.2.0           gtable_0.3.6         
-#>  [97] dynamicTreeCut_1.63-1 digest_0.6.39         BiocGenerics_0.56.0   ggrepel_0.9.6        
-#> [101] htmlwidgets_1.6.4     farver_2.1.2          memoise_2.0.1         htmltools_0.5.9      
-#> [105] multtest_2.64.0       lifecycle_1.0.5       openssl_2.3.4         MASS_7.3-65
+#>  [1] psych_2.6.1           tidyselect_1.2.1      WGCNA_1.74            viridisLite_0.4.3     dplyr_1.2.0          
+#>  [6] farver_2.1.2          viridis_0.6.5         S7_0.2.1              ggraph_2.2.2          fastmap_1.2.0        
+#> [11] tweenr_2.0.3          digest_0.6.39         rpart_4.1.24          lifecycle_1.0.5       cluster_2.1.8.1      
+#> [16] survival_3.8-3        magrittr_2.0.4        compiler_4.5.1        rlang_1.1.7           Hmisc_5.2-5          
+#> [21] tools_4.5.1           igraph_2.2.1          utf8_1.2.6            yaml_2.3.12           data.table_1.18.2.1  
+#> [26] knitr_1.51            FNN_1.1.4.1           labeling_0.4.3        graphlayouts_1.2.2    htmlwidgets_1.6.4    
+#> [31] mnormt_2.1.2          RColorBrewer_1.1-3    withr_3.0.2           foreign_0.8-90        purrr_1.2.1          
+#> [36] BiocGenerics_0.56.0   nnet_7.3-20           dynamicTreeCut_1.63-1 grid_4.5.1            polyclip_1.10-7      
+#> [41] stats4_4.5.1          preprocessCore_1.70.0 multtest_2.64.0       colorspace_2.1-2      fastcluster_1.3.0    
+#> [46] scales_1.4.0          iterators_1.0.14      MASS_7.3-65           dichromat_2.0-0.1     cli_3.6.5            
+#> [51] rmarkdown_2.30        generics_0.1.4        otel_0.2.0            rstudioapi_0.18.0     cachem_1.1.0         
+#> [56] ggforce_0.5.0         stringr_1.6.0         splines_4.5.1         parallel_4.5.1        impute_1.82.0        
+#> [61] matrixStats_1.5.0     base64enc_0.1-6       vctrs_0.7.1           Matrix_1.7-4          ggrepel_0.9.6        
+#> [66] Formula_1.2-5         htmlTable_2.4.3       foreach_1.5.2         tidyr_1.3.2           glue_1.8.0           
+#> [71] codetools_0.2-20      stringi_1.8.7         gtable_0.3.6          tibble_3.3.1          pillar_1.11.1        
+#> [76] htmltools_0.5.9       R6_2.6.1              doParallel_1.0.17     tidygraph_1.3.1       evaluate_1.0.5       
+#> [81] lattice_0.22-7        Biobase_2.70.0        backports_1.5.0       memoise_2.0.1         Rcpp_1.1.1           
+#> [86] nlme_3.1-168          gridExtra_2.3         checkmate_2.3.4       xfun_0.56             pkgconfig_2.0.3
 ```
 
 #### Citation

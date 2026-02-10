@@ -39,9 +39,9 @@ devtools::install_github("Jiawang1209/ggNetView")
 ### Step1: load ggNetView
 
 ```{r}
-library(ggNetView)
 library(ggplot2)
 library(ggnewscale)
+library(ggNetView)
 ```
 
 ### Step2: load Data
@@ -138,7 +138,7 @@ ggsave(file = "Output/p1.pdf",
 p2 <- ggNetView(
   graph_obj = obj,
   layout = "gephi",
-  layout.module = "random",
+  layout.module = "adjacent",
   group.by = "Modularity",
   fill.by = "Modularity",
   pointsize = c(1, 5),
@@ -171,7 +171,7 @@ ggsave(file = "Output/p2.pdf",
 p3 <- ggNetView(
   graph_obj = obj,
   layout = "gephi",
-  layout.module = "random",
+  layout.module = "adjacent",
   group.by = "Modularity",
   fill.by = "Phylum",
   pointsize = c(1, 5),
@@ -206,7 +206,7 @@ ggsave(file = "Output/p3.pdf",
 p4 <- ggNetView(
   graph_obj = obj,
   layout = "gephi",
-  layout.module = "random",
+  layout.module = "adjacent",
   group.by = "Modularity",
   fill.by = "Phylum",
   color.by = "Phylum",
@@ -242,7 +242,7 @@ ggsave(file = "Output/p4.pdf",
 p5 <- ggNetView(
   graph_obj = obj,
   layout = "gephi",
-  layout.module = "random",
+  layout.module = "adjacent",
   group.by = "Modularity",
   fill.by = "Modularity",
   pointsize = c(1, 5),
