@@ -557,6 +557,18 @@ ggNetView <- function(graph_obj,
         )
       )
     }
+    fill_guide_points <- NULL
+    if (is.null(color.by)) {
+      fill_guide_points <- ggplot2::guides(
+        fill = ggplot2::guide_legend(
+          override.aes = list(
+            shape = 21,
+            colour = "grey40",
+            stroke = pointstroke
+          )
+        )
+      )
+    }
     if (is.character(shape) && !is.null(color.by)) {
       point_mapping <- ggplot2::aes(x = x, y = y,
                                     fill = .data[[fill.by]],
@@ -598,7 +610,8 @@ ggNetView <- function(graph_obj,
         fill_scale_points +
         color_scale_points +
         shape_scale_points +
-        size_guide_points
+        size_guide_points +
+        fill_guide_points
     }else{
       # p1_1 <- p1_1 +
       #   ggplot2::geom_jitter(data = ly1_1[["ggplot_data"]][[1]],
@@ -632,7 +645,8 @@ ggNetView <- function(graph_obj,
         fill_scale_points +
         color_scale_points +
         shape_scale_points +
-        size_guide_points
+        size_guide_points +
+        fill_guide_points
 
     }
 

@@ -21,44 +21,13 @@ You can install the development version of ggNetView from
     # install.packages("devtools")
     devtools::install_github("Jiawang1209/ggNetView")
 
-or
-
-    # install.packages("pak")
-    pak::pak("Jiawang1209/ggNetView")
-
 ## Example1
 
 ### Step1: load ggNetView
 
 ``` r
 library(ggNetView)
-#> 
-#>                                                ░██               ░██
-#>                                                ░██
-#>  ░████████  ░████████ ░████████   ░███████  ░████████ ░██    ░██ ░██ ░███████  ░██    ░██    ░██
-#> ░██    ░██ ░██    ░██ ░██    ░██ ░██    ░██    ░██    ░██    ░██ ░██░██    ░██ ░██    ░██    ░██
-#> ░██    ░██ ░██    ░██ ░██    ░██ ░█████████    ░██     ░██  ░██  ░██░█████████  ░██  ░████  ░██
-#> ░██   ░███ ░██   ░███ ░██    ░██ ░██           ░██      ░██░██   ░██░██          ░██░██ ░██░██
-#>  ░█████░██  ░█████░██ ░██    ░██  ░███████      ░████    ░███    ░██ ░███████     ░███   ░███
-#>        ░██        ░██
-#>  ░███████   ░███████
-#> 
-#> 
-#>   ggNetView v1.1.1 (2026)
-#>   Developed by Jiawang's Network Visualization Group
-#> 
-#>   Maintainers:
-#>    - Yue Liu <yueliu@iae.ac.cn>
-#>    - Chao Wang <cwang@iae.ac.cn>
-#> 
-#>   GitHub: https://github.com/Jiawang1209/ggNetView
-#>   Bug Reports: https://github.com/Jiawang1209/ggNetView/issues
-#> 
-#>   Type citation('ggNetView') for how to cite this package.
-#>   Run browseVignettes('ggNetView') for documentation.
-#> 
 library(ggplot2)
-#> Warning: package 'ggplot2' was built under R version 4.5.2
 library(ggnewscale)
 ```
 
@@ -78,7 +47,8 @@ otu_tab[1:5, 1:5]
 #> ASV_6  882  673  819  888 1475
 ```
 
-> You can load rarely matrix
+> You can load rarely matrix. Note : the rownames of `otu_rare` is the
+> features.
 
 ``` r
 data("otu_rare")
@@ -106,7 +76,8 @@ otu_rare_relative[1:5, 1:5]
 #> ASV_6 0.02646667 0.01856667 0.02110000 0.02353333 0.03806667
 ```
 
-> You can load node annotation
+> You can load node annotation. Note : the rownames of `tax_tab` is
+> NULL.
 
 ``` r
 data("tax_tab")
@@ -135,10 +106,39 @@ obj <- build_graph_from_mat(
   p.threshold = 0.05,
   node_annotation = tax_tab
 )
-#> 
+
+obj
+#> # A tbl_graph: 2049 nodes and 9602 edges
+#> #
+#> # An undirected simple graph with 100 components
+#> #
+#> # Node Data: 2,049 × 14 (active)
+#>    name     modularity modularity2 modularity3 Modularity Degree Strength Kingdom  Phylum        Class Order Family Genus Species
+#>    <chr>    <fct>      <ord>       <chr>       <ord>       <dbl>    <dbl> <chr>    <chr>         <chr> <chr> <chr>  <chr> <chr>  
+#>  1 ASV_916  1          1           1           1              58     50.5 Bacteria Proteobacter… Gamm… Unas… Unass… Unas… Unassi…
+#>  2 ASV_777  1          1           1           1              58     48.7 Bacteria Acidobacteria Acid… Unas… Unass… Gp6   Unassi…
+#>  3 ASV_606  1          1           1           1              55     45.8 Bacteria Actinobacter… Acti… Acti… Nocar… Marm… Unassi…
+#>  4 ASV_740  1          1           1           1              54     47.2 Bacteria Acidobacteria Acid… Unas… Unass… Gp16  Unassi…
+#>  5 ASV_1449 1          1           1           1              54     44.5 Bacteria Actinobacter… Acti… Unas… Unass… Unas… Unassi…
+#>  6 ASV_2362 1          1           1           1              54     47.4 Bacteria Proteobacter… Alph… Rhiz… Hypho… Rhod… Unassi…
+#>  7 ASV_1572 1          1           1           1              52     45.3 Bacteria Acidobacteria Acid… Unas… Unass… Gp3   Unassi…
+#>  8 ASV_2433 1          1           1           1              52     43.0 Bacteria Actinobacter… Acti… Acti… Nocar… Unas… Unassi…
+#>  9 ASV_1992 1          1           1           1              52     43.0 Bacteria Unassigned    Unas… Unas… Unass… Unas… Unassi…
+#> 10 ASV_568  1          1           1           1              51     45.1 Bacteria Unassigned    Unas… Unas… Unass… Unas… Unassi…
+#> # ℹ 2,039 more rows
+#> #
+#> # Edge Data: 9,602 × 5
+#>    from    to weight correlation corr_direction
+#>   <int> <int>  <dbl>       <dbl> <chr>         
+#> 1  1771  1825  0.793       0.793 Positive      
+#> 2   594   597  0.895       0.895 Positive      
+#> 3   588   597  0.864       0.864 Positive      
+#> # ℹ 9,599 more rows
 ```
 
 ### Step4: ggNetView to plot
+
+> Basic network plot
 
 ``` r
 p1 <- ggNetView(
@@ -159,7 +159,14 @@ p1 <- ggNetView(
 p1
 ```
 
-<img src="man/figures/README-unnamed-chunk-8-1.png" alt="" width="100%" style="display: block; margin: auto;" />
+<img src="man/figures/README-unnamed-chunk-12-1.png" alt="" width="100%" style="display: block; margin: auto;" />
+
+    ggsave(file = "Output/p1.pdf",
+           plot = p1,
+           height = 10,
+           width = 10)
+
+> Add outer line in netwotk plot
 
 ``` r
 p2 <- ggNetView(
@@ -179,17 +186,21 @@ p2 <- ggNetView(
   add_outer = T,
   label = T
 ) 
-#> Large array (1004 rows x 997 columns x 17 images) broken into 4 pieces to avoid memory limits
-#> Each piece of the raster consists of 710 rows and 705 columns
 #> Coordinate system already present.
 #> ℹ Adding new coordinate system, which will replace the existing one.
 
 p2
-#> Warning: No shared levels found between `names(values)` of the manual scale and the
-#> data's fill values.
+#> Warning: No shared levels found between `names(values)` of the manual scale and the data's fill values.
 ```
 
-<img src="man/figures/README-unnamed-chunk-9-1.png" alt="" width="100%" style="display: block; margin: auto;" />
+<img src="man/figures/README-unnamed-chunk-13-1.png" alt="" width="100%" style="display: block; margin: auto;" />
+
+    ggsave(file = "Output/p2.pdf",
+           plot = p2,
+           height = 10,
+           width = 10)
+
+> Change the fill of node points.
 
 ``` r
 p3 <- ggNetView(
@@ -209,37 +220,119 @@ p3 <- ggNetView(
   add_outer = T,
   label = T
 ) 
-#> Large array (1004 rows x 997 columns x 17 images) broken into 4 pieces to avoid memory limits
-#> Each piece of the raster consists of 710 rows and 705 columns
 #> Coordinate system already present.
 #> ℹ Adding new coordinate system, which will replace the existing one.
 
 p3
-#> Warning: No shared levels found between `names(values)` of the manual scale and the
-#> data's fill values.
+#> Warning: No shared levels found between `names(values)` of the manual scale and the data's fill values.
 ```
 
-<img src="man/figures/README-unnamed-chunk-10-1.png" alt="" width="100%" style="display: block; margin: auto;" />
+<img src="man/figures/README-unnamed-chunk-14-1.png" alt="" width="100%" style="display: block; margin: auto;" />
 
-### Step5: save plot
-
-    ggsave(file = "Output/p1.pdf",
-           plot = p1,
-           height = 10,
-           width = 10)
-
-
-    ggsave(file = "Output/p2.pdf",
-           plot = p2,
-           height = 10,
-           width = 10)
-           
     ggsave(file = "Output/p3.pdf",
            plot = p3,
            height = 10,
            width = 10)
 
+> Change the color of node points.
+
+``` r
+p4 <- ggNetView(
+  graph_obj = obj,
+  layout = "gephi",
+  layout.module = "random",
+  group.by = "Modularity",
+  fill.by = "Phylum",
+  color.by = "Phylum",
+  pointsize = c(1, 5),
+  center = F,
+  jitter = TRUE,
+  jitter_sd = 0.15,
+  mapping_line = TRUE,
+  shrink = 0.9,
+  linealpha = 0.2,
+  linecolor = "#d9d9d9",
+  add_outer = T,
+  label = T
+) 
+#> Coordinate system already present.
+#> ℹ Adding new coordinate system, which will replace the existing one.
+
+p4
+#> Warning: No shared levels found between `names(values)` of the manual scale and the data's fill values.
+```
+
+<img src="man/figures/README-unnamed-chunk-15-1.png" alt="" width="100%" style="display: block; margin: auto;" />
+
+    ggsave(file = "Output/p4.pdf",
+           plot = p4,
+           height = 10,
+           width = 10)
+
+> Add node label
+
+``` r
+p5 <- ggNetView(
+  graph_obj = obj,
+  layout = "gephi",
+  layout.module = "random",
+  group.by = "Modularity",
+  fill.by = "Modularity",
+  pointsize = c(1, 5),
+  center = F,
+  jitter = TRUE,
+  jitter_sd = 0.15,
+  mapping_line = TRUE,
+  shrink = 0.9,
+  linealpha = 0.2,
+  linecolor = "#d9d9d9",
+  add_outer = T,
+  label = T,
+  pointlabel = "top1"
+) 
+#> Coordinate system already present.
+#> ℹ Adding new coordinate system, which will replace the existing one.
+
+p5
+#> Warning: No shared levels found between `names(values)` of the manual scale and the data's fill values.
+```
+
+<img src="man/figures/README-unnamed-chunk-16-1.png" alt="" width="100%" style="display: block; margin: auto;" />
+
+    ggsave(file = "Output/p3.pdf",
+           plot = p5,
+           height = 10,
+           width = 10)
+
 ## Example2
+
+> Get information of graph_object
+
+``` r
+Sub_module_1 <- get_subgraph(graph_obj = obj, select_module = "1")
+#>    Module Number
+#> 1       1    416
+#> 2       7    161
+#> 3       6    137
+#> 4       9    121
+#> 5       4    112
+#> 6       2    105
+#> 7       3    104
+#> 8      11    101
+#> 9       8     87
+#> 10     10     80
+#> 11      5     78
+#> 12     13     70
+#> 13     16     52
+#> 14     15     51
+#> 15     14     46
+#> 16 Others    328
+
+names(Sub_module_1)
+#> [1] "sub_graph_all"    "stat_module"      "sub_graph_select"
+```
+
+## Example3
 
 ``` r
 # load test data in ggNetView
@@ -261,6 +354,7 @@ out1 <- gglink_heatmaps(
   cor.method = "pearson",
   cor.use = "pairwise",
   r = 6,
+  distance = 1,
   orientation = c("top_right", "bottom_right", "top_left", "bottom_left")
 )
 #> The max module in network is 2 we use the 2  modules for next analysis
@@ -268,9 +362,12 @@ out1 <- gglink_heatmaps(
 out1[[1]]
 ```
 
-<img src="man/figures/README-unnamed-chunk-12-1.png" alt="" width="100%" style="display: block; margin: auto;" />
+<img src="man/figures/README-unnamed-chunk-19-1.png" alt="" width="100%" style="display: block; margin: auto;" />
 
-## Example3
+## Example4
+
+> Leave lines with a significance level less than 0.05, and change the
+> color of heatmap.
 
 ``` r
 out2 <- gglink_heatmaps(
@@ -284,7 +381,15 @@ out2 <- gglink_heatmaps(
   spec_layout = "circle_outline",
   cor.method = "pearson",
   cor.use = "pairwise",
+  drop_nonsig = TRUE,
+  HeatmapColorBar = list(c("#2166ac", "#b2182b"), 
+                         c("#1b7837", "#762a83"),
+                         c("#4393c3", "#d6604d")),
+  HeatmapPointFill = "#8c6bb1",
+  CorePointFill = "#225ea8",
+  HeatmapLabelOrient = 45,
   r = 6,
+  distance = 1,
   orientation = c("top_right", "top_left", "bottom_left")
 )
 #> The max module in network is 2 we use the 2  modules for next analysis
@@ -292,7 +397,7 @@ out2 <- gglink_heatmaps(
 out2[[2]]
 ```
 
-<img src="man/figures/README-unnamed-chunk-13-1.png" alt="" width="100%" style="display: block; margin: auto;" />
+<img src="man/figures/README-unnamed-chunk-20-1.png" alt="" width="100%" style="display: block; margin: auto;" />
 
 ## sessionInfo
 
@@ -303,7 +408,7 @@ sessionInfo()
 #> Running under: macOS Sequoia 15.6
 #> 
 #> Matrix products: default
-#> BLAS:   /Library/Frameworks/R.framework/Versions/4.5-arm64/Resources/lib/libRblas.0.dylib 
+#> BLAS:   /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libBLAS.dylib 
 #> LAPACK: /Library/Frameworks/R.framework/Versions/4.5-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.12.1
 #> 
 #> locale:
@@ -316,49 +421,28 @@ sessionInfo()
 #> [1] stats     graphics  grDevices utils     datasets  methods   base     
 #> 
 #> other attached packages:
-#> [1] ggnewscale_0.5.2 ggplot2_4.0.1    ggNetView_1.1.1 
+#> [1] ggnewscale_0.5.2 ggplot2_4.0.2    ggNetView_1.4.14
 #> 
 #> loaded via a namespace (and not attached):
-#>   [1] mnormt_2.1.1           DBI_1.2.3              deldir_2.0-4          
-#>   [4] gridExtra_2.3          rlang_1.1.6            magrittr_2.0.4        
-#>   [7] otel_0.2.0             spatstat.geom_3.6-1    matrixStats_1.5.0     
-#>  [10] compiler_4.5.1         RSQLite_2.4.5          png_0.1-8             
-#>  [13] vctrs_0.6.5            stringr_1.6.0          pkgconfig_2.0.3       
-#>  [16] crayon_1.5.3           fastmap_1.2.0          backports_1.5.0       
-#>  [19] XVector_0.50.0         labeling_0.4.3         ggraph_2.2.2          
-#>  [22] utf8_1.2.6             rmarkdown_2.30         preprocessCore_1.70.0 
-#>  [25] purrr_1.2.0            bit_4.6.0              xfun_0.55             
-#>  [28] cachem_1.1.0           goftest_1.2-3          blob_1.2.4            
-#>  [31] spatstat.utils_3.2-0   tweenr_2.0.3           psych_2.5.6           
-#>  [34] parallel_4.5.1         cluster_2.1.8.1        R6_2.6.1              
-#>  [37] spatstat.data_3.1-9    stringi_1.8.7          RColorBrewer_1.1-3    
-#>  [40] spatstat.univar_3.1-5  rpart_4.1.24           Rcpp_1.1.0            
-#>  [43] Seqinfo_1.0.0          iterators_1.0.14       knitr_1.51            
-#>  [46] tensor_1.5.1           WGCNA_1.73             base64enc_0.1-3       
-#>  [49] IRanges_2.44.0         FNN_1.1.4.1            Matrix_1.7-4          
-#>  [52] splines_4.5.1          nnet_7.3-20            igraph_2.2.1          
-#>  [55] tidyselect_1.2.1       abind_1.4-8            rstudioapi_0.17.1     
-#>  [58] dichromat_2.0-0.1      yaml_2.3.12            viridis_0.6.5         
-#>  [61] spatstat.random_3.4-3  spatstat.explore_3.6-0 doParallel_1.0.17     
-#>  [64] codetools_0.2-20       lattice_0.22-7         tibble_3.3.0          
-#>  [67] Biobase_2.70.0         withr_3.0.2            KEGGREST_1.50.0       
-#>  [70] S7_0.2.1               evaluate_1.0.5         foreign_0.8-90        
-#>  [73] survival_3.8-3         polyclip_1.10-7        Biostrings_2.78.0     
-#>  [76] pillar_1.11.1          checkmate_2.3.3        foreach_1.5.2         
-#>  [79] stats4_4.5.1           generics_0.1.4         S4Vectors_0.48.0      
-#>  [82] scales_1.4.0           glue_1.8.0             Hmisc_5.2-4           
-#>  [85] tools_4.5.1            data.table_1.18.0      fastcluster_1.3.0     
-#>  [88] graphlayouts_1.2.2     tidygraph_1.3.1        grid_4.5.1            
-#>  [91] impute_1.82.0          tidyr_1.3.2            AnnotationDbi_1.72.0  
-#>  [94] colorspace_2.1-2       nlme_3.1-168           ggforce_0.5.0         
-#>  [97] htmlTable_2.4.3        Formula_1.2-5          cli_3.6.5             
-#> [100] spatstat.sparse_3.1-0  mascarade_0.2.999      viridisLite_0.4.2     
-#> [103] dplyr_1.1.4            gtable_0.3.6           dynamicTreeCut_1.63-1 
-#> [106] digest_0.6.39          BiocGenerics_0.56.0    ggrepel_0.9.6         
-#> [109] htmlwidgets_1.6.4      farver_2.1.2           memoise_2.0.1         
-#> [112] htmltools_0.5.9        multtest_2.64.0        lifecycle_1.0.4       
-#> [115] httr_1.4.7             GO.db_3.22.0           bit64_4.6.0-1         
-#> [118] MASS_7.3-65
+#>  [1] psych_2.6.1           tidyselect_1.2.1      WGCNA_1.74            viridisLite_0.4.3     dplyr_1.2.0          
+#>  [6] farver_2.1.2          viridis_0.6.5         S7_0.2.1              ggraph_2.2.2          fastmap_1.2.0        
+#> [11] tweenr_2.0.3          digest_0.6.39         rpart_4.1.24          lifecycle_1.0.5       cluster_2.1.8.1      
+#> [16] survival_3.8-3        magrittr_2.0.4        compiler_4.5.1        rlang_1.1.7           Hmisc_5.2-5          
+#> [21] tools_4.5.1           igraph_2.2.1          utf8_1.2.6            yaml_2.3.12           data.table_1.18.2.1  
+#> [26] knitr_1.51            FNN_1.1.4.1           labeling_0.4.3        graphlayouts_1.2.2    htmlwidgets_1.6.4    
+#> [31] mnormt_2.1.2          RColorBrewer_1.1-3    rsconnect_1.6.1       withr_3.0.2           foreign_0.8-90       
+#> [36] purrr_1.2.1           BiocGenerics_0.56.0   nnet_7.3-20           dynamicTreeCut_1.63-1 grid_4.5.1           
+#> [41] polyclip_1.10-7       stats4_4.5.1          preprocessCore_1.70.0 multtest_2.64.0       colorspace_2.1-2     
+#> [46] fastcluster_1.3.0     scales_1.4.0          iterators_1.0.14      MASS_7.3-65           dichromat_2.0-0.1    
+#> [51] cli_3.6.5             rmarkdown_2.30        generics_0.1.4        otel_0.2.0            rstudioapi_0.18.0    
+#> [56] cachem_1.1.0          ggforce_0.5.0         stringr_1.6.0         splines_4.5.1         parallel_4.5.1       
+#> [61] impute_1.82.0         matrixStats_1.5.0     base64enc_0.1-6       vctrs_0.7.1           Matrix_1.7-4         
+#> [66] ggrepel_0.9.6         Formula_1.2-5         htmlTable_2.4.3       foreach_1.5.2         tidyr_1.3.2          
+#> [71] glue_1.8.0            codetools_0.2-20      stringi_1.8.7         gtable_0.3.6          tibble_3.3.1         
+#> [76] pillar_1.11.1         htmltools_0.5.9       R6_2.6.1              doParallel_1.0.17     tidygraph_1.3.1      
+#> [81] evaluate_1.0.5        lattice_0.22-7        Biobase_2.70.0        backports_1.5.0       memoise_2.0.1        
+#> [86] Rcpp_1.1.1            nlme_3.1-168          gridExtra_2.3         checkmate_2.3.4       xfun_0.56            
+#> [91] pkgconfig_2.0.3
 ```
 
 #### Citation
