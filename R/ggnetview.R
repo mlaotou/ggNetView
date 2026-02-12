@@ -558,7 +558,7 @@ ggNetView <- function(graph_obj,
       )
     }
     fill_guide_points <- NULL
-    if (is.null(color.by)) {
+    if (is.null(color.by) && !is.character(shape)) {
       fill_guide_points <- ggplot2::guides(
         fill = ggplot2::guide_legend(
           override.aes = list(
