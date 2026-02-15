@@ -156,8 +156,14 @@ Change  line alpha.}
 \item{linecolor}{Character  (default = "grey70").
 Change  line color.}
 
-\item{label}{Logical (default = FALSE).
-Whether to display node labels in the center points.}
+\item{label}{Logical or Character (default = \code{FALSE}).
+Controls module label text and module legend prefix.
+If \code{FALSE}, module text labels are not drawn and legend prefix uses
+\code{"Modularity"}.
+If \code{TRUE}, module text labels are drawn and legend prefix uses
+\code{"Modularity"}.
+If a character string, module text labels are drawn and that string is used
+as prefix for module text and module legend labels.}
 
 \item{labelsize}{Integer  (default = 10).
 Change Module label size.}

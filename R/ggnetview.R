@@ -69,8 +69,14 @@
 #' Change  line alpha.
 #' @param linecolor Character  (default = "grey70").
 #' Change  line color.
-#' @param label Logical (default = FALSE).
-#' Whether to display node labels in the center points.
+#' @param label Logical or Character (default = \code{FALSE}).
+#' Controls module label text and module legend prefix.
+#' If \code{FALSE}, module text labels are not drawn and legend prefix uses
+#' \code{"Modularity"}.
+#' If \code{TRUE}, module text labels are drawn and legend prefix uses
+#' \code{"Modularity"}.
+#' If a character string, module text labels are drawn and that string is used
+#' as prefix for module text and module legend labels.
 
 #' @param labelsize Integer  (default = 10).
 #' Change Module label size.
@@ -147,7 +153,6 @@ ggNetView <- function(graph_obj,
                       linealpha = 0.25,
                       linecolor = "grey70",
                       label = FALSE,
-                     
                       labelsize = 10,
                       labelsegmentsize = 1,
                       labelsegmentalpha = 1,
@@ -170,6 +175,30 @@ ggNetView <- function(graph_obj,
                       ){
 
   set.seed(seed)
+
+  if (is.logical(label)) {
+    if (length(label) != 1 || is.na(label)) {
+      stop("`label` must be a single logical or character string.")
+    }
+    show_module_label <- isTRUE(label)
+    module_label_prefix <- "Modularity"
+  } else if (is.character(label)) {
+    if (length(label) != 1 || is.na(label)) {
+      stop("`label` must be a single logical or character string.")
+    }
+    module_label_prefix <- trimws(label)
+    if (identical(module_label_prefix, "")) {
+      module_label_prefix <- "Modularity"
+    }
+    show_module_label <- TRUE
+  } else {
+    stop("`label` must be a single logical or character string.")
+  }
+
+  module_label_fun <- function(x) {
+    x_chr <- as.character(x)
+    ifelse(x_chr == "Others", "Others", paste0(module_label_prefix, x_chr))
+  }
 
   if (isTRUE(mapping_line)) {
     # stat graph
@@ -523,9 +552,11 @@ ggNetView <- function(graph_obj,
       }
     }
     fill_scale_points <- if (is.null(fill)) {
-      scale_fill_ggnetview(unique(ly1_1[["graph_ly_final"]][[fill.by]]))
+      scale_fill_ggnetview(unique(ly1_1[["graph_ly_final"]][[fill.by]]),
+                           labels = module_label_fun)
     } else {
-      ggplot2::scale_fill_manual(values = fill)
+      ggplot2::scale_fill_manual(values = fill,
+                                 labels = module_label_fun)
     }
     color_scale_points <- NULL
     if (!is.null(color.by)) {
@@ -651,27 +682,27 @@ ggNetView <- function(graph_obj,
     }
 
     # label = F add_outer = F
-    if (isFALSE(label) & isFALSE(add_outer)) {
+    if (isFALSE(show_module_label) & isFALSE(add_outer)) {
       p1_1 <- p1_1
 
     }
 
     # label = T add_outer = F
-    if (isTRUE(label) & isFALSE(add_outer)) {
+    if (isTRUE(show_module_label) & isFALSE(add_outer)) {
 
       .build_label_location()
 
       lab_classes <- sort(unique(lab_df$Modularity))
-      fill_scale_lab <- if (is.null(fill)) scale_fill_ggnetview(lab_classes) else ggplot2::scale_fill_manual(values = fill)
-      color_scale_lab <- if (is.null(color)) scale_color_ggnetview(lab_classes) else ggplot2::scale_color_manual(values = color)
+      fill_scale_lab <- if (is.null(fill)) scale_fill_ggnetview(lab_classes, labels = module_label_fun) else ggplot2::scale_fill_manual(values = fill, labels = module_label_fun)
+      color_scale_lab <- if (is.null(color)) scale_color_ggnetview(lab_classes, labels = module_label_fun) else ggplot2::scale_color_manual(values = color, labels = module_label_fun)
 
       p1_1 <- p1_1 +
         ggnewscale::new_scale_fill() +
         ggnewscale::new_scale_color() +
-        ggrepel::geom_text_repel(data = lab_df,
+        ggrepel::geom_text_repel(data = lab_df %>% dplyr::mutate(.label_text = module_label_fun(modularity3)),
                                  mapping = ggplot2::aes(x = x,
                                                y = y,
-                                               label = paste0("Module", modularity3),
+                                               label = .label_text,
                                                color = .data[[group.by]]),
                                  size = labelsize,
                                  nudge_x = lab_df$nudge_x,
@@ -695,15 +726,15 @@ ggNetView <- function(graph_obj,
     }
 
     # label = F add_outer = T
-    if (isFALSE(label) & isTRUE(add_outer)) {
+    if (isFALSE(show_module_label) & isTRUE(add_outer)) {
 
       maskTable <- .build_mask_table()
 
       maskTable <- maskTable %>% dplyr::mutate(cluster = factor(cluster, levels = levels(ly1_1[["graph_ly_final"]]$Modularity), ordered = T))
 
       mask_classes <- levels(maskTable$cluster)
-      fill_scale_mask <- if (is.null(fill)) scale_fill_ggnetview(mask_classes) else ggplot2::scale_fill_manual(values = fill)
-      color_scale_mask <- if (is.null(color)) scale_color_ggnetview(mask_classes) else ggplot2::scale_color_manual(values = color)
+      fill_scale_mask <- if (is.null(fill)) scale_fill_ggnetview(mask_classes, labels = module_label_fun) else ggplot2::scale_fill_manual(values = fill, labels = module_label_fun)
+      color_scale_mask <- if (is.null(color)) scale_color_ggnetview(mask_classes, labels = module_label_fun) else ggplot2::scale_color_manual(values = color, labels = module_label_fun)
 
       p1_1 <- p1_1 +
         ggnewscale::new_scale_fill() +
@@ -722,7 +753,7 @@ ggNetView <- function(graph_obj,
     }
 
     # label = T add_outer = T
-    if (isTRUE(label) & isTRUE(add_outer)) {
+    if (isTRUE(show_module_label) & isTRUE(add_outer)) {
 
       .build_label_location()
       maskTable <- .build_mask_table()
@@ -731,18 +762,18 @@ ggNetView <- function(graph_obj,
 
       lab_classes_outer <- levels(lab_df$Modularity)
       mask_classes_outer <- levels(maskTable$cluster)
-      fill_scale_lab_outer <- if (is.null(fill)) scale_fill_ggnetview(lab_classes_outer) else ggplot2::scale_fill_manual(values = fill)
-      color_scale_lab_outer <- if (is.null(color)) scale_color_ggnetview(lab_classes_outer) else ggplot2::scale_color_manual(values = color)
-      fill_scale_mask_outer <- if (is.null(fill)) scale_fill_ggnetview(mask_classes_outer, na_value = NA) else ggplot2::scale_fill_manual(values = fill)
-      color_scale_mask_outer <- if (is.null(color)) scale_color_ggnetview(mask_classes_outer, na_value = NA) else ggplot2::scale_color_manual(values = color)
+      fill_scale_lab_outer <- if (is.null(fill)) scale_fill_ggnetview(lab_classes_outer, labels = module_label_fun) else ggplot2::scale_fill_manual(values = fill, labels = module_label_fun)
+      color_scale_lab_outer <- if (is.null(color)) scale_color_ggnetview(lab_classes_outer, labels = module_label_fun) else ggplot2::scale_color_manual(values = color, labels = module_label_fun)
+      fill_scale_mask_outer <- if (is.null(fill)) scale_fill_ggnetview(mask_classes_outer, na_value = NA, labels = module_label_fun) else ggplot2::scale_fill_manual(values = fill, labels = module_label_fun)
+      color_scale_mask_outer <- if (is.null(color)) scale_color_ggnetview(mask_classes_outer, na_value = NA, labels = module_label_fun) else ggplot2::scale_color_manual(values = color, labels = module_label_fun)
 
       p1_1 <- p1_1 +
         ggnewscale::new_scale_fill() +
         ggnewscale::new_scale_color() +
-        ggrepel::geom_text_repel(data = lab_df,
+        ggrepel::geom_text_repel(data = lab_df %>% dplyr::mutate(.label_text = module_label_fun(modularity3)),
                                  mapping = ggplot2::aes(x = x,
                                                y = y,
-                                               label = paste0("Module", modularity3),
+                                               label = .label_text,
                                                color = modularity2),
                                  size = labelsize,
                                  nudge_x = lab_df$nudge_x,
