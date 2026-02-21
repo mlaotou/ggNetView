@@ -200,6 +200,24 @@ ggNetView <- function(graph_obj,
     ifelse(x_chr == "Others", "Others", paste0(module_label_prefix, x_chr))
   }
 
+  is_module_field <- function(var_name) {
+    is.character(var_name) &&
+      length(var_name) == 1 &&
+      !is.na(var_name) &&
+      tolower(var_name) %in% c("modularity", "modularity2", "modularity3")
+  }
+
+  # Point-level aesthetics (`shape`, `fill.by`) should reflect raw node attributes
+  # by default, but if mapping a modularity field, use the same prefix style
+  # as module labels regardless of `label` visibility.
+  point_legend_label_fun <- function(x, var_name) {
+    if (is_module_field(var_name)) {
+      module_label_fun(x)
+    } else {
+      as.character(x)
+    }
+  }
+
   if (isTRUE(mapping_line)) {
     # stat graph
     stat_graph <- stat_graph(graph_obj, mapping_line)
@@ -551,12 +569,18 @@ ggNetView <- function(graph_obj,
           dplyr::ungroup()
       }
     }
+    fill_classes <- unique(ly1_1[["graph_ly_final"]][[fill.by]])
+    merge_point_legends <- is.character(shape) && identical(shape, fill.by)
     fill_scale_points <- if (is.null(fill)) {
-      scale_fill_ggnetview(unique(ly1_1[["graph_ly_final"]][[fill.by]]),
-                           labels = module_label_fun)
+      scale_fill_ggnetview(fill_classes,
+                           breaks = fill_classes,
+                           labels = function(x) point_legend_label_fun(x, fill.by),
+                           guide = ggplot2::guide_legend(ncol = 1, order = 1))
     } else {
       ggplot2::scale_fill_manual(values = fill,
-                                 labels = module_label_fun)
+                                 breaks = fill_classes,
+                                 labels = function(x) point_legend_label_fun(x, fill.by),
+                                 guide = ggplot2::guide_legend(ncol = 1, order = 1))
     }
     color_scale_points <- NULL
     if (!is.null(color.by)) {
@@ -571,14 +595,21 @@ ggNetView <- function(graph_obj,
     }
     shape_scale_points <- NULL
     if (is.character(shape)) {
-      shape_classes <- unique(ly1_1[["ggplot_data"]][[1]][[shape]])
+      shape_classes <- unique(ly1_1[["graph_ly_final"]][[shape]])
       shape_values <- rep(21:25, length.out = length(shape_classes))
-      shape_scale_points <- ggplot2::scale_shape_manual(values = shape_values)
+      shape_scale_points <- ggplot2::scale_shape_manual(
+        values = shape_values,
+        breaks = shape_classes,
+        labels = function(x) point_legend_label_fun(x, shape),
+        guide = ggplot2::guide_legend(ncol = 1, order = if (merge_point_legends) 1 else 2)
+      )
     }
     size_guide_points <- NULL
     if (isTRUE(pointstroke == 0)) {
       size_guide_points <- ggplot2::guides(
         size = ggplot2::guide_legend(
+          ncol = 1,
+          order = 3,
           override.aes = list(
             shape = 21,
             fill = "grey70",
@@ -589,9 +620,11 @@ ggNetView <- function(graph_obj,
       )
     }
     fill_guide_points <- NULL
-    if (is.null(color.by) && !is.character(shape)) {
+    if (is.null(color.by) && !merge_point_legends) {
       fill_guide_points <- ggplot2::guides(
         fill = ggplot2::guide_legend(
+          ncol = 1,
+          order = 1,
           override.aes = list(
             shape = 21,
             colour = "grey40",
@@ -635,7 +668,7 @@ ggNetView <- function(graph_obj,
                               stroke = pointstroke)
       }
       p1_1 <- p1_1 +
-        ggplot2::scale_size(range = pointsize, guide = "legend") +
+        ggplot2::scale_size(range = pointsize, guide = ggplot2::guide_legend(ncol = 1, order = 3)) +
         ggplot2::coord_fixed() +
         theme_ggnetview() +
         fill_scale_points +
@@ -670,7 +703,7 @@ ggNetView <- function(graph_obj,
                               stroke = pointstroke)
       }
       p1_1 <- p1_1 +
-        ggplot2::scale_size(range = pointsize, guide = "legend") +
+        ggplot2::scale_size(range = pointsize, guide = ggplot2::guide_legend(ncol = 1, order = 3)) +
         ggplot2::coord_fixed() +
         theme_ggnetview() +
         fill_scale_points +
@@ -829,7 +862,11 @@ ggNetView <- function(graph_obj,
     }
 
     p1_1 <- p1_1 +
-      ggplot2::ggtitle(label = gglabel)
+      ggplot2::ggtitle(label = gglabel) +
+      ggplot2::theme(
+        legend.box = "horizontal",
+        legend.box.just = "left"
+      )
 
   }
 
