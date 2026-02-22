@@ -583,14 +583,27 @@ ggNetView <- function(graph_obj,
                                  guide = ggplot2::guide_legend(ncol = 1, order = 1))
     }
     color_scale_points <- NULL
+    same_fill_color_mapping <- !is.null(color.by) && identical(color.by, fill.by)
     if (!is.null(color.by)) {
       color_values <- ly1_1[["ggplot_data"]][[1]][[color.by]]
       if (is.numeric(color_values)) {
-        color_scale_points <- ggplot2::scale_color_gradient(low = "#4393c3", high = "#d6604d")
+        color_scale_points <- ggplot2::scale_color_gradient(
+          low = "#4393c3",
+          high = "#d6604d",
+          guide = if (same_fill_color_mapping) "none" else "legend"
+        )
       } else if (is.null(color)) {
-        color_scale_points <- scale_color_ggnetview(unique(color_values))
+        color_scale_points <- scale_color_ggnetview(
+          unique(color_values),
+          labels = function(x) point_legend_label_fun(x, color.by),
+          guide = if (same_fill_color_mapping) "none" else ggplot2::guide_legend(ncol = 1, order = 2)
+        )
       } else {
-        color_scale_points <- ggplot2::scale_color_manual(values = color)
+        color_scale_points <- ggplot2::scale_color_manual(
+          values = color,
+          labels = function(x) point_legend_label_fun(x, color.by),
+          guide = if (same_fill_color_mapping) "none" else ggplot2::guide_legend(ncol = 1, order = 2)
+        )
       }
     }
     shape_scale_points <- NULL
