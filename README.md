@@ -494,6 +494,9 @@ sessionInfo()
 If you use ggNetView in your research, please cite:
 
     Yue Liu, Chao Wang (2026). ggNetView: An R Package for Reproducible and Deterministic Network Analysis and Visualization. 
+
+#### Github & Manual
+
     https://github.com/Jiawang1209/ggNetView
     https://jiawang1209.github.io/ggNetView-manual/
 
