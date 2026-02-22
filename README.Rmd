@@ -358,8 +358,9 @@ sessionInfo()
 If you use ggNetView in your research, please cite:
 
 ```
-Yue Liu (2025). ggNetView: An R package for complex biological and ecological network analysis and visualization. R package version 0.1.0. 
+Yue Liu, Chao Wang (2026). ggNetView: An R Package for Reproducible and Deterministic Network Analysis and Visualization. 
 https://github.com/Jiawang1209/ggNetView
+https://jiawang1209.github.io/ggNetView-manual/
 ```
 
 <h4 align="center">©微信公众号 RPython</h5>

@@ -12,15 +12,16 @@
  ░███████   ░███████
 
 
-  ggNetView v1.4.17 (2026).
-  Developed by Jiawang's Network Visualization Group.
+Yue Liu, Chao Wang (2026). ggNetView: An R Package for Reproducible and Deterministic Network Analysis and Visualization.
 
   Maintainers:
    - Yue Liu <yueliu@iae.ac.cn>
    - Chao Wang <cwang@iae.ac.cn>
 
+  Manual: https://jiawang1209.github.io/ggNetView-manual/
   GitHub: https://github.com/Jiawang1209/ggNetView
   Bug Reports: https://github.com/Jiawang1209/ggNetView/issues
+
 
   Type citation('ggNetView') for how to cite this package.
   Run browseVignettes('ggNetView') for documentation.
