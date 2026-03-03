@@ -36,7 +36,8 @@ ggNetView_multi_link(
   mapping_line = FALSE,
   linealpha = 0.25,
   linecolor = "grey70",
-  scale = T,
+  calculate_topology = FALSE,
+  scale_groups = TRUE,
   orientation = "up",
   angle = 0,
   anchor_dist = 6,
@@ -141,8 +142,9 @@ Whether to apply jitter to points.}
 \item{jitter_sd}{Integer  (default = 0.1).
 The standard deviation of the jitter applied when `jitter = TRUE`.}
 
-\item{mapping_line}{Logical (default = FALSE).
-Whether to mapping line in ggNetView.}
+\item{mapping_line}{Logical or Character (default = FALSE).
+Whether to map line color in ggNetView. If a character string is provided,
+it must be a variable name in edge data.}
 
 \item{linealpha}{Integer  (default = 0.25).
 Change  line alpha.}
@@ -150,8 +152,14 @@ Change  line alpha.}
 \item{linecolor}{Character  (default = "grey70").
 Change  line color.}
 
-\item{scale}{Logical  (default = T).
-modules applicable to `Bipartite, Tripartite, Quadripartite, Multipartite, Pentapartite Layout` to scale the radius}
+\item{calculate_topology}{Logical (default = FALSE).
+Whether to compute topology for each group using
+\code{get_network_topology_parallel()} and
+\code{get_sample_subgraph_topology_parallel()}.}
+
+\item{scale_groups}{Logical (default = TRUE).
+Whether to normalize each group to a comparable coordinate scale before
+placing groups on anchors for cross-group visual comparison.}
 
 \item{orientation}{Character string.
 Custom orientation; one of "up","down","left","right".}

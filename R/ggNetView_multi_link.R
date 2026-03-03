@@ -73,14 +73,20 @@
 #' Whether to apply jitter to points.
 #' @param jitter_sd  Integer  (default = 0.1).
 #' The standard deviation of the jitter applied when `jitter = TRUE`.
-#' @param mapping_line Logical (default = FALSE).
-#' Whether to mapping line in ggNetView.
+#' @param mapping_line Logical or Character (default = FALSE).
+#' Whether to map line color in ggNetView. If a character string is provided,
+#' it must be a variable name in edge data.
 #' @param linealpha  Integer  (default = 0.25).
 #' Change  line alpha.
 #' @param linecolor Character  (default = "grey70").
 #' Change  line color.
-#' @param scale Logical  (default = T).
-#' modules applicable to `Bipartite, Tripartite, Quadripartite, Multipartite, Pentapartite Layout` to scale the radius
+#' @param calculate_topology Logical (default = FALSE).
+#' Whether to compute topology for each group using
+#' \code{get_network_topology_parallel()} and
+#' \code{get_sample_subgraph_topology_parallel()}.
+#' @param scale_groups Logical (default = TRUE).
+#' Whether to normalize each group to a comparable coordinate scale before
+#' placing groups on anchors for cross-group visual comparison.
 #' @param orientation Character string.
 #' Custom orientation; one of "up","down","left","right".
 #' @param angle Integer  (default = 0).
@@ -123,7 +129,8 @@ ggNetView_multi_link <- function(mat,
                                  mapping_line = FALSE,
                                  linealpha = 0.25,
                                  linecolor = "grey70",
-                                 scale = T,
+                                 calculate_topology = FALSE,
+                                 scale_groups = TRUE,
                                  orientation = "up",
                                  angle = 0,
                                  anchor_dist = 6,
@@ -140,11 +147,28 @@ ggNetView_multi_link <- function(mat,
                '#d9d9d9', '#bc80bd', '#ccebc5', '#ffed6f'
                )
 
+  if (is.logical(mapping_line)) {
+    if (length(mapping_line) != 1 || is.na(mapping_line)) {
+      stop("`mapping_line` must be a single logical or character string.")
+    }
+  } else if (is.character(mapping_line)) {
+    if (length(mapping_line) != 1 || is.na(mapping_line) || trimws(mapping_line) == "") {
+      stop("`mapping_line` must be a single logical or character string.")
+    }
+  } else {
+    stop("`mapping_line` must be a single logical or character string.")
+  }
+  if (!is.logical(calculate_topology) || length(calculate_topology) != 1 || is.na(calculate_topology)) {
+    stop("`calculate_topology` must be TRUE or FALSE.")
+  }
+
   graph_list <- list()
 
   graph_info <- list()
 
   graph_stat <- list()
+  topology_network <- list()
+  topology_sample <- list()
 
   group_info = group_info
 
@@ -190,7 +214,7 @@ ggNetView_multi_link <- function(mat,
     ly1 = lay_func(graph_obj = graph,
                    node_add = node_add,
                    r = r,
-                   scale = scale,
+                   scale = scale_groups,
                    anchor_dist = anchor_dist,
                    orientation = orientation,
                    angle = angle)
@@ -253,6 +277,44 @@ ggNetView_multi_link <- function(mat,
     graph_info[[g]] <- ly1_1$ggplot_data
 
     graph_stat[[g]] <- stat_graph(graph, mapping_line)
+
+    if (isTRUE(calculate_topology)) {
+      topology_network[[g]] <- tryCatch(
+        get_network_topology_parallel(
+          graph_obj = graph,
+          mat = mat_sub,
+          transfrom.method = transfrom.method,
+          r.threshold = r.threshold,
+          p.threshold = p.threshold,
+          method = method,
+          cor.method = cor.method,
+          proc = proc,
+          seed = seed
+        ),
+        error = function(e) {
+          warning(paste0("Topology (network) failed for group `", g, "`: ", e$message), call. = FALSE)
+          NULL
+        }
+      )
+
+      topology_sample[[g]] <- tryCatch(
+        get_sample_subgraph_topology_parallel(
+          graph_obj = graph,
+          mat = mat_sub,
+          transfrom.method = transfrom.method,
+          r.threshold = r.threshold,
+          p.threshold = p.threshold,
+          method = method,
+          cor.method = cor.method,
+          proc = proc,
+          seed = seed
+        ),
+        error = function(e) {
+          warning(paste0("Topology (sample subgraph) failed for group `", g, "`: ", e$message), call. = FALSE)
+          NULL
+        }
+      )
+    }
   }
 
   graph_list_length <- length(graph_list)
@@ -294,7 +356,7 @@ ggNetView_multi_link <- function(mat,
 
   Module_information
 
-  # if (isTRUE(scale)) {
+  # if (isTRUE(scale_groups)) {
   #   anchor_dist = 1
   # }else{
   #   anchor_dist = anchor_dist * 30
@@ -312,7 +374,7 @@ ggNetView_multi_link <- function(mat,
 
 
   # 是否是等齐的, 同时进行位置调整
-  if (isTRUE(scale)) {
+  if (isTRUE(scale_groups)) {
     # 如果需要做标准化的话, 把坐标都要归一化一下
     for (i in seq_along(names(graph_info))) {
       graph_info[[i]]$ggplot_node_df <- graph_info[[i]]$ggplot_node_df %>%
@@ -375,7 +437,7 @@ ggNetView_multi_link <- function(mat,
     }
   }
 
-  if (!isTRUE(scale)) {
+  if (!isTRUE(scale_groups)) {
     for (i in seq_along(names(graph_info))) {
       graph_info[[i]]$ggplot_node_df <- graph_info[[i]]$ggplot_node_df %>%
         dplyr::mutate(
@@ -435,17 +497,57 @@ ggNetView_multi_link <- function(mat,
   for (index in seq_along(names(graph_info))) {
     print(index)
     print(names(graph_info[index]))
+    edge_df <- graph_info[[index]]$ggplot_edge_df
+
     # plot link
+    if (isFALSE(mapping_line)) {
+      p <- p +
+        ggplot2::geom_segment(data = edge_df,
+                              mapping = ggplot2::aes(x = from_x,
+                                                     xend = to_x,
+                                                     y = from_y,
+                                                     yend = to_y),
+                              color = linecolor,
+                              alpha = linealpha)
+    } else if (isTRUE(mapping_line)) {
+      if (!"corr_direction" %in% colnames(edge_df)) {
+        stop("`mapping_line = TRUE` requires `corr_direction` in edge data.")
+      }
+      p <- p +
+        ggnewscale::new_scale_color() +
+        ggplot2::geom_segment(data = edge_df,
+                              mapping = ggplot2::aes(x = from_x,
+                                                     xend = to_x,
+                                                     y = from_y,
+                                                     yend = to_y,
+                                                     colour = corr_direction),
+                              alpha = linealpha) +
+        ggplot2::scale_color_manual(values = c("Positive" = "#d6604d", "Negative" = "#4393c3"))
+    } else {
+      if (!mapping_line %in% colnames(edge_df)) {
+        stop("`mapping_line` must be a variable name in edge data.")
+      }
+      line_values <- edge_df[[mapping_line]]
+      line_scale <- if (is.numeric(line_values)) {
+        ggplot2::scale_color_gradient(low = "#4393c3", high = "#d6604d")
+      } else {
+        scale_color_ggnetview(unique(as.character(line_values)))
+      }
+
+      p <- p +
+        ggnewscale::new_scale_color() +
+        ggplot2::geom_segment(data = edge_df,
+                              mapping = ggplot2::aes(x = from_x,
+                                                     xend = to_x,
+                                                     y = from_y,
+                                                     yend = to_y,
+                                                     colour = .data[[mapping_line]]),
+                              alpha = linealpha) +
+        line_scale
+    }
+
     p <- p +
       ggnewscale::new_scale_fill() +
-      ggplot2::geom_segment(data = graph_info[[index]]$ggplot_edge_df,
-                            mapping = ggplot2::aes(x = from_x,
-                                                   xend = to_x,
-                                                   y = from_y,
-                                                   yend = to_y),
-                            color = linecolor,
-                            alpha = linealpha
-                            ) +
       ggplot2::geom_point(data = graph_info[[index]]$ggplot_node_df,
                           mapping = ggplot2::aes(x = x,
                                                  y = y,
@@ -477,14 +579,24 @@ ggNetView_multi_link <- function(mat,
                                 n = 100,
                                 expand = unit(1, "mm")
                                 ) +
-      ggplot2::annotate(geom = "text",
-                        x = mean(graph_info[[index]]$ggplot_node_df$x),
-                        y = max(graph_info[[index]]$ggplot_node_df$y) + anchor_dist/30,
-                        label = paste0("Group = ",names(graph_info[index]), "\n",
-                                       "Node = ", graph_stat[[index]]$node, "\n",
-                                       "Edge = ", graph_stat[[index]]$edge, "\n"),
-                        size = 4,
-                        fontface = "bold")
+      ggplot2::annotate(
+        geom = "text",
+        x = mean(graph_info[[index]]$ggplot_node_df$x),
+        y = max(graph_info[[index]]$ggplot_node_df$y) + anchor_dist/30,
+        label = if (isTRUE(mapping_line)) {
+          paste0("Group = ", names(graph_info[index]), "\n",
+                 "Node = ", graph_stat[[index]]$node, "\n",
+                 "Edge = ", graph_stat[[index]]$edge, "\n",
+                 "Positive = ", graph_stat[[index]]$position_edge, "\n",
+                 "Negative = ", graph_stat[[index]]$negative_edge, "\n")
+        } else {
+          paste0("Group = ", names(graph_info[index]), "\n",
+                 "Node = ", graph_stat[[index]]$node, "\n",
+                 "Edge = ", graph_stat[[index]]$edge, "\n")
+        },
+        size = 4,
+        fontface = "bold"
+      )
 
   }
 
@@ -570,7 +682,14 @@ ggNetView_multi_link <- function(mat,
 
   return(
     list(p = p,
-         info = as_tibble(Module_information)
+         info = as_tibble(Module_information),
+         graph = graph_list,
+         topology = if (isTRUE(calculate_topology)) {
+           list(network = topology_network,
+                sample = topology_sample)
+         } else {
+           NULL
+         }
          )
     )
 
