@@ -98,6 +98,22 @@
 #' Line type for module outer boundaries.
 #' @param outeralpha Numeric (default = 0.5).
 #' Alpha for module outer boundaries.
+#' @param link_level Character (default = "Module").
+#' Cross-group link granularity. One of \code{"None"}, \code{"Module"}, or \code{"Node"}.
+#' \code{"None"} draws no cross-group links; \code{"Module"} links significant module matches;
+#' \code{"Node"} links shared node names across groups.
+#' @param link_curve Logical (default = FALSE).
+#' Whether to draw cross-group links as curves (\code{geom_curve}) instead of straight segments.
+#' @param link_curvature Numeric (default = 0.2).
+#' Curvature used when \code{link_curve = TRUE}.
+#' @param link_curve_mode Character (default = "outward").
+#' Curve direction strategy used when \code{link_curve = TRUE}.
+#' \code{"outward"} bends links away from the global center.
+#' \code{"cross"} follows a cross-axis rule: left links bend left, right links bend right,
+#' upper links bend up, and lower links bend down.
+#' @param dropOthers Logical (default = FALSE).
+#' If TRUE, remove nodes in the \code{"Others"} module from each group's
+#' \code{graph_obj} before layout, plotting, and module-overlap comparison.
 #' @param calculate_topology Logical (default = FALSE).
 #' Whether to compute topology for each group using
 #' \code{get_network_topology_parallel()} and
@@ -109,12 +125,22 @@
 #' Custom orientation; one of "up","down","left","right".
 #' @param angle Integer  (default = 0).
 #' Change  orientation angle.
-#' @param anchor_dist Integer (default = 2)
-#' the distance of each modules, applicable to `Bipartite, Tripartite, Quadripartite, Multipartite, Pentapartite Layout`
+#' @param anchor_dist Numeric (default = 6).
+#' Distance between groups when placing each group network on the outer circle
+#' in \code{ggNetView_multi_link}.
+#' @param layout_anchor_dist Numeric (default = NULL).
+#' Anchor distance passed to the single-group layout function (module spacing
+#' within each group). If \code{NULL}, it falls back to \code{anchor_dist}
+#' for backward compatibility.
+#' @param nrow Integer (default = NULL).
+#' Number of layout rows for grid-style layouts (e.g. \code{"consensus_module_equal_gephi"}).
+#' @param ncol Integer (default = NULL).
+#' Number of layout columns for grid-style layouts (e.g. \code{"consensus_module_equal_gephi"}).
 #' @param seed Integer (default = 1115).
 #' Random seed for reproducibility.
 #'
-#' @returns A ggplot object representing the network visualization.
+#' @returns A list containing plot, module-overlap info, link info, group graphs,
+#' and optional topology results.
 #' @export
 #'
 #' @examples NULL
@@ -153,11 +179,19 @@ ggNetView_multi_link <- function(mat,
                                  outerwidth = 1.25,
                                  outerlinetype = 2,
                                  outeralpha = 0.5,
+                                 link_level = "Module",
+                                 link_curve = FALSE,
+                                 link_curvature = 0.2,
+                                 link_curve_mode = "outward",
+                                 dropOthers = FALSE,
                                  calculate_topology = FALSE,
                                  scale_groups = TRUE,
                                  orientation = "up",
                                  angle = 0,
                                  anchor_dist = 6,
+                                 layout_anchor_dist = NULL,
+                                 nrow = NULL,
+                                 ncol = NULL,
                                  seed = 1115
 ){
   # 参数
@@ -185,6 +219,9 @@ ggNetView_multi_link <- function(mat,
   if (!is.logical(calculate_topology) || length(calculate_topology) != 1 || is.na(calculate_topology)) {
     stop("`calculate_topology` must be TRUE or FALSE.")
   }
+  if (!is.data.frame(group_info) || !all(c("Sample", "Group") %in% colnames(group_info))) {
+    stop("`group_info` must be a data.frame containing columns `Sample` and `Group`.")
+  }
   if (is.logical(add_outer)) {
     if (length(add_outer) != 1 || is.na(add_outer)) {
       stop("`add_outer` must be a single logical or character string.")
@@ -201,6 +238,35 @@ ggNetView_multi_link <- function(mat,
   } else {
     stop("`add_outer` must be a single logical or character string.")
   }
+  if (!is.character(link_level) || length(link_level) != 1 || is.na(link_level)) {
+    stop("`link_level` must be one of: 'None', 'Module', 'Node'.")
+  }
+  link_level <- tolower(trimws(link_level))
+  if (!link_level %in% c("none", "module", "node")) {
+    stop("`link_level` must be one of: 'None', 'Module', 'Node'.")
+  }
+  if (!is.logical(link_curve) || length(link_curve) != 1 || is.na(link_curve)) {
+    stop("`link_curve` must be TRUE or FALSE.")
+  }
+  if (!is.numeric(link_curvature) || length(link_curvature) != 1 || is.na(link_curvature)) {
+    stop("`link_curvature` must be a single numeric value.")
+  }
+  if (!is.character(link_curve_mode) || length(link_curve_mode) != 1 || is.na(link_curve_mode)) {
+    stop("`link_curve_mode` must be one of: 'outward', 'cross'.")
+  }
+  link_curve_mode <- tolower(trimws(link_curve_mode))
+  if (!link_curve_mode %in% c("outward", "cross")) {
+    stop("`link_curve_mode` must be one of: 'outward', 'cross'.")
+  }
+  if (!is.numeric(anchor_dist) || length(anchor_dist) != 1 || is.na(anchor_dist)) {
+    stop("`anchor_dist` must be a single numeric value.")
+  }
+  if (!is.null(layout_anchor_dist) &&
+      (!is.numeric(layout_anchor_dist) || length(layout_anchor_dist) != 1 || is.na(layout_anchor_dist))) {
+    stop("`layout_anchor_dist` must be NULL or a single numeric value.")
+  }
+  layout.module <- match.arg(layout.module)
+  layout_anchor_dist_use <- if (is.null(layout_anchor_dist)) anchor_dist else layout_anchor_dist
 
   graph_list <- list()
 
@@ -210,10 +276,7 @@ ggNetView_multi_link <- function(mat,
   topology_network <- list()
   topology_sample <- list()
 
-  group_info = group_info
-
   for (g in unique(group_info$Group)) {
-    print(g)
     group_info_sub <- group_info %>%
       dplyr::filter(Group %in% g)
 
@@ -243,6 +306,36 @@ ggNetView_multi_link <- function(mat,
       seed = seed
     )
 
+    # dropOthers acts on the source graph_obj BEFORE layout:
+    # it removes "Others" nodes first, then downstream layout/plot are rebuilt.
+    if (isTRUE(dropOthers)) {
+      node_tbl <- graph %>%
+        tidygraph::activate(nodes) %>%
+        tidygraph::as_tibble()
+
+      module_candidates <- c("Modularity", "modularity3", "modularity2")
+      module_col <- module_candidates[module_candidates %in% colnames(node_tbl)]
+      module_col <- if (length(module_col) > 0) module_col[[1]] else NULL
+
+      if (!is.null(module_col)) {
+        if ("name" %in% colnames(node_tbl)) {
+          keep_names <- node_tbl %>%
+            dplyr::filter(as.character(.data[[module_col]]) != "Others") %>%
+            dplyr::pull(name)
+
+          graph <- graph %>%
+            tidygraph::activate(nodes) %>%
+            tidygraph::filter(name %in% keep_names)
+        } else {
+          graph <- graph %>%
+            tidygraph::activate(nodes) %>%
+            tidygraph::filter(as.character(.data[[module_col]]) != "Others")
+        }
+      } else {
+        warning("`dropOthers = TRUE` but no module column found in `graph_obj` nodes.")
+      }
+    }
+
     # 添加布局
     # find layout function
     func_name <- paste0("create_layout_", layout)
@@ -250,14 +343,20 @@ ggNetView_multi_link <- function(mat,
     # find layout functions from ggNetView package
     lay_func <- utils::getFromNamespace(func_name, "ggNetView")
 
-    # get ly1
-    ly1 = lay_func(graph_obj = graph,
-                   node_add = node_add,
-                   r = r,
-                   scale = scale_groups,
-                   anchor_dist = anchor_dist,
-                   orientation = orientation,
-                   angle = angle)
+    # get ly1 (auto-pass only arguments supported by the chosen layout function)
+    lay_args <- list(
+      graph_obj = graph,
+      node_add = node_add,
+      r = r,
+      scale = scale_groups,
+      anchor_dist = layout_anchor_dist_use,
+      orientation = orientation,
+      angle = angle,
+      nrow = nrow,
+      ncol = ncol
+    )
+    lay_args <- lay_args[names(lay_args) %in% names(formals(lay_func))]
+    ly1 <- do.call(lay_func, lay_args)
 
     # get ly1_1
     # 圆形布局 添加模块化 获取模块
@@ -274,16 +373,45 @@ ggNetView_multi_link <- function(mat,
     }
 
     if (layout.module == "adjacent") {
-      ly1_1 <- module_layout3(graph,
-                              layout = ly1,
-                              center = center,
-                              k_nn = k_nn,
-                              push_others_delta = push_others_delta,
-                              shrink = shrink,
-                              jitter,
-                              jitter_sd
-                              # seed = seed
-      )
+      k_nn_try <- k_nn
+      k_nn_cap <- max(1, nrow(ly1) - 1)
+      ly1_1 <- NULL
+      while (is.null(ly1_1)) {
+        ly_try <- tryCatch(
+          module_layout3(graph,
+                         layout = ly1,
+                         center = center,
+                         k_nn = k_nn_try,
+                         push_others_delta = push_others_delta,
+                         shrink = shrink,
+                         jitter = jitter,
+                         jitter_sd = jitter_sd
+                         # seed = seed
+          ),
+          error = function(e) e
+        )
+
+        if (!inherits(ly_try, "error")) {
+          ly1_1 <- ly_try
+          break
+        }
+
+        err_msg <- conditionMessage(ly_try)
+        is_slot_error <- grepl("连续 slot|consecutive slots", err_msg, ignore.case = TRUE)
+        if (!is_slot_error || k_nn_try >= k_nn_cap) {
+          stop(ly_try)
+        }
+
+        next_k <- min(k_nn_cap, max(k_nn_try + 20, ceiling(k_nn_try * 1.25)))
+        if (next_k <= k_nn_try) {
+          stop(ly_try)
+        }
+        warning(sprintf(
+          "`layout.module = 'adjacent'` failed at k_nn = %d; retrying with k_nn = %d.",
+          k_nn_try, next_k
+        ))
+        k_nn_try <- next_k
+      }
     }
 
     if (layout.module == "order" & func_name != "create_layout_rings") {
@@ -358,41 +486,63 @@ ggNetView_multi_link <- function(mat,
   }
 
   graph_list_length <- length(graph_list)
-  graph_info_length <- length(graph_info)
-  graph_stat_length <- length(graph_stat)
-
-  # 首先对3个进行比较
-  names(graph_list)
-
   # 获区比较的分组
-  compare_matrix <- utils::combn(names(graph_list), 2)
-
-  compare_out_list <- list()
-  for (i in 1:dim(compare_matrix)[2]) {
-    print(compare_matrix[1,i])
-    print(compare_matrix[2,i])
-    tmp <- compare_modules_by_overlap(graph_info[[compare_matrix[1,i]]]$ggplot_node_df %>%
-                                        dplyr::select(name, Modularity) %>%
-                                        dplyr::mutate(Group = compare_matrix[1,i]),
-                                      graph_info[[compare_matrix[2,i]]]$ggplot_node_df %>%
-                                        dplyr::select(name, Modularity) %>%
-                                        dplyr::mutate(Group = compare_matrix[2,i])) %>%
-      dplyr::mutate(Group = stringr::str_c(compare_matrix[1,i],
-                                           "to",
-                                           compare_matrix[2,i],
-                                           sep = "_"))
-
-    compare_out_list[[stringr::str_c(compare_matrix[1,i],
-                                     "to",
-                                     compare_matrix[2,i],
-                                     sep = "_")]] <- tmp
-
+  if (graph_list_length >= 2) {
+    compare_matrix <- utils::combn(names(graph_list), 2)
+  } else {
+    compare_matrix <- matrix(character(0), nrow = 2, ncol = 0)
   }
 
-  Module_information <- do.call(rbind, compare_out_list) %>%
-    dplyr::filter(pvalue < 0.05) %>%
-    tidyr::separate(col = Group, sep = "_", into = c("GroupA", "to", "GroupB"), remove = F) %>%
-    dplyr::select(-to)
+  if (link_level == "module" && ncol(compare_matrix) > 0) {
+    compare_out_list <- list()
+    for (i in seq_len(ncol(compare_matrix))) {
+      tmp <- compare_modules_by_overlap(graph_info[[compare_matrix[1, i]]]$ggplot_node_df %>%
+                                          dplyr::select(name, Modularity) %>%
+                                          dplyr::mutate(Group = compare_matrix[1, i]),
+                                        graph_info[[compare_matrix[2, i]]]$ggplot_node_df %>%
+                                          dplyr::select(name, Modularity) %>%
+                                          dplyr::mutate(Group = compare_matrix[2, i])) %>%
+        dplyr::mutate(Group = stringr::str_c(compare_matrix[1, i],
+                                             "to",
+                                             compare_matrix[2, i],
+                                             sep = "_"))
+
+      compare_out_list[[stringr::str_c(compare_matrix[1, i],
+                                       "to",
+                                       compare_matrix[2, i],
+                                       sep = "_")]] <- tmp
+    }
+
+    Module_information <- do.call(rbind, compare_out_list) %>%
+      dplyr::filter(pvalue < 0.05) %>%
+      tidyr::separate(col = Group, sep = "_", into = c("GroupA", "to", "GroupB"), remove = F) %>%
+      dplyr::select(-to)
+  } else {
+    Module_information <- tibble::tibble(
+      modA = character(),
+      modB = character(),
+      overlap = integer(),
+      sizeA = integer(),
+      sizeB = integer(),
+      overlap_coef = numeric(),
+      pvalue = numeric(),
+      FDR = numeric(),
+      Group = character(),
+      GroupA = character(),
+      GroupB = character()
+    )
+  }
+
+  Module_information_plot <- if (link_level == "module") {
+    if (isTRUE(dropOthers)) {
+      Module_information
+    } else {
+      Module_information %>%
+        dplyr::filter(modA != "Others" | modB != "Others")
+    }
+  } else {
+    Module_information
+  }
 
   Module_information
 
@@ -535,8 +685,6 @@ ggNetView_multi_link <- function(mat,
 
   # 我们先添加点和线
   for (index in seq_along(names(graph_info))) {
-    print(index)
-    print(names(graph_info[index]))
     edge_df <- graph_info[[index]]$ggplot_edge_df
 
     # plot link
@@ -586,17 +734,23 @@ ggNetView_multi_link <- function(mat,
         line_scale
     }
 
-    module_targets <- Module_information %>%
-      dplyr::filter(stringr::str_detect(Group, pattern = names(graph_list)[index])) %>%
-      dplyr::filter(GroupA == names(graph_list)[index] | GroupB == names(graph_list)[index]) %>%
-      dplyr::mutate(mod_target = dplyr::case_when(
-        GroupA == names(graph_list)[index] ~ modA,
-        GroupB == names(graph_list)[index] ~ modB,
-        .default = NA
-      )) %>%
-      dplyr::pull(mod_target) %>%
-      unique() %>%
-      .[. != "Others"]
+    module_targets <- character(0)
+    if (link_level == "module" && nrow(Module_information_plot) > 0) {
+      module_targets <- Module_information_plot %>%
+        dplyr::filter(stringr::str_detect(Group, pattern = names(graph_list)[index])) %>%
+        dplyr::filter(GroupA == names(graph_list)[index] | GroupB == names(graph_list)[index]) %>%
+        dplyr::mutate(mod_target = dplyr::case_when(
+          GroupA == names(graph_list)[index] ~ modA,
+          GroupB == names(graph_list)[index] ~ modB,
+          .default = NA
+        )) %>%
+        dplyr::pull(mod_target) %>%
+        unique()
+
+      if (!isTRUE(dropOthers)) {
+        module_targets <- module_targets[module_targets != "Others"]
+      }
+    }
 
     outer_node_df <- graph_info[[index]]$ggplot_node_df %>%
       dplyr::filter(name %in% (graph_list[[index]] %>%
@@ -667,78 +821,207 @@ ggNetView_multi_link <- function(mat,
 
   }
 
-  # 增加连线
-  tmpi = 1
-  for (link_type in names(table(Module_information$Group))) {
+  # 增加跨组连线
+  link_info <- tibble::tibble(
+    link_level = character(),
+    group_a = character(),
+    group_b = character(),
+    source = character(),
+    target = character(),
+    x = numeric(),
+    y = numeric(),
+    xend = numeric(),
+    yend = numeric()
+  )
 
-    # get module
-    modA_tmp <- Module_information %>%
-      dplyr::filter(Group == link_type) %>%
-      dplyr::filter(modA!= "Others" | modB != "Others") %>%
-      dplyr::select(modA, GroupA) %>%
-      dplyr::pull(modA)
+  add_link_layer <- function(p_obj, df_link, col_link) {
+    if (nrow(df_link) == 0) return(p_obj)
+    if (isTRUE(link_curve)) {
+      dx <- df_link$xend - df_link$x
+      dy <- df_link$yend - df_link$y
+      mx <- (df_link$x + df_link$xend) / 2
+      my <- (df_link$y + df_link$yend) / 2
 
-    GroupA_tmp <- Module_information %>%
-      dplyr::filter(Group == link_type) %>%
-      dplyr::filter(modA!= "Others" | modB != "Others") %>%
-      dplyr::select(modA, GroupA) %>%
-      dplyr::pull(GroupA) %>%
-      unique()
+      if (identical(link_curve_mode, "cross")) {
+        # Cross-axis rule:
+        # choose one of left/right/up/down by midpoint position, then bend toward that side.
+        use_horizontal <- abs(mx) >= abs(my)
+        dir_x <- ifelse(use_horizontal, ifelse(mx >= 0, 1, -1), 0)
+        dir_y <- ifelse(!use_horizontal, ifelse(my >= 0, 1, -1), 0)
+        target_score <- dir_x * (-dy) + dir_y * dx
+        # In ggplot2::geom_curve, sign is opposite to this geometric score.
+        curv_sign <- ifelse(target_score >= 0, -1, 1)
+      } else {
+        # Outward rule relative to global center (0,0).
+        outward_score <- mx * (-dy) + my * dx
+        # In ggplot2::geom_curve, sign is opposite to this geometric score.
+        curv_sign <- ifelse(outward_score >= 0, -1, 1)
+      }
 
-    modB_tmp <- Module_information %>%
-      dplyr::filter(Group == link_type) %>%
-      dplyr::filter(modA!= "Others" | modB != "Others") %>%
-      dplyr::select(modB, GroupB) %>%
-      dplyr::pull(modB)
+      df_pos <- df_link[curv_sign > 0, , drop = FALSE]
+      df_neg <- df_link[curv_sign <= 0, , drop = FALSE]
 
-    GroupB_tmp <- Module_information %>%
-      dplyr::filter(Group == link_type) %>%
-      dplyr::filter(modA!= "Others" | modB != "Others") %>%
-      dplyr::select(modB, GroupB) %>%
-      dplyr::pull(GroupB) %>%
-      unique()
+      p_new <- p_obj
+      if (nrow(df_pos) > 0) {
+        p_new <- p_new + ggplot2::geom_curve(
+          data = df_pos,
+          mapping = ggplot2::aes(x = x, xend = xend, y = y, yend = yend),
+          curvature = abs(link_curvature),
+          linetype = 2,
+          linewidth = 1,
+          alpha = linealpha,
+          color = col_link
+        )
+      }
+      if (nrow(df_neg) > 0) {
+        p_new <- p_new + ggplot2::geom_curve(
+          data = df_neg,
+          mapping = ggplot2::aes(x = x, xend = xend, y = y, yend = yend),
+          curvature = -abs(link_curvature),
+          linetype = 2,
+          linewidth = 1,
+          alpha = linealpha,
+          color = col_link
+        )
+      }
+      p_new
+    } else {
+      p_obj + ggplot2::geom_segment(
+        data = df_link,
+        mapping = ggplot2::aes(x = x, xend = xend, y = y, yend = yend),
+        linetype = 2,
+        linewidth = 1,
+        alpha = linealpha,
+        color = col_link
+      )
+    }
+  }
 
-    # compute location
-    Module_location <- Module_information %>%
-      dplyr::filter(Group == link_type) %>%
-      dplyr::filter(modA!= "Others" | modB != "Others") %>%
-      dplyr::left_join(
-        graph_info[[GroupA_tmp]]$ggplot_node_df %>%
-          dplyr::mutate(Modularity = as.character(Modularity)) %>%
-          dplyr::filter(Modularity %in% modA_tmp) %>%
-          dplyr::select(x, y, Modularity) %>%
-          dplyr::group_by(Modularity) %>%
-          dplyr::summarise(x_center = mean(x),
-                           y_center = mean(y)) %>%
-          purrr::set_names(c("GroupA_Module", "GroupA_x_center", "GroupA_y_center")),
-        by = c("modA" = "GroupA_Module")
-      ) %>%
-      dplyr::left_join(
-        graph_info[[GroupB_tmp]]$ggplot_node_df %>%
-          dplyr::mutate(Modularity = as.character(Modularity)) %>%
-          dplyr::filter(Modularity %in% modB_tmp) %>%
-          dplyr::select(x, y, Modularity) %>%
-          dplyr::group_by(Modularity) %>%
-          dplyr::summarise(x_center = mean(x),
-                           y_center = mean(y)) %>%
-          purrr::set_names(c("GroupB_Module", "GroupB_x_center", "GroupB_y_center")),
-        by = c("modB" = "GroupB_Module")
+  if (link_level == "module" && nrow(Module_information_plot) > 0) {
+    tmpi <- 1
+    for (link_type in names(table(Module_information_plot$Group))) {
+      modA_tmp <- Module_information_plot %>%
+        dplyr::filter(Group == link_type) %>%
+        dplyr::select(modA, GroupA) %>%
+        dplyr::pull(modA)
+
+      GroupA_tmp <- Module_information_plot %>%
+        dplyr::filter(Group == link_type) %>%
+        dplyr::select(modA, GroupA) %>%
+        dplyr::pull(GroupA) %>%
+        unique()
+
+      modB_tmp <- Module_information_plot %>%
+        dplyr::filter(Group == link_type) %>%
+        dplyr::select(modB, GroupB) %>%
+        dplyr::pull(modB)
+
+      GroupB_tmp <- Module_information_plot %>%
+        dplyr::filter(Group == link_type) %>%
+        dplyr::select(modB, GroupB) %>%
+        dplyr::pull(GroupB) %>%
+        unique()
+
+      Module_location <- Module_information_plot %>%
+        dplyr::filter(Group == link_type) %>%
+        dplyr::left_join(
+          graph_info[[GroupA_tmp]]$ggplot_node_df %>%
+            dplyr::mutate(Modularity = as.character(Modularity)) %>%
+            dplyr::filter(Modularity %in% modA_tmp) %>%
+            dplyr::select(x, y, Modularity) %>%
+            dplyr::group_by(Modularity) %>%
+            dplyr::summarise(x_center = mean(x), y_center = mean(y)) %>%
+            purrr::set_names(c("GroupA_Module", "GroupA_x_center", "GroupA_y_center")),
+          by = c("modA" = "GroupA_Module")
+        ) %>%
+        dplyr::left_join(
+          graph_info[[GroupB_tmp]]$ggplot_node_df %>%
+            dplyr::mutate(Modularity = as.character(Modularity)) %>%
+            dplyr::filter(Modularity %in% modB_tmp) %>%
+            dplyr::select(x, y, Modularity) %>%
+            dplyr::group_by(Modularity) %>%
+            dplyr::summarise(x_center = mean(x), y_center = mean(y)) %>%
+            purrr::set_names(c("GroupB_Module", "GroupB_x_center", "GroupB_y_center")),
+          by = c("modB" = "GroupB_Module")
+        )
+
+      Module_location_plot <- Module_location %>%
+        dplyr::transmute(
+          x = GroupA_x_center,
+          y = GroupA_y_center,
+          xend = GroupB_x_center,
+          yend = GroupB_y_center
+        )
+
+      link_info <- dplyr::bind_rows(
+        link_info,
+        Module_location %>%
+          dplyr::transmute(
+            link_level = "module",
+            group_a = GroupA,
+            group_b = GroupB,
+            source = as.character(modA),
+            target = as.character(modB),
+            x = GroupA_x_center,
+            y = GroupA_y_center,
+            xend = GroupB_x_center,
+            yend = GroupB_y_center
+          )
       )
 
-    Module_location
+      col_i <- color_v[((tmpi - 1) %% length(color_v)) + 1]
+      p <- add_link_layer(p, Module_location_plot, col_i)
+      tmpi <- tmpi + 1
+    }
+  }
 
-    p <- p + ggplot2::geom_segment(data = Module_location,
-                                   mapping = ggplot2::aes(x = GroupA_x_center,
-                                                          xend = GroupB_x_center,
-                                                          y = GroupA_y_center,
-                                                          yend = GroupB_y_center),
-                                   linetype = 2,
-                                   linewidth = 1,
-                                   color = color_v[tmpi])
+  if (link_level == "node" && ncol(compare_matrix) > 0) {
+    tmpi <- 1
+    for (i in seq_len(ncol(compare_matrix))) {
+      gA <- compare_matrix[1, i]
+      gB <- compare_matrix[2, i]
 
+      node_links <- graph_info[[gA]]$ggplot_node_df %>%
+        dplyr::select(name, x, y) %>%
+        dplyr::inner_join(
+          graph_info[[gB]]$ggplot_node_df %>%
+            dplyr::select(name, x, y),
+          by = "name",
+          suffix = c("_A", "_B")
+        ) %>%
+        dplyr::transmute(
+          x = x_A,
+          y = y_A,
+          xend = x_B,
+          yend = y_B
+        )
 
-    tmpi = tmpi + 1
+      node_links_info <- graph_info[[gA]]$ggplot_node_df %>%
+        dplyr::select(name, x, y) %>%
+        dplyr::inner_join(
+          graph_info[[gB]]$ggplot_node_df %>%
+            dplyr::select(name, x, y),
+          by = "name",
+          suffix = c("_A", "_B")
+        ) %>%
+        dplyr::transmute(
+          link_level = "node",
+          group_a = gA,
+          group_b = gB,
+          source = as.character(name),
+          target = as.character(name),
+          x = x_A,
+          y = y_A,
+          xend = x_B,
+          yend = y_B
+        )
 
+      link_info <- dplyr::bind_rows(link_info, node_links_info)
+
+      col_i <- color_v[((tmpi - 1) %% length(color_v)) + 1]
+      p <- add_link_layer(p, node_links, col_i)
+      tmpi <- tmpi + 1
+    }
   }
 
   p <- p +
@@ -750,6 +1033,7 @@ ggNetView_multi_link <- function(mat,
   return(
     list(p = p,
          info = as_tibble(Module_information),
+         link_info = as_tibble(link_info),
          graph = graph_list,
          topology = if (isTRUE(calculate_topology)) {
            list(network = topology_network,

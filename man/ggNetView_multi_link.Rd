@@ -42,11 +42,19 @@ ggNetView_multi_link(
   outerwidth = 1.25,
   outerlinetype = 2,
   outeralpha = 0.5,
+  link_level = "Module",
+  link_curve = FALSE,
+  link_curvature = 0.2,
+  link_curve_mode = "outward",
+  dropOthers = FALSE,
   calculate_topology = FALSE,
   scale_groups = TRUE,
   orientation = "up",
   angle = 0,
   anchor_dist = 6,
+  layout_anchor_dist = NULL,
+  nrow = NULL,
+  ncol = NULL,
   seed = 1115
 )
 }
@@ -182,6 +190,27 @@ Line type for module outer boundaries.}
 \item{outeralpha}{Numeric (default = 0.5).
 Alpha for module outer boundaries.}
 
+\item{link_level}{Character (default = "Module").
+Cross-group link granularity. One of \code{"None"}, \code{"Module"}, or \code{"Node"}.
+\code{"None"} draws no cross-group links; \code{"Module"} links significant module matches;
+\code{"Node"} links shared node names across groups.}
+
+\item{link_curve}{Logical (default = FALSE).
+Whether to draw cross-group links as curves (\code{geom_curve}) instead of straight segments.}
+
+\item{link_curvature}{Numeric (default = 0.2).
+Curvature used when \code{link_curve = TRUE}.}
+
+\item{link_curve_mode}{Character (default = "outward").
+Curve direction strategy used when \code{link_curve = TRUE}.
+\code{"outward"} bends links away from the global center.
+\code{"cross"} follows a cross-axis rule: left links bend left, right links bend right,
+upper links bend up, and lower links bend down.}
+
+\item{dropOthers}{Logical (default = FALSE).
+If TRUE, remove nodes in the \code{"Others"} module from each group's
+\code{graph_obj} before layout, plotting, and module-overlap comparison.}
+
 \item{calculate_topology}{Logical (default = FALSE).
 Whether to compute topology for each group using
 \code{get_network_topology_parallel()} and
@@ -197,8 +226,20 @@ Custom orientation; one of "up","down","left","right".}
 \item{angle}{Integer  (default = 0).
 Change  orientation angle.}
 
-\item{anchor_dist}{Integer (default = 2)
-the distance of each modules, applicable to `Bipartite, Tripartite, Quadripartite, Multipartite, Pentapartite Layout`}
+\item{anchor_dist}{Numeric (default = 6).
+Distance between groups when placing each group network on the outer circle
+in \code{ggNetView_multi_link}.}
+
+\item{layout_anchor_dist}{Numeric (default = NULL).
+Anchor distance passed to the single-group layout function (module spacing
+within each group). If \code{NULL}, it falls back to \code{anchor_dist}
+for backward compatibility.}
+
+\item{nrow}{Integer (default = NULL).
+Number of layout rows for grid-style layouts (e.g. \code{"consensus_module_equal_gephi"}).}
+
+\item{ncol}{Integer (default = NULL).
+Number of layout columns for grid-style layouts (e.g. \code{"consensus_module_equal_gephi"}).}
 
 \item{seed}{Integer (default = 1115).
 Random seed for reproducibility.}
@@ -206,7 +247,8 @@ Random seed for reproducibility.}
 \item{pointstroke}{Integer  (default = 0.3).}
 }
 \value{
-A ggplot object representing the network visualization.
+A list containing plot, module-overlap info, link info, group graphs,
+and optional topology results.
 }
 \description{
 Visualize multiple networks and show the connections between them to highlight key members within the networks

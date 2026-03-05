@@ -33,6 +33,8 @@ ggNetView_multi(
   pointalpha = 1,
   pointsize = c(1, 10),
   pointstroke = 0.3,
+  pointlabel = NULL,
+  pointlabelsize = 5,
   group.by = "Modularity",
   fill.by = "Modularity",
   color.by = NULL,
@@ -51,17 +53,24 @@ ggNetView_multi(
   labelsegmentsize = 1,
   labelsegmentalpha = 1,
   add_outer = FALSE,
+  q_outer = 0.88,
+  expand_outer = 1.02,
   outerwidth = 1.25,
   outerlinetype = 2,
   outeralpha = 0.5,
   nodelabsize = 5,
   remove = FALSE,
+  dropOthers = FALSE,
   orientation = "up",
   angle = 0,
   scale = T,
   anchor_dist = 6,
+  layout_nrow = NULL,
+  layout_ncol = NULL,
+  snake = FALSE,
   seed = 1115,
-  nrow = NULL
+  nrow = NULL,
+  ncol = NULL
 )
 }
 \arguments{
@@ -161,6 +170,14 @@ The point size rang.}
 
 \item{pointstroke}{Integer  (default = 0.3).}
 
+\item{pointlabel}{Character (default = NULL).
+Optional node label mode for top Degree nodes within each module.
+Supported values: \code{"topN"} (e.g. \code{"top1"}, \code{"top7"}, \code{"top20"})
+and \code{"ALL"}.}
+
+\item{pointlabelsize}{Integer (default = 5).
+Change point label size.}
+
 \item{group.by}{Character (default = "Modularity").
 Change group for nodes}
 
@@ -215,6 +232,12 @@ Change  label segment alpha.}
 \item{add_outer}{Logical (default = FALSE).
 Whether to add an outer circle/border around the layout.}
 
+\item{q_outer}{Numeric (default = 0.88).
+Quantile of radial distance used to construct the smooth outer boundary for each module.}
+
+\item{expand_outer}{Numeric (default = 1.02).
+Global scaling factor applied to the smoothed radial distances when drawing the outer boundary.}
+
 \item{outerwidth}{Integer  (default = 1.25).
 Change  outer linewidth.}
 
@@ -230,6 +253,9 @@ Change  node label size.}
 \item{remove}{Logical (default = FALSE).
 Delect nodes that are not modules.}
 
+\item{dropOthers}{Logical (default = FALSE).
+If TRUE, remove nodes in the \code{"Others"} module before layout and visualization.}
+
 \item{orientation}{Character string.
 Custom orientation; one of "up","down","left","right".}
 
@@ -242,11 +268,23 @@ modules applicable to `Bipartite, Tripartite, Quadripartite, Multipartite, Penta
 \item{anchor_dist}{Integer (default = 6)
 the distance of each modules, applicable to `Bipartite, Tripartite, Quadripartite, Multipartite, Pentapartite Layout`}
 
+\item{layout_nrow}{Integer (default = NULL).
+Number of layout rows passed to \code{ggNetView} when using consensus-module grid layouts.}
+
+\item{layout_ncol}{Integer (default = NULL).
+Number of layout columns passed to \code{ggNetView} when using consensus-module grid layouts.}
+
+\item{snake}{Logical (default = FALSE).
+Whether to use snake arrangement in supported layouts.}
+
 \item{seed}{Integer (default = 1115).
 Random seed for reproducibility.}
 
-\item{nrwo}{Integer (default = NULL).
-Then nrow of combinme plot}
+\item{nrow}{Integer (default = NULL).
+Number of rows in the combined patchwork plot.}
+
+\item{ncol}{Integer (default = NULL).
+Number of columns in the combined patchwork plot.}
 }
 \value{
 A ggplot object representing the network visualization.

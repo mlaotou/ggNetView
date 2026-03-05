@@ -71,6 +71,12 @@
 #' @param pointsize Vector (default =  c(1,10))
 #' The point size rang.
 #' @param pointstroke Integer  (default = 0.3).
+#' @param pointlabel Character (default = NULL).
+#' Optional node label mode for top Degree nodes within each module.
+#' Supported values: \code{"topN"} (e.g. \code{"top1"}, \code{"top7"}, \code{"top20"})
+#' and \code{"ALL"}.
+#' @param pointlabelsize Integer (default = 5).
+#' Change point label size.
 #' @param group.by Character (default = "Modularity").
 #' Change group for nodes
 #' @param fill.by Character (default = "Modularity").
@@ -107,6 +113,10 @@
 #' Change  label segment alpha.
 #' @param add_outer Logical (default = FALSE).
 #' Whether to add an outer circle/border around the layout.
+#' @param q_outer Numeric (default = 0.88).
+#' Quantile of radial distance used to construct the smooth outer boundary for each module.
+#' @param expand_outer Numeric (default = 1.02).
+#' Global scaling factor applied to the smoothed radial distances when drawing the outer boundary.
 #' @param outerwidth Integer  (default = 1.25).
 #' Change  outer linewidth.
 #' @param outerlinetype Integer  (default = 2).
@@ -117,6 +127,8 @@
 #' Change  node label size.
 #' @param remove Logical (default = FALSE).
 #' Delect nodes that are not modules.
+#' @param dropOthers Logical (default = FALSE).
+#' If TRUE, remove nodes in the \code{"Others"} module before layout and visualization.
 #' @param orientation Character string.
 #' Custom orientation; one of "up","down","left","right".
 #' @param angle Integer  (default = 0).
@@ -125,10 +137,18 @@
 #' modules applicable to `Bipartite, Tripartite, Quadripartite, Multipartite, Pentapartite Layout` to scale the radius
 #' @param anchor_dist Integer (default = 6)
 #' the distance of each modules, applicable to `Bipartite, Tripartite, Quadripartite, Multipartite, Pentapartite Layout`
+#' @param layout_nrow Integer (default = NULL).
+#' Number of layout rows passed to \code{ggNetView} when using consensus-module grid layouts.
+#' @param layout_ncol Integer (default = NULL).
+#' Number of layout columns passed to \code{ggNetView} when using consensus-module grid layouts.
+#' @param snake Logical (default = FALSE).
+#' Whether to use snake arrangement in supported layouts.
 #' @param seed Integer (default = 1115).
 #' Random seed for reproducibility.
-#' @param nrwo Integer (default = NULL).
-#' Then nrow of combinme plot
+#' @param nrow Integer (default = NULL).
+#' Number of rows in the combined patchwork plot.
+#' @param ncol Integer (default = NULL).
+#' Number of columns in the combined patchwork plot.
 #'
 #' @returns  A ggplot object representing the network visualization.
 #' @export
@@ -162,6 +182,8 @@ ggNetView_multi <- function(mat,
                             pointalpha = 1,
                             pointsize = c(1,10),
                             pointstroke = 0.3,
+                            pointlabel = NULL,
+                            pointlabelsize = 5,
                             group.by = "Modularity",
                             fill.by = "Modularity",
                             color.by = NULL,
@@ -180,27 +202,34 @@ ggNetView_multi <- function(mat,
                             labelsegmentsize = 1,
                             labelsegmentalpha = 1,
                             add_outer = FALSE,
+                            q_outer = 0.88,
+                            expand_outer = 1.02,
                             outerwidth = 1.25,
                             outerlinetype = 2,
                             outeralpha = 0.5,
                             nodelabsize = 5,
                             remove = FALSE,
+                            dropOthers = FALSE,
                             orientation = "up",
                             angle = 0,
                             scale = T,
                             anchor_dist = 6,
+                            layout_nrow = NULL,
+                            layout_ncol = NULL,
+                            snake = FALSE,
                             seed = 1115,
-                            nrow = NULL
+                            nrow = NULL,
+                            ncol = NULL
                             ){
 
   p_list <- list()
 
   for (g in unique(group_info$Group)) {
-    print(g)
     group_info_sub <- group_info %>%
       dplyr::filter(Group %in% g)
 
     mat_sub <- mat %>%
+      as.data.frame() %>%
       dplyr::select(all_of(group_info_sub$Sample)) %>%
       tibble::rownames_to_column(var = "ID") %>%
       dplyr::rowwise() %>%
@@ -241,6 +270,8 @@ ggNetView_multi <- function(mat,
       pointalpha = pointalpha,
       pointsize = pointsize,
       pointstroke = pointstroke,
+      pointlabel = pointlabel,
+      pointlabelsize = pointlabelsize,
       group.by = group.by,
       fill.by = fill.by,
       color.by = color.by,
@@ -259,15 +290,21 @@ ggNetView_multi <- function(mat,
       labelsegmentsize = labelsegmentsize,
       labelsegmentalpha = labelsegmentalpha,
       add_outer = add_outer,
+      q_outer = q_outer,
+      expand_outer = expand_outer,
       outerwidth = outerwidth,
       outerlinetype = outerlinetype,
       outeralpha = outeralpha,
       nodelabsize = nodelabsize,
       remove = remove,
+      dropOthers = dropOthers,
       orientation = orientation,
       angle = angle,
       scale = scale,
       anchor_dist = anchor_dist,
+      nrow = layout_nrow,
+      ncol = layout_ncol,
+      snake = snake,
       seed = seed
     )
 
@@ -277,7 +314,8 @@ ggNetView_multi <- function(mat,
 
   p_out <- patchwork::wrap_plots(p_list,
                                  # guides = "collect",
-                                 nrow = nrow)
+                                 nrow = nrow,
+                                 ncol = ncol)
 
   return(p_out)
 
