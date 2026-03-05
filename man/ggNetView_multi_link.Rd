@@ -36,6 +36,12 @@ ggNetView_multi_link(
   mapping_line = FALSE,
   linealpha = 0.25,
   linecolor = "grey70",
+  add_outer = "circle",
+  q_outer = 0.88,
+  expand_outer = 1.02,
+  outerwidth = 1.25,
+  outerlinetype = 2,
+  outeralpha = 0.5,
   calculate_topology = FALSE,
   scale_groups = TRUE,
   orientation = "up",
@@ -151,6 +157,30 @@ Change  line alpha.}
 
 \item{linecolor}{Character  (default = "grey70").
 Change  line color.}
+
+\item{add_outer}{Logical or Character (default = "circle").
+Add outer boundaries for matched modules.
+Supported values: \code{"circle"} (use \code{ggforce::geom_mark_circle}),
+\code{"manual"} (use smoothed polygon boundary like \code{ggNetView}),
+and \code{"none"} (disable). Logical \code{TRUE}/\code{FALSE} are
+accepted and mapped to \code{"circle"}/\code{"none"}.}
+
+\item{q_outer}{Numeric (default = 0.88).
+Quantile of radial distance used to construct the smooth outer boundary
+when \code{add_outer = "manual"}.}
+
+\item{expand_outer}{Numeric (default = 1.02).
+Global scaling factor applied to the smooth outer boundary when
+\code{add_outer = "manual"}.}
+
+\item{outerwidth}{Numeric (default = 1.25).
+Line width for module outer boundaries.}
+
+\item{outerlinetype}{Integer (default = 2).
+Line type for module outer boundaries.}
+
+\item{outeralpha}{Numeric (default = 0.5).
+Alpha for module outer boundaries.}
 
 \item{calculate_topology}{Logical (default = FALSE).
 Whether to compute topology for each group using

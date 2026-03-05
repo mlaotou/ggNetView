@@ -101,7 +101,12 @@
 #' @param nodelabsize Integer  (default = 5).
 #' Change  node label size.
 #' @param remove Logical (default = FALSE).
-#' Delect nodes that are not modules.
+#' Remove \code{"Others"} only at the visualization stage (post-layout),
+#' so the layout of remaining modules is kept unchanged.
+#' @param dropOthers Logical (default = FALSE).
+#' If TRUE, remove nodes in the \code{"Others"} module from \code{graph_obj}
+#' before layout and visualization, then recompute layout/plot from the
+#' updated graph.
 #' @param orientation Character string.
 #' Custom orientation; one of "up","down","left","right".
 #' @param angle Integer  (default = 0).
@@ -164,6 +169,7 @@ ggNetView <- function(graph_obj,
                       outeralpha = 0.5,
                       nodelabsize = 5,
                       remove = FALSE,
+                      dropOthers = FALSE,
                       orientation = "up",
                       angle = 0,
                       scale = T,
@@ -175,6 +181,36 @@ ggNetView <- function(graph_obj,
                       ){
 
   set.seed(seed)
+
+  # dropOthers acts on the source graph_obj BEFORE layout:
+  # it removes "Others" nodes first, then downstream layout/plot are rebuilt.
+  if (isTRUE(dropOthers)) {
+    node_tbl <- graph_obj %>%
+      tidygraph::activate(nodes) %>%
+      tidygraph::as_tibble()
+
+    module_candidates <- c("Modularity", "modularity3", "modularity2")
+    module_col <- module_candidates[module_candidates %in% colnames(node_tbl)]
+    module_col <- if (length(module_col) > 0) module_col[[1]] else NULL
+
+    if (!is.null(module_col)) {
+      if ("name" %in% colnames(node_tbl)) {
+        keep_names <- node_tbl %>%
+          dplyr::filter(as.character(.data[[module_col]]) != "Others") %>%
+          dplyr::pull(name)
+
+        graph_obj <- graph_obj %>%
+          tidygraph::activate(nodes) %>%
+          tidygraph::filter(name %in% keep_names)
+      } else {
+        graph_obj <- graph_obj %>%
+          tidygraph::activate(nodes) %>%
+          tidygraph::filter(as.character(.data[[module_col]]) != "Others")
+      }
+    } else {
+      warning("`dropOthers = TRUE` but no module column found in `graph_obj` nodes.")
+    }
+  }
 
   if (is.logical(label)) {
     if (length(label) != 1 || is.na(label)) {
@@ -270,16 +306,45 @@ ggNetView <- function(graph_obj,
   }
 
   if (layout.module == "adjacent") {
-    ly1_1 <- module_layout3(graph_obj,
-                            layout = ly1,
-                            center = center,
-                            k_nn = k_nn,
-                            push_others_delta = push_others_delta,
-                            shrink = shrink,
-                            jitter = jitter,
-                            jitter_sd = jitter_sd
-                            # seed = seed
-    )
+    k_nn_try <- k_nn
+    k_nn_cap <- max(1, nrow(ly1) - 1)
+    ly1_1 <- NULL
+    while (is.null(ly1_1)) {
+      ly_try <- tryCatch(
+        module_layout3(graph_obj,
+                       layout = ly1,
+                       center = center,
+                       k_nn = k_nn_try,
+                       push_others_delta = push_others_delta,
+                       shrink = shrink,
+                       jitter = jitter,
+                       jitter_sd = jitter_sd
+                       # seed = seed
+        ),
+        error = function(e) e
+      )
+
+      if (!inherits(ly_try, "error")) {
+        ly1_1 <- ly_try
+        break
+      }
+
+      err_msg <- conditionMessage(ly_try)
+      is_slot_error <- grepl("连续 slot|consecutive slots", err_msg, ignore.case = TRUE)
+      if (!is_slot_error || k_nn_try >= k_nn_cap) {
+        stop(ly_try)
+      }
+
+      next_k <- min(k_nn_cap, max(k_nn_try + 20, ceiling(k_nn_try * 1.25)))
+      if (next_k <= k_nn_try) {
+        stop(ly_try)
+      }
+      warning(sprintf(
+        "`layout.module = 'adjacent'` failed at k_nn = %d; retrying with k_nn = %d.",
+        k_nn_try, next_k
+      ))
+      k_nn_try <- next_k
+    }
   }
 
   if (layout.module == "order" & func_name != "create_layout_rings") {
@@ -334,7 +399,8 @@ ggNetView <- function(graph_obj,
       module_info <- module_info[module_info!="Others"]
     }
 
-    # remove Others
+    # remove acts only at the visualization stage (post-layout):
+    # it drops "Others" from rendered data while keeping the existing layout.
     if (isFALSE(remove)) {
       ly1_1 <- ly1_1
     }else{

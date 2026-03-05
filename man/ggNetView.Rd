@@ -47,6 +47,7 @@ ggNetView(
   outeralpha = 0.5,
   nodelabsize = 5,
   remove = FALSE,
+  dropOthers = FALSE,
   orientation = "up",
   angle = 0,
   scale = T,
@@ -198,7 +199,13 @@ Change  outer alpha.}
 Change  node label size.}
 
 \item{remove}{Logical (default = FALSE).
-Delect nodes that are not modules.}
+Remove \code{"Others"} only at the visualization stage (post-layout),
+so the layout of remaining modules is kept unchanged.}
+
+\item{dropOthers}{Logical (default = FALSE).
+If TRUE, remove nodes in the \code{"Others"} module from \code{graph_obj}
+before layout and visualization, then recompute layout/plot from the
+updated graph.}
 
 \item{orientation}{Character string.
 Custom orientation; one of "up","down","left","right".}
