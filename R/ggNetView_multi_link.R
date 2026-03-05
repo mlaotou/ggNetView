@@ -80,6 +80,24 @@
 #' Change  line alpha.
 #' @param linecolor Character  (default = "grey70").
 #' Change  line color.
+#' @param add_outer Logical or Character (default = "circle").
+#' Add outer boundaries for matched modules.
+#' Supported values: \code{"circle"} (use \code{ggforce::geom_mark_circle}),
+#' \code{"manual"} (use smoothed polygon boundary like \code{ggNetView}),
+#' and \code{"none"} (disable). Logical \code{TRUE}/\code{FALSE} are
+#' accepted and mapped to \code{"circle"}/\code{"none"}.
+#' @param q_outer Numeric (default = 0.88).
+#' Quantile of radial distance used to construct the smooth outer boundary
+#' when \code{add_outer = "manual"}.
+#' @param expand_outer Numeric (default = 1.02).
+#' Global scaling factor applied to the smooth outer boundary when
+#' \code{add_outer = "manual"}.
+#' @param outerwidth Numeric (default = 1.25).
+#' Line width for module outer boundaries.
+#' @param outerlinetype Integer (default = 2).
+#' Line type for module outer boundaries.
+#' @param outeralpha Numeric (default = 0.5).
+#' Alpha for module outer boundaries.
 #' @param calculate_topology Logical (default = FALSE).
 #' Whether to compute topology for each group using
 #' \code{get_network_topology_parallel()} and
@@ -129,6 +147,12 @@ ggNetView_multi_link <- function(mat,
                                  mapping_line = FALSE,
                                  linealpha = 0.25,
                                  linecolor = "grey70",
+                                 add_outer = "circle",
+                                 q_outer = 0.88,
+                                 expand_outer = 1.02,
+                                 outerwidth = 1.25,
+                                 outerlinetype = 2,
+                                 outeralpha = 0.5,
                                  calculate_topology = FALSE,
                                  scale_groups = TRUE,
                                  orientation = "up",
@@ -160,6 +184,22 @@ ggNetView_multi_link <- function(mat,
   }
   if (!is.logical(calculate_topology) || length(calculate_topology) != 1 || is.na(calculate_topology)) {
     stop("`calculate_topology` must be TRUE or FALSE.")
+  }
+  if (is.logical(add_outer)) {
+    if (length(add_outer) != 1 || is.na(add_outer)) {
+      stop("`add_outer` must be a single logical or character string.")
+    }
+    add_outer <- if (isTRUE(add_outer)) "circle" else "none"
+  } else if (is.character(add_outer)) {
+    if (length(add_outer) != 1 || is.na(add_outer) || trimws(add_outer) == "") {
+      stop("`add_outer` must be a single logical or character string.")
+    }
+    add_outer <- tolower(trimws(add_outer))
+    if (!add_outer %in% c("circle", "manual", "none")) {
+      stop("`add_outer` must be one of: 'circle', 'manual', 'none'.")
+    }
+  } else {
+    stop("`add_outer` must be a single logical or character string.")
   }
 
   graph_list <- list()
@@ -389,7 +429,7 @@ ggNetView_multi_link <- function(mat,
           ymind = (max(y) + min(y)) / 2,
           scale_v = max(xmax - xmin, ymax - ymin),
           x = (x - xmind)/scale_v,
-          y = (y - xmind)/scale_v
+          y = (y - ymind)/scale_v
         ) %>%
         dplyr::mutate(
           x = x + anchors_df[i,1],
@@ -546,6 +586,26 @@ ggNetView_multi_link <- function(mat,
         line_scale
     }
 
+    module_targets <- Module_information %>%
+      dplyr::filter(stringr::str_detect(Group, pattern = names(graph_list)[index])) %>%
+      dplyr::filter(GroupA == names(graph_list)[index] | GroupB == names(graph_list)[index]) %>%
+      dplyr::mutate(mod_target = dplyr::case_when(
+        GroupA == names(graph_list)[index] ~ modA,
+        GroupB == names(graph_list)[index] ~ modB,
+        .default = NA
+      )) %>%
+      dplyr::pull(mod_target) %>%
+      unique() %>%
+      .[. != "Others"]
+
+    outer_node_df <- graph_info[[index]]$ggplot_node_df %>%
+      dplyr::filter(name %in% (graph_list[[index]] %>%
+                                 tidygraph::activate(nodes) %>%
+                                 tidygraph::as_tibble() %>%
+                                 dplyr::mutate(Modularity = as.character(Modularity)) %>%
+                                 dplyr::filter(Modularity %in% module_targets) %>%
+                                 dplyr::pull(name)))
+
     p <- p +
       ggnewscale::new_scale_fill() +
       ggplot2::geom_point(data = graph_info[[index]]$ggplot_node_df,
@@ -554,31 +614,38 @@ ggNetView_multi_link <- function(mat,
                                                  fill = Modularity,
                                                  size = Degree),
                           shape = 21) +
-      ggnewscale::new_scale_fill() +
-      ggforce::geom_mark_circle(data = graph_info[[index]]$ggplot_node_df %>%
-                                  dplyr::filter(name %in% (graph_list[[index]] %>%
-                                                             tidygraph::activate(nodes) %>%
-                                                             tidygraph::as_tibble() %>%
-                                                             dplyr::mutate(Modularity = as.character(Modularity)) %>%
-                                                             dplyr::filter(Modularity %in% (
-                                                               Module_information %>%
-                                                                 dplyr::filter(str_detect(Group, pattern = names(graph_list)[index])) %>%
-                                                                 dplyr::filter(GroupA == names(graph_list)[index] | GroupB == names(graph_list)[index]) %>%
-                                                                 dplyr::mutate(mod_target = dplyr::case_when(
-                                                                   GroupA == names(graph_list)[index] ~ modA,
-                                                                   GroupB == names(graph_list)[index] ~ modB,
-                                                                   .default = NA
-                                                                 )) %>%
-                                                                 dplyr::pull(mod_target) %>%
-                                                                 unique() %>%
-                                                                 .[.!= "Others"])) %>%
-                                                             dplyr::pull(name))),
-                                mapping = aes(x = x,
-                                              y = y,
-                                              fill = Modularity),
-                                n = 100,
-                                expand = unit(1, "mm")
-                                ) +
+      ggnewscale::new_scale_fill()
+
+    if (add_outer == "circle" && nrow(outer_node_df) > 0) {
+      circle_n <- max(40, min(300, as.integer(round(8 * sqrt(nrow(outer_node_df))))))
+      p <- p +
+        ggforce::geom_mark_circle(
+          data = outer_node_df,
+          mapping = ggplot2::aes(x = x, y = y, fill = Modularity),
+          n = circle_n,
+          expand = grid::unit(1, "mm")
+        )
+    }
+
+    if (add_outer == "manual" && nrow(outer_node_df) > 2) {
+      maskTable <- generateMask_ggnetview(
+        dims = outer_node_df %>% dplyr::select(x, y),
+        clusters = outer_node_df %>% dplyr::pull(Modularity),
+        q = q_outer,
+        expand = expand_outer
+      )
+      p <- p +
+        ggplot2::geom_polygon(
+          data = maskTable,
+          mapping = ggplot2::aes(x = x, y = y, group = cluster, fill = cluster, color = cluster),
+          linewidth = outerwidth,
+          linetype = outerlinetype,
+          alpha = outeralpha,
+          show.legend = FALSE
+        )
+    }
+
+    p <- p +
       ggplot2::annotate(
         geom = "text",
         x = mean(graph_info[[index]]$ggplot_node_df$x),
