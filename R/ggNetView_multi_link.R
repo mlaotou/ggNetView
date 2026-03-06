@@ -69,6 +69,15 @@
 #' Change group for nodes
 #' @param fill.by Character (default = "Modularity").
 #' Change fill for nodes
+#' @param fill Named vector of colors for node/module fill (e.g. \code{c("M1" = "red", "M2" = "blue")}).
+#' If \code{NULL} (default), uses viridis discrete fill scale
+#' (\code{scale_fill_viridis_d});
+#' if provided, uses \code{scale_fill_manual(values = fill)}.
+#' @param color Color setting for node/module border.
+#' Supports either a single color string (fixed border color) or a named vector
+#' (module-to-color mapping, similar to \code{fill}).
+#' If \code{NULL}, mapped borders use viridis discrete color scale
+#' (\code{scale_color_viridis_d}).
 #' @param jitter Logical (default = FALSE).
 #' Whether to apply jitter to points.
 #' @param jitter_sd  Integer  (default = 0.1).
@@ -189,6 +198,8 @@ ggNetView_multi_link <- function(mat,
                                  layout.module = c("random", "adjacent", "order"),
                                  group.by = "Modularity",
                                  fill.by = "Modularity",
+                                 fill = NULL,
+                                 color = NULL,
                                  jitter = FALSE,
                                  jitter_sd = 0.01,
                                  mapping_line = FALSE,
@@ -250,6 +261,12 @@ ggNetView_multi_link <- function(mat,
   }
   if (!is.data.frame(group_info) || !all(c("Sample", "Group") %in% colnames(group_info))) {
     stop("`group_info` must be a data.frame containing columns `Sample` and `Group`.")
+  }
+  if (!is.null(fill) && !is.character(fill)) {
+    stop("`fill` must be NULL or a character vector (preferably named).")
+  }
+  if (!is.null(color) && !is.character(color)) {
+    stop("`color` must be NULL, a single color string, or a named character vector.")
   }
   if (is.logical(add_outer)) {
     if (length(add_outer) != 1 || is.na(add_outer)) {
@@ -898,6 +915,14 @@ ggNetView_multi_link <- function(mat,
       if (!isTRUE(dropOthers)) {
         module_targets <- module_targets[module_targets != "Others"]
       }
+    } else {
+      # For link_level = "none"/"node" (or when no module match exists),
+      # outer boundaries should still be visible for the current group's modules.
+      module_targets <- graph_info[[index]]$ggplot_node_df %>%
+        dplyr::mutate(Modularity = as.character(Modularity)) %>%
+        dplyr::pull(Modularity) %>%
+        unique()
+      module_targets <- module_targets[module_targets != "Others"]
     }
 
     outer_node_df <- graph_info[[index]]$ggplot_node_df %>%
@@ -908,25 +933,91 @@ ggNetView_multi_link <- function(mat,
                                  dplyr::filter(Modularity %in% module_targets) %>%
                                  dplyr::pull(name)))
 
-    p <- p +
-      ggnewscale::new_scale_fill() +
-      ggplot2::geom_point(data = graph_info[[index]]$ggplot_node_df,
-                          mapping = ggplot2::aes(x = x,
-                                                 y = y,
-                                                 fill = Modularity,
-                                                 size = Degree),
-                          shape = 21) +
-      ggnewscale::new_scale_fill()
+    module_levels_group <- graph_info[[index]]$ggplot_node_df %>%
+      dplyr::mutate(Modularity = as.character(Modularity)) %>%
+      dplyr::pull(Modularity) %>%
+      unique()
+
+    fill_scale_group <- if (is.null(fill)) {
+      ggplot2::scale_fill_viridis_d(drop = FALSE, limits = module_levels_group)
+    } else {
+      ggplot2::scale_fill_manual(values = fill, drop = FALSE)
+    }
+
+    color_is_fixed <- !is.null(color) && length(color) == 1 && (is.null(names(color)) || names(color)[1] == "")
+    color_scale_group <- if (is.null(color)) {
+      ggplot2::scale_color_viridis_d(drop = FALSE, limits = module_levels_group)
+    } else if (isTRUE(color_is_fixed)) {
+      NULL
+    } else {
+      ggplot2::scale_color_manual(values = color, drop = FALSE)
+    }
+
+    if (is.null(color)) {
+      p <- p +
+        ggnewscale::new_scale_fill() +
+        ggplot2::geom_point(data = graph_info[[index]]$ggplot_node_df,
+                            mapping = ggplot2::aes(x = x,
+                                                   y = y,
+                                                   fill = Modularity,
+                                                   size = Degree),
+                            shape = 21) +
+        fill_scale_group +
+        ggnewscale::new_scale_fill()
+    } else if (isTRUE(color_is_fixed)) {
+      p <- p +
+        ggnewscale::new_scale_fill() +
+        ggplot2::geom_point(data = graph_info[[index]]$ggplot_node_df,
+                            mapping = ggplot2::aes(x = x,
+                                                   y = y,
+                                                   fill = Modularity,
+                                                   size = Degree),
+                            shape = 21,
+                            color = color) +
+        fill_scale_group +
+        ggnewscale::new_scale_fill()
+    } else {
+      p <- p +
+        ggnewscale::new_scale_color() +
+        ggnewscale::new_scale_fill() +
+        ggplot2::geom_point(data = graph_info[[index]]$ggplot_node_df,
+                            mapping = ggplot2::aes(x = x,
+                                                   y = y,
+                                                   fill = Modularity,
+                                                   color = Modularity,
+                                                   size = Degree),
+                            shape = 21) +
+        fill_scale_group +
+        color_scale_group +
+        ggnewscale::new_scale_fill()
+    }
 
     if (add_outer == "circle" && nrow(outer_node_df) > 0) {
       circle_n <- max(40, min(300, as.integer(round(8 * sqrt(nrow(outer_node_df))))))
       p <- p +
-        ggforce::geom_mark_circle(
-          data = outer_node_df,
-          mapping = ggplot2::aes(x = x, y = y, fill = Modularity),
-          n = circle_n,
-          expand = grid::unit(1, "mm")
-        )
+        ggnewscale::new_scale_color() +
+        {
+          if (isTRUE(color_is_fixed)) {
+            ggforce::geom_mark_circle(
+              data = outer_node_df,
+              mapping = ggplot2::aes(x = x, y = y, fill = Modularity),
+              color = color,
+              n = circle_n,
+              expand = grid::unit(1, "mm")
+            )
+          } else {
+            ggforce::geom_mark_circle(
+              data = outer_node_df,
+              mapping = ggplot2::aes(x = x, y = y, fill = Modularity, color = Modularity),
+              n = circle_n,
+              expand = grid::unit(1, "mm")
+            )
+          }
+        } +
+        fill_scale_group +
+        {
+          if (isTRUE(color_is_fixed)) ggplot2::guides(color = "none") else color_scale_group
+        }
     }
 
     if (add_outer == "manual" && nrow(outer_node_df) > 2) {
@@ -935,16 +1026,36 @@ ggNetView_multi_link <- function(mat,
         clusters = outer_node_df %>% dplyr::pull(Modularity),
         q = q_outer,
         expand = expand_outer
-      )
+      ) %>%
+        dplyr::mutate(cluster = as.character(cluster))
       p <- p +
-        ggplot2::geom_polygon(
-          data = maskTable,
-          mapping = ggplot2::aes(x = x, y = y, group = cluster, fill = cluster, color = cluster),
-          linewidth = outerwidth,
-          linetype = outerlinetype,
-          alpha = outeralpha,
-          show.legend = FALSE
-        )
+        ggnewscale::new_scale_color() +
+        {
+          if (isTRUE(color_is_fixed)) {
+            ggplot2::geom_polygon(
+              data = maskTable,
+              mapping = ggplot2::aes(x = x, y = y, group = cluster, fill = cluster),
+              color = color,
+              linewidth = outerwidth,
+              linetype = outerlinetype,
+              alpha = outeralpha,
+              show.legend = FALSE
+            )
+          } else {
+            ggplot2::geom_polygon(
+              data = maskTable,
+              mapping = ggplot2::aes(x = x, y = y, group = cluster, fill = cluster, color = cluster),
+              linewidth = outerwidth,
+              linetype = outerlinetype,
+              alpha = outeralpha,
+              show.legend = FALSE
+            )
+          }
+        } +
+        fill_scale_group +
+        {
+          if (isTRUE(color_is_fixed)) ggplot2::guides(color = "none") else color_scale_group
+        }
     }
 
     p <- p +
