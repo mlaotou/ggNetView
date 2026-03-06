@@ -31,11 +31,18 @@ ggNetView_multi_link(
   layout.module = c("random", "adjacent", "order"),
   group.by = "Modularity",
   fill.by = "Modularity",
+  fill = NULL,
+  color = NULL,
   jitter = FALSE,
   jitter_sd = 0.01,
   mapping_line = FALSE,
   linealpha = 0.25,
   linecolor = "grey70",
+  inner_curve = FALSE,
+  inner_curvature = 0.12,
+  inner_curve_adaptive = TRUE,
+  inner_curve_adaptive_range = c(0.7, 1.3),
+  inner_curve_adaptive_bins = 7,
   add_outer = "circle",
   q_outer = 0.88,
   expand_outer = 1.02,
@@ -46,6 +53,9 @@ ggNetView_multi_link(
   link_curve = FALSE,
   link_curvature = 0.2,
   link_curve_mode = "outward",
+  link_curve_adaptive = TRUE,
+  link_curve_adaptive_range = c(0.7, 1.3),
+  link_curve_adaptive_bins = 7,
   dropOthers = FALSE,
   calculate_topology = FALSE,
   scale_groups = TRUE,
@@ -150,6 +160,17 @@ Change group for nodes}
 \item{fill.by}{Character (default = "Modularity").
 Change fill for nodes}
 
+\item{fill}{Named vector of colors for node/module fill (e.g. \code{c("M1" = "red", "M2" = "blue")}).
+If \code{NULL} (default), uses viridis discrete fill scale
+(\code{scale_fill_viridis_d});
+if provided, uses \code{scale_fill_manual(values = fill)}.}
+
+\item{color}{Color setting for node/module border.
+Supports either a single color string (fixed border color) or a named vector
+(module-to-color mapping, similar to \code{fill}).
+If \code{NULL}, mapped borders use viridis discrete color scale
+(\code{scale_color_viridis_d}).}
+
 \item{jitter}{Logical (default = FALSE).
 Whether to apply jitter to points.}
 
@@ -165,6 +186,24 @@ Change  line alpha.}
 
 \item{linecolor}{Character  (default = "grey70").
 Change  line color.}
+
+\item{inner_curve}{Logical (default = FALSE).
+Whether to draw within-group edges as curves.}
+
+\item{inner_curvature}{Numeric (default = 0.12).
+Curvature for within-group edges when \code{inner_curve = TRUE}.}
+
+\item{inner_curve_adaptive}{Logical (default = TRUE).
+Whether to adapt within-group edge curvature by edge length when
+\code{inner_curve = TRUE}.}
+
+\item{inner_curve_adaptive_range}{Numeric vector of length 2 (default = c(0.7, 1.3)).
+Multipliers applied to \code{inner_curvature} for shortest and longest
+within-group edges.}
+
+\item{inner_curve_adaptive_bins}{Integer (default = 7).
+Number of bins used to approximate per-edge adaptive curvature for
+within-group edges.}
 
 \item{add_outer}{Logical or Character (default = "circle").
 Add outer boundaries for matched modules.
@@ -206,6 +245,17 @@ Curve direction strategy used when \code{link_curve = TRUE}.
 \code{"outward"} bends links away from the global center.
 \code{"cross"} follows a cross-axis rule: left links bend left, right links bend right,
 upper links bend up, and lower links bend down.}
+
+\item{link_curve_adaptive}{Logical (default = TRUE).
+Whether to adapt link curvature by link length when \code{link_curve = TRUE}.
+Longer links get larger curvature and shorter links get smaller curvature.}
+
+\item{link_curve_adaptive_range}{Numeric vector of length 2 (default = c(0.7, 1.3)).
+Multipliers applied to \code{link_curvature} for shortest and longest links.
+The first value is the minimum multiplier; the second is the maximum multiplier.}
+
+\item{link_curve_adaptive_bins}{Integer (default = 7).
+Number of bins used to approximate per-link adaptive curvature.}
 
 \item{dropOthers}{Logical (default = FALSE).
 If TRUE, remove nodes in the \code{"Others"} module from each group's
