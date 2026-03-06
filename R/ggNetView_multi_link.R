@@ -80,6 +80,19 @@
 #' Change  line alpha.
 #' @param linecolor Character  (default = "grey70").
 #' Change  line color.
+#' @param inner_curve Logical (default = FALSE).
+#' Whether to draw within-group edges as curves.
+#' @param inner_curvature Numeric (default = 0.12).
+#' Curvature for within-group edges when \code{inner_curve = TRUE}.
+#' @param inner_curve_adaptive Logical (default = TRUE).
+#' Whether to adapt within-group edge curvature by edge length when
+#' \code{inner_curve = TRUE}.
+#' @param inner_curve_adaptive_range Numeric vector of length 2 (default = c(0.7, 1.3)).
+#' Multipliers applied to \code{inner_curvature} for shortest and longest
+#' within-group edges.
+#' @param inner_curve_adaptive_bins Integer (default = 7).
+#' Number of bins used to approximate per-edge adaptive curvature for
+#' within-group edges.
 #' @param add_outer Logical or Character (default = "circle").
 #' Add outer boundaries for matched modules.
 #' Supported values: \code{"circle"} (use \code{ggforce::geom_mark_circle}),
@@ -111,6 +124,14 @@
 #' \code{"outward"} bends links away from the global center.
 #' \code{"cross"} follows a cross-axis rule: left links bend left, right links bend right,
 #' upper links bend up, and lower links bend down.
+#' @param link_curve_adaptive Logical (default = TRUE).
+#' Whether to adapt link curvature by link length when \code{link_curve = TRUE}.
+#' Longer links get larger curvature and shorter links get smaller curvature.
+#' @param link_curve_adaptive_range Numeric vector of length 2 (default = c(0.7, 1.3)).
+#' Multipliers applied to \code{link_curvature} for shortest and longest links.
+#' The first value is the minimum multiplier; the second is the maximum multiplier.
+#' @param link_curve_adaptive_bins Integer (default = 7).
+#' Number of bins used to approximate per-link adaptive curvature.
 #' @param dropOthers Logical (default = FALSE).
 #' If TRUE, remove nodes in the \code{"Others"} module from each group's
 #' \code{graph_obj} before layout, plotting, and module-overlap comparison.
@@ -173,6 +194,11 @@ ggNetView_multi_link <- function(mat,
                                  mapping_line = FALSE,
                                  linealpha = 0.25,
                                  linecolor = "grey70",
+                                 inner_curve = FALSE,
+                                 inner_curvature = 0.12,
+                                 inner_curve_adaptive = TRUE,
+                                 inner_curve_adaptive_range = c(0.7, 1.3),
+                                 inner_curve_adaptive_bins = 7,
                                  add_outer = "circle",
                                  q_outer = 0.88,
                                  expand_outer = 1.02,
@@ -183,6 +209,9 @@ ggNetView_multi_link <- function(mat,
                                  link_curve = FALSE,
                                  link_curvature = 0.2,
                                  link_curve_mode = "outward",
+                                 link_curve_adaptive = TRUE,
+                                 link_curve_adaptive_range = c(0.7, 1.3),
+                                 link_curve_adaptive_bins = 7,
                                  dropOthers = FALSE,
                                  calculate_topology = FALSE,
                                  scale_groups = TRUE,
@@ -257,6 +286,48 @@ ggNetView_multi_link <- function(mat,
   link_curve_mode <- tolower(trimws(link_curve_mode))
   if (!link_curve_mode %in% c("outward", "cross")) {
     stop("`link_curve_mode` must be one of: 'outward', 'cross'.")
+  }
+  if (!is.logical(link_curve_adaptive) || length(link_curve_adaptive) != 1 || is.na(link_curve_adaptive)) {
+    stop("`link_curve_adaptive` must be TRUE or FALSE.")
+  }
+  if (!is.numeric(link_curve_adaptive_range) || length(link_curve_adaptive_range) != 2 ||
+      any(is.na(link_curve_adaptive_range))) {
+    stop("`link_curve_adaptive_range` must be a numeric vector of length 2.")
+  }
+  if (link_curve_adaptive_range[1] <= 0 || link_curve_adaptive_range[2] <= 0 ||
+      link_curve_adaptive_range[1] > link_curve_adaptive_range[2]) {
+    stop("`link_curve_adaptive_range` must be positive and increasing, e.g. c(0.7, 1.3).")
+  }
+  if (!is.numeric(link_curve_adaptive_bins) || length(link_curve_adaptive_bins) != 1 || is.na(link_curve_adaptive_bins)) {
+    stop("`link_curve_adaptive_bins` must be a single integer >= 1.")
+  }
+  link_curve_adaptive_bins <- as.integer(link_curve_adaptive_bins)
+  if (link_curve_adaptive_bins < 1) {
+    stop("`link_curve_adaptive_bins` must be >= 1.")
+  }
+  if (!is.logical(inner_curve) || length(inner_curve) != 1 || is.na(inner_curve)) {
+    stop("`inner_curve` must be TRUE or FALSE.")
+  }
+  if (!is.numeric(inner_curvature) || length(inner_curvature) != 1 || is.na(inner_curvature)) {
+    stop("`inner_curvature` must be a single numeric value.")
+  }
+  if (!is.logical(inner_curve_adaptive) || length(inner_curve_adaptive) != 1 || is.na(inner_curve_adaptive)) {
+    stop("`inner_curve_adaptive` must be TRUE or FALSE.")
+  }
+  if (!is.numeric(inner_curve_adaptive_range) || length(inner_curve_adaptive_range) != 2 ||
+      any(is.na(inner_curve_adaptive_range))) {
+    stop("`inner_curve_adaptive_range` must be a numeric vector of length 2.")
+  }
+  if (inner_curve_adaptive_range[1] <= 0 || inner_curve_adaptive_range[2] <= 0 ||
+      inner_curve_adaptive_range[1] > inner_curve_adaptive_range[2]) {
+    stop("`inner_curve_adaptive_range` must be positive and increasing, e.g. c(0.7, 1.3).")
+  }
+  if (!is.numeric(inner_curve_adaptive_bins) || length(inner_curve_adaptive_bins) != 1 || is.na(inner_curve_adaptive_bins)) {
+    stop("`inner_curve_adaptive_bins` must be a single integer >= 1.")
+  }
+  inner_curve_adaptive_bins <- as.integer(inner_curve_adaptive_bins)
+  if (inner_curve_adaptive_bins < 1) {
+    stop("`inner_curve_adaptive_bins` must be >= 1.")
   }
   if (!is.numeric(anchor_dist) || length(anchor_dist) != 1 || is.na(anchor_dist)) {
     stop("`anchor_dist` must be a single numeric value.")
@@ -683,33 +754,113 @@ ggNetView_multi_link <- function(mat,
 
   p <- ggplot()
 
+  add_inner_link_geom <- function(edge_data, mapping_obj, color_fixed = NULL) {
+    if (!isTRUE(inner_curve)) {
+      return(
+        ggplot2::geom_segment(
+          data = edge_data,
+          mapping = mapping_obj,
+          alpha = linealpha,
+          color = color_fixed
+        )
+      )
+    }
+
+    if (!isTRUE(inner_curve_adaptive) || nrow(edge_data) < 2) {
+      return(
+        ggplot2::geom_curve(
+          data = edge_data,
+          mapping = mapping_obj,
+          curvature = inner_curvature,
+          alpha = linealpha,
+          color = color_fixed
+        )
+      )
+    }
+
+    edge_dist <- sqrt((edge_data$to_x - edge_data$from_x)^2 + (edge_data$to_y - edge_data$from_y)^2)
+    if (all(!is.finite(edge_dist)) || diff(range(edge_dist, na.rm = TRUE)) <= .Machine$double.eps) {
+      return(
+        ggplot2::geom_curve(
+          data = edge_data,
+          mapping = mapping_obj,
+          curvature = inner_curvature,
+          alpha = linealpha,
+          color = color_fixed
+        )
+      )
+    }
+
+    n_bins <- min(inner_curve_adaptive_bins, length(edge_dist))
+    breaks <- unique(stats::quantile(edge_dist, probs = seq(0, 1, length.out = n_bins + 1), na.rm = TRUE))
+    if (length(breaks) <= 2) {
+      return(
+        ggplot2::geom_curve(
+          data = edge_data,
+          mapping = mapping_obj,
+          curvature = inner_curvature,
+          alpha = linealpha,
+          color = color_fixed
+        )
+      )
+    }
+
+    edge_data <- edge_data %>%
+      dplyr::mutate(.edge_dist = edge_dist,
+                    .curve_bin = as.integer(cut(.edge_dist, breaks = breaks, include.lowest = TRUE)))
+
+    bins_present <- sort(unique(stats::na.omit(edge_data$.curve_bin)))
+    if (length(bins_present) == 0) {
+      return(
+        ggplot2::geom_curve(
+          data = edge_data,
+          mapping = mapping_obj,
+          curvature = inner_curvature,
+          alpha = linealpha,
+          color = color_fixed
+        )
+      )
+    }
+
+    bin_mult <- stats::setNames(
+      seq(inner_curve_adaptive_range[1], inner_curve_adaptive_range[2], length.out = length(bins_present)),
+      bins_present
+    )
+
+    layers <- lapply(bins_present, function(b) {
+      ggplot2::geom_curve(
+        data = edge_data %>% dplyr::filter(.curve_bin == b),
+        mapping = mapping_obj,
+        curvature = inner_curvature * bin_mult[as.character(b)],
+        alpha = linealpha,
+        color = color_fixed
+      )
+    })
+
+    return(layers)
+  }
+
   # 我们先添加点和线
   for (index in seq_along(names(graph_info))) {
     edge_df <- graph_info[[index]]$ggplot_edge_df
 
     # plot link
     if (isFALSE(mapping_line)) {
-      p <- p +
-        ggplot2::geom_segment(data = edge_df,
-                              mapping = ggplot2::aes(x = from_x,
-                                                     xend = to_x,
-                                                     y = from_y,
-                                                     yend = to_y),
-                              color = linecolor,
-                              alpha = linealpha)
+      p <- p + add_inner_link_geom(
+        edge_data = edge_df,
+        mapping_obj = ggplot2::aes(x = from_x, xend = to_x, y = from_y, yend = to_y),
+        color_fixed = linecolor
+      )
     } else if (isTRUE(mapping_line)) {
       if (!"corr_direction" %in% colnames(edge_df)) {
         stop("`mapping_line = TRUE` requires `corr_direction` in edge data.")
       }
       p <- p +
         ggnewscale::new_scale_color() +
-        ggplot2::geom_segment(data = edge_df,
-                              mapping = ggplot2::aes(x = from_x,
-                                                     xend = to_x,
-                                                     y = from_y,
-                                                     yend = to_y,
-                                                     colour = corr_direction),
-                              alpha = linealpha) +
+        add_inner_link_geom(
+          edge_data = edge_df,
+          mapping_obj = ggplot2::aes(x = from_x, xend = to_x, y = from_y, yend = to_y, colour = corr_direction)
+        ) +
         ggplot2::scale_color_manual(values = c("Positive" = "#d6604d", "Negative" = "#4393c3"))
     } else {
       if (!mapping_line %in% colnames(edge_df)) {
@@ -724,13 +875,10 @@ ggNetView_multi_link <- function(mat,
 
       p <- p +
         ggnewscale::new_scale_color() +
-        ggplot2::geom_segment(data = edge_df,
-                              mapping = ggplot2::aes(x = from_x,
-                                                     xend = to_x,
-                                                     y = from_y,
-                                                     yend = to_y,
-                                                     colour = .data[[mapping_line]]),
-                              alpha = linealpha) +
+        add_inner_link_geom(
+          edge_data = edge_df,
+          mapping_obj = ggplot2::aes(x = from_x, xend = to_x, y = from_y, yend = to_y, colour = .data[[mapping_line]])
+        ) +
         line_scale
     }
 
@@ -841,6 +989,7 @@ ggNetView_multi_link <- function(mat,
       dy <- df_link$yend - df_link$y
       mx <- (df_link$x + df_link$xend) / 2
       my <- (df_link$y + df_link$yend) / 2
+      dist_link <- sqrt(dx^2 + dy^2)
 
       if (identical(link_curve_mode, "cross")) {
         # Cross-axis rule:
@@ -860,30 +1009,69 @@ ggNetView_multi_link <- function(mat,
 
       df_pos <- df_link[curv_sign > 0, , drop = FALSE]
       df_neg <- df_link[curv_sign <= 0, , drop = FALSE]
+      dist_pos <- dist_link[curv_sign > 0]
+      dist_neg <- dist_link[curv_sign <= 0]
 
       p_new <- p_obj
-      if (nrow(df_pos) > 0) {
-        p_new <- p_new + ggplot2::geom_curve(
-          data = df_pos,
-          mapping = ggplot2::aes(x = x, xend = xend, y = y, yend = yend),
-          curvature = abs(link_curvature),
-          linetype = 2,
-          linewidth = 1,
-          alpha = linealpha,
-          color = col_link
-        )
+      add_curve_side <- function(p_side, df_side, dist_side, sign_side) {
+        if (nrow(df_side) == 0) return(p_side)
+
+        if (!isTRUE(link_curve_adaptive) || nrow(df_side) == 1 || diff(range(dist_side)) == 0) {
+          return(
+            p_side + ggplot2::geom_curve(
+              data = df_side,
+              mapping = ggplot2::aes(x = x, xend = xend, y = y, yend = yend),
+              curvature = sign_side * abs(link_curvature),
+              linetype = 2,
+              linewidth = 1,
+              alpha = linealpha,
+              color = col_link
+            )
+          )
+        }
+
+        bins_n <- min(link_curve_adaptive_bins, nrow(df_side))
+        cuts <- seq(min(dist_side), max(dist_side), length.out = bins_n + 1)
+        # Guard against duplicated cut boundaries in edge cases
+        cuts <- unique(cuts)
+        if (length(cuts) <= 2) {
+          return(
+            p_side + ggplot2::geom_curve(
+              data = df_side,
+              mapping = ggplot2::aes(x = x, xend = xend, y = y, yend = yend),
+              curvature = sign_side * abs(link_curvature),
+              linetype = 2,
+              linewidth = 1,
+              alpha = linealpha,
+              color = col_link
+            )
+          )
+        }
+
+        bin_id <- cut(dist_side, breaks = cuts, include.lowest = TRUE, labels = FALSE)
+        bin_levels <- sort(unique(bin_id))
+        mul_levels <- seq(link_curve_adaptive_range[1], link_curve_adaptive_range[2], length.out = length(bin_levels))
+
+        p_tmp <- p_side
+        for (k in seq_along(bin_levels)) {
+          bid <- bin_levels[k]
+          df_bin <- df_side[bin_id == bid, , drop = FALSE]
+          curv_k <- sign_side * abs(link_curvature) * mul_levels[k]
+          p_tmp <- p_tmp + ggplot2::geom_curve(
+            data = df_bin,
+            mapping = ggplot2::aes(x = x, xend = xend, y = y, yend = yend),
+            curvature = curv_k,
+            linetype = 2,
+            linewidth = 1,
+            alpha = linealpha,
+            color = col_link
+          )
+        }
+        p_tmp
       }
-      if (nrow(df_neg) > 0) {
-        p_new <- p_new + ggplot2::geom_curve(
-          data = df_neg,
-          mapping = ggplot2::aes(x = x, xend = xend, y = y, yend = yend),
-          curvature = -abs(link_curvature),
-          linetype = 2,
-          linewidth = 1,
-          alpha = linealpha,
-          color = col_link
-        )
-      }
+
+      p_new <- add_curve_side(p_new, df_pos, dist_pos, 1)
+      p_new <- add_curve_side(p_new, df_neg, dist_neg, -1)
       p_new
     } else {
       p_obj + ggplot2::geom_segment(
