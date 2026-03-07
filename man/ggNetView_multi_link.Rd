@@ -33,6 +33,7 @@ ggNetView_multi_link(
   fill.by = "Modularity",
   fill = NULL,
   color = NULL,
+  pointsize = c(1, 5),
   jitter = FALSE,
   jitter_sd = 0.01,
   mapping_line = FALSE,
@@ -56,6 +57,10 @@ ggNetView_multi_link(
   link_curve_adaptive = TRUE,
   link_curve_adaptive_range = c(0.7, 1.3),
   link_curve_adaptive_bins = 7,
+  link_linetype_node = 2,
+  link_linetype_module = 1,
+  link_linealpha_node = 0.25,
+  link_linealpha_module = 0.5,
   dropOthers = FALSE,
   calculate_topology = FALSE,
   scale_groups = TRUE,
@@ -171,6 +176,10 @@ Supports either a single color string (fixed border color) or a named vector
 If \code{NULL}, mapped borders use viridis discrete color scale
 (\code{scale_color_viridis_d}).}
 
+\item{pointsize}{Numeric vector of length 2 (default = \code{c(1, 5)}).
+The range of point size when mapping \code{Degree} to size.
+First value is minimum size, second is maximum size.}
+
 \item{jitter}{Logical (default = FALSE).
 Whether to apply jitter to points.}
 
@@ -223,16 +232,21 @@ Global scaling factor applied to the smooth outer boundary when
 \item{outerwidth}{Numeric (default = 1.25).
 Line width for module outer boundaries.}
 
-\item{outerlinetype}{Integer (default = 2).
-Line type for module outer boundaries.}
+\item{outerlinetype}{Integer or character (default = 2).
+Linetype for module outer boundaries (e.g. 1 = solid, 2 = dashed).}
 
 \item{outeralpha}{Numeric (default = 0.5).
 Alpha for module outer boundaries.}
 
 \item{link_level}{Character (default = "Module").
-Cross-group link granularity. One of \code{"None"}, \code{"Module"}, or \code{"Node"}.
-\code{"None"} draws no cross-group links; \code{"Module"} links significant module matches;
-\code{"Node"} links shared node names across groups.}
+Cross-group link granularity. One of \code{"None"}, \code{"Module"}, \code{"Node"},
+\code{"NodeinModule"}, or \code{"Module&Node"}.
+\code{"None"} draws no cross-group links.
+\code{"Module"} links significant module matches (module centroids).
+\code{"Node"} links shared node names across groups.
+\code{"NodeinModule"} links both module centroids and nodes within significantly overlapping
+modules (module links show which modules overlap; node links show shared nodes).
+\code{"Module&Node"} draws both module-level links and node-level links.}
 
 \item{link_curve}{Logical (default = FALSE).
 Whether to draw cross-group links as curves (\code{geom_curve}) instead of straight segments.}
@@ -243,6 +257,7 @@ Curvature used when \code{link_curve = TRUE}.}
 \item{link_curve_mode}{Character (default = "outward").
 Curve direction strategy used when \code{link_curve = TRUE}.
 \code{"outward"} bends links away from the global center.
+\code{"inward"} bends links toward the global center.
 \code{"cross"} follows a cross-axis rule: left links bend left, right links bend right,
 upper links bend up, and lower links bend down.}
 
@@ -256,6 +271,18 @@ The first value is the minimum multiplier; the second is the maximum multiplier.
 
 \item{link_curve_adaptive_bins}{Integer (default = 7).
 Number of bins used to approximate per-link adaptive curvature.}
+
+\item{link_linetype_node}{Integer or character (default = 2).
+Linetype for node-to-node cross-group links (e.g. 2 = dashed, 1 = solid).}
+
+\item{link_linetype_module}{Integer or character (default = 1).
+Linetype for module-to-module cross-group links (e.g. 1 = solid, 2 = dashed).}
+
+\item{link_linealpha_node}{Numeric (default = 0.25).
+Alpha (transparency) for node-to-node cross-group links.}
+
+\item{link_linealpha_module}{Numeric (default = 0.5).
+Alpha (transparency) for module-to-module cross-group links.}
 
 \item{dropOthers}{Logical (default = FALSE).
 If TRUE, remove nodes in the \code{"Others"} module from each group's
