@@ -1134,19 +1134,19 @@ ggNetView_multi_link <- function(mat,
     names(cy) <- gnames
     circle_centers_x <- cx
     circle_centers_y <- cy
-    # Forbidden region is the central "hole" of each group ring (not the full outer ring).
+    # Forbidden region should cover the visible group orbit, not only the center hole.
     circle_radius <- vapply(
       gnames,
       function(g) {
         node_df <- graph_info[[g]]$ggplot_node_df
         d <- sqrt((node_df$x - cx[g])^2 + (node_df$y - cy[g])^2)
-        q_inner <- as.numeric(stats::quantile(d, probs = 0.10, na.rm = TRUE))
-        r_min <- min(d, na.rm = TRUE)
-        max(min(q_inner, r_min) * 0.95, 1e-6)
+        q_outer <- as.numeric(stats::quantile(d, probs = 0.98, na.rm = TRUE))
+        r_max <- max(d, na.rm = TRUE)
+        max(max(q_outer, r_max * 0.98), 1e-6)
       },
       numeric(1)
     )
-    circle_pad <- max(stats::median(circle_radius, na.rm = TRUE) * 0.08, 1e-6)
+    circle_pad <- max(stats::median(circle_radius, na.rm = TRUE) * 0.06, 1e-6)
     # Also forbid entering module circles (small circles in each group).
     module_rows <- list()
     rid <- 1L
@@ -1245,17 +1245,18 @@ ggNetView_multi_link <- function(mat,
           # We care more about the visible body of the link channel.
           # Keep a small margin near both ends and enforce avoidance on the middle body.
           t_seq <- seq(0.05, 0.95, length.out = 81)
+          endpoint_allow <- 0.26
           ctrl_scale <- 0.42
           # From almost-straight to larger bends; first feasible is the shortest.
-          # Start from a non-trivial curvature so links leave dense node zones faster.
-          candidate_abs <- max(base_abs_curv, 0.02) * c(0.10, 0.14, 0.20, 0.27, 0.36, 0.48, 0.64, 0.84, 1.1, 1.45, 1.9, 2.5, 3.1)
-          path_hits_circle <- function(i, k_signed) {
+          # We expand the upper range so the solver can route links fully outside group circles.
+          candidate_abs <- max(base_abs_curv, 0.02) * c(0.10, 0.14, 0.20, 0.27, 0.36, 0.48, 0.64, 0.84, 1.1, 1.45, 1.9, 2.5, 3.1, 4.0, 5.2, 6.6)
+          path_inside_count <- function(i, k_signed) {
             x0 <- df_draw$x[i]
             y0 <- df_draw$y[i]
             x1 <- df_draw$xend[i]
             y1 <- df_draw$yend[i]
             dd <- sqrt((x1 - x0)^2 + (y1 - y0)^2)
-            if (!is.finite(dd) || dd <= .Machine$double.eps) return(FALSE)
+            if (!is.finite(dd) || dd <= .Machine$double.eps) return(0L)
             midx <- (x0 + x1) / 2
             midy <- (y0 + y1) / 2
             ux <- -(y1 - y0) / dd
@@ -1264,50 +1265,37 @@ ggNetView_multi_link <- function(mat,
             cy_ctrl <- midy + uy * (k_signed * dd * ctrl_scale)
             bx <- (1 - t_seq)^2 * x0 + 2 * (1 - t_seq) * t_seq * cx_ctrl + t_seq^2 * x1
             by <- (1 - t_seq)^2 * y0 + 2 * (1 - t_seq) * t_seq * cy_ctrl + t_seq^2 * y1
-            src_mod_key <- NA_character_
-            tgt_mod_key <- NA_character_
-            if (!is.null(module_circle_tbl) &&
-                nrow(module_circle_tbl) > 0 &&
-                !is.null(df_draw$group_a) &&
-                !is.null(df_draw$group_b)) {
+            gsrc <- NA_character_
+            gtgt <- NA_character_
+            if (!is.null(df_draw$group_a) && !is.null(df_draw$group_b)) {
               gsrc <- as.character(df_draw$group_a[i])
               gtgt <- as.character(df_draw$group_b[i])
-              ms <- module_circle_tbl[module_circle_tbl$group == gsrc, , drop = FALSE]
-              mt <- module_circle_tbl[module_circle_tbl$group == gtgt, , drop = FALSE]
-              if (nrow(ms) > 0) {
-                j <- which.min((x0 - ms$cx)^2 + (y0 - ms$cy)^2)
-                src_mod_key <- ms$key[j]
-              }
-              if (nrow(mt) > 0) {
-                j <- which.min((x1 - mt$cx)^2 + (y1 - mt$cy)^2)
-                tgt_mod_key <- mt$key[j]
-              }
             }
+            inside_any <- rep(FALSE, length(t_seq))
             for (g in names(circle_radius)) {
               rr <- (circle_radius[[g]] + circle_pad)^2
               dist2 <- (bx - circle_centers_x[[g]])^2 + (by - circle_centers_y[[g]])^2
               inside <- dist2 < rr
-              if (any(inside)) return(TRUE)
-            }
-            if (!is.null(module_circle_tbl) && nrow(module_circle_tbl) > 0) {
-              for (mi in seq_len(nrow(module_circle_tbl))) {
-                rr_m <- (module_circle_tbl$r[mi] + module_circle_pad)^2
-                dist2_m <- (bx - module_circle_tbl$cx[mi])^2 + (by - module_circle_tbl$cy[mi])^2
-                inside_m <- dist2_m < rr_m
-                # Only allow touching source/target modules very close to endpoints.
-                if (!is.na(src_mod_key) && module_circle_tbl$key[mi] == src_mod_key) {
-                  inside_m <- inside_m & (t_seq > 0.12)
-                }
-                if (!is.na(tgt_mod_key) && module_circle_tbl$key[mi] == tgt_mod_key) {
-                  inside_m <- inside_m & (t_seq < 0.88)
-                }
-                if (any(inside_m)) return(TRUE)
+              # Allow entering source/target group circles near endpoints so links
+              # can actually connect back to module outliers.
+              if (!is.na(gsrc) && identical(g, gsrc)) {
+                inside <- inside & (t_seq > endpoint_allow)
               }
+              if (!is.na(gtgt) && identical(g, gtgt)) {
+                inside <- inside & (t_seq < (1 - endpoint_allow))
+              }
+              inside_any <- inside_any | inside
             }
-            FALSE
+            sum(inside_any)
+          }
+          path_hits_circle <- function(i, k_signed) {
+            path_inside_count(i, k_signed) > 0L
           }
           for (ii in seq_len(nrow(df_draw))) {
             found <- FALSE
+            best_hit <- Inf
+            best_sign <- ifelse(is.na(preferred_sign), 1L, preferred_sign)
+            best_abs <- max(base_abs_curv, .Machine$double.eps)
             for (cand_abs in candidate_abs) {
               if (cand_abs <= .Machine$double.eps) {
                 sign_trials <- c(ifelse(is.na(preferred_sign), 1L, preferred_sign))
@@ -1317,7 +1305,13 @@ ggNetView_multi_link <- function(mat,
                 sign_trials <- c(preferred_sign, -preferred_sign)
               }
               for (sgn_i in sign_trials) {
-                if (!path_hits_circle(ii, sgn_i * cand_abs)) {
+                hit_n <- path_inside_count(ii, sgn_i * cand_abs)
+                if (hit_n < best_hit) {
+                  best_hit <- hit_n
+                  best_sign <- sgn_i
+                  best_abs <- cand_abs
+                }
+                if (hit_n == 0L) {
                   curv_sign[ii] <- sgn_i
                   curv_abs[ii] <- max(cand_abs, .Machine$double.eps)
                   found <- TRUE
@@ -1327,14 +1321,9 @@ ggNetView_multi_link <- function(mat,
               if (found) break
             }
             if (!found) {
-              # Fallback: keep the pair channel if available; otherwise use outward side.
-              outward_score_i <- mx[ii] * (-dy[ii]) + my[ii] * dx[ii]
-              curv_sign[ii] <- ifelse(
-                is.na(preferred_sign),
-                ifelse(outward_score_i >= 0, -1L, 1L),
-                preferred_sign
-              )
-              curv_abs[ii] <- max(tail(candidate_abs, 1), .Machine$double.eps)
+              # Hard fallback: choose the candidate with the smallest circle intrusion.
+              curv_sign[ii] <- best_sign
+              curv_abs[ii] <- max(best_abs, .Machine$double.eps)
             }
           }
         }
@@ -1350,9 +1339,8 @@ ggNetView_multi_link <- function(mat,
 
       if (identical(link_curve_mode, "cross")) {
         # Render cross links with ggforce bezier curves (same geometry as avoidance solver).
-        # We keep a trimmed segment so links do not need to touch node centers.
-        t0 <- 0.05
-        t1 <- 0.95
+        # The visible segment is clipped to the source/target group orbit boundary so
+        # cross-group links do not run through the interior of each group circle.
         ctrl_scale <- 0.42
         lerp2 <- function(p, q, t) p + (q - p) * t
         split_quad <- function(P0, P1, P2, t) {
@@ -1380,6 +1368,8 @@ ggNetView_multi_link <- function(mat,
           P0 <- c(x0, y0)
           P1 <- c(midx + ux * (k_signed * dd * ctrl_scale), midy + uy * (k_signed * dd * ctrl_scale))
           P2 <- c(x1, y1)
+          t0 <- 0
+          t1 <- 1
           # Extract the trimmed quadratic sub-curve on [t0, t1].
           sp1 <- split_quad(P0, P1, P2, t0)
           R0 <- sp1$right[[1]]
