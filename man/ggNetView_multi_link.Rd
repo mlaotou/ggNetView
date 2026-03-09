@@ -57,6 +57,10 @@ ggNetView_multi_link(
   link_curve_adaptive = TRUE,
   link_curve_adaptive_range = c(0.7, 1.3),
   link_curve_adaptive_bins = 7,
+  link_color_node = NULL,
+  link_color_module = NULL,
+  link_linewidth_node = 1,
+  link_linewidth_module = 1,
   link_linetype_node = 2,
   link_linetype_module = 1,
   link_linealpha_node = 0.25,
@@ -66,6 +70,7 @@ ggNetView_multi_link(
   comparisons = TRUE,
   comparisons_groups = NULL,
   order = NULL,
+  group_layout = "circle",
   scale_groups = TRUE,
   orientation = "up",
   angle = 0,
@@ -75,15 +80,23 @@ ggNetView_multi_link(
   ncol = NULL,
   label_offset = 0.2,
   label_size = 4,
+  add_group_outer = FALSE,
+  add_group_outer_expand = 2,
+  add_group_outer_color = "grey50",
+  add_group_outer_fill = NULL,
+  add_group_outer_fill_alpha = 0.2,
+  add_group_outer_linetype = 1,
+  add_group_outer_linewidth = 0.5,
   seed = 1115
 )
 }
 \arguments{
 \item{mat}{Numeric matrix.
-A numeric matrix with samples in rows and variables in columns.}
+A numeric matrix with variables (e.g. genes, taxa) in rows and samples in columns.}
 
 \item{group_info}{DataFrame
-The group information contains: Sample and Group}
+The group information contains: Sample and Group.
+If Sample or Group contain underscores (\code{_}), they are automatically replaced with hyphens (\code{-}) to avoid parsing issues; \code{mat} column names, \code{order}, and \code{comparisons_groups} are updated accordingly.}
 
 \item{transfrom.method}{Character.
 Data transformation methods applied before correlation analysis.
@@ -161,6 +174,7 @@ Number of nearest neighbors used to build the local adjacency graph.}
 Radial offset applied to the "Others" module to slightly}
 
 \item{layout.module}{Character  (default = "random")
+- random : modules are distributed more randomly and independently.
 - adjacent : modules are positioned close to each other, minimizing inter-module gaps.
 - order : modules are distributed by order, applicable to `Bipartite, Tripartite, Quadripartite, Multipartite, Pentapartite Layout`}
 
@@ -279,17 +293,30 @@ The first value is the minimum multiplier; the second is the maximum multiplier.
 \item{link_curve_adaptive_bins}{Integer (default = 7).
 Number of bins used to approximate per-link adaptive curvature.}
 
+\item{link_color_node}{Character or NULL (default = NULL).
+Colors for node-to-node cross-group links. \code{NULL} = use default palette.
+A single value, named vector (e.g. \code{c("WT|KO" = "red")}), or unnamed vector (by pair index).}
+
+\item{link_color_module}{Character or NULL (default = NULL).
+Colors for module-to-module cross-group links. Same rules as \code{link_color_node}.}
+
+\item{link_linewidth_node}{Numeric (default = 1).
+Line width for node-to-node cross-group links. Single value or vector (by pair index/named).}
+
+\item{link_linewidth_module}{Numeric (default = 1).
+Line width for module-to-module cross-group links. Single value or vector.}
+
 \item{link_linetype_node}{Integer or character (default = 2).
-Linetype for node-to-node cross-group links (e.g. 2 = dashed, 1 = solid).}
+Linetype for node-to-node cross-group links (e.g. 2 = dashed, 1 = solid). Single value or vector.}
 
 \item{link_linetype_module}{Integer or character (default = 1).
-Linetype for module-to-module cross-group links (e.g. 1 = solid, 2 = dashed).}
+Linetype for module-to-module cross-group links. Single value or vector.}
 
 \item{link_linealpha_node}{Numeric (default = 0.25).
-Alpha (transparency) for node-to-node cross-group links.}
+Alpha (transparency) for node-to-node cross-group links. Single value or vector.}
 
 \item{link_linealpha_module}{Numeric (default = 0.5).
-Alpha (transparency) for module-to-module cross-group links.}
+Alpha (transparency) for module-to-module cross-group links. Single value or vector.}
 
 \item{dropOthers}{Logical (default = FALSE).
 If TRUE, remove nodes in the \code{"Others"} module from each group's
@@ -316,6 +343,16 @@ Order of groups for layout positions. Groups are placed evenly on a circle:
 Must contain all unique groups from \code{group_info$Group} exactly once.
 If \code{NULL}, uses \code{unique(group_info$Group)} order (first occurrence).}
 
+\item{group_layout}{Character (default = "circle").
+Arrangement of groups in the multi-group plot.
+\code{"circle"}: groups placed evenly on a circle (default).
+\code{"row"}: groups in a grid, filled row-by-row; uses \code{nrow} and \code{ncol}.
+\code{"column"}: groups in a grid, filled column-by-column; uses \code{nrow} and \code{ncol}.
+\code{"square"}: 4 groups at corners of a square (top-left, top-right, bottom-right, bottom-left).
+\code{"diamond"}: 4 groups at top, right, bottom, left (like a rotated square).
+\code{"triangle"}: 3 groups at vertices of an upright triangle (point up).
+\code{"triangle_down"}: 3 groups at vertices of an inverted triangle (point down).}
+
 \item{scale_groups}{Logical (default = TRUE).
 Whether to normalize each group to a comparable coordinate scale before
 placing groups on anchors for cross-group visual comparison.}
@@ -336,16 +373,42 @@ within each group). If \code{NULL}, it falls back to \code{anchor_dist}
 for backward compatibility.}
 
 \item{nrow}{Integer (default = NULL).
-Number of layout rows for grid-style layouts (e.g. \code{"consensus_module_equal_gephi"}).}
+Number of rows. Used by: (1) \code{group_layout = "row"} or \code{"column"} for group grid;
+(2) layout functions like \code{"consensus_module_equal_gephi"} for module grid.}
 
 \item{ncol}{Integer (default = NULL).
-Number of layout columns for grid-style layouts (e.g. \code{"consensus_module_equal_gephi"}).}
+Number of columns. Used by: (1) \code{group_layout = "row"} or \code{"column"} for group grid;
+(2) layout functions like \code{"consensus_module_equal_gephi"} for module grid.}
 
 \item{label_offset}{Numeric (default = 0.2).
 Vertical offset of group labels above each group's layout (added to max y).}
 
 \item{label_size}{Numeric (default = 4).
 Font size for group labels (Group, Node, Edge, etc.).}
+
+\item{add_group_outer}{Logical (default = FALSE).
+Whether to add a circle boundary around each group (mimics \code{ggforce::geom_mark_circle}).}
+
+\item{add_group_outer_expand}{Numeric (default = 2).
+Expansion in mm for the group circle to account for point size; passed to \code{geom_mark_circle(expand = ...)}.}
+
+\item{add_group_outer_color}{Character (default = "grey50").
+Color of the group outer circle border. A single value applies to all groups;
+a named vector maps group names to colors (e.g. \code{c("WT" = "blue", "KO" = "red")});
+an unnamed vector is used by index (recycled if needed).}
+
+\item{add_group_outer_fill}{Character or NULL (default = NULL).
+Fill color of the group outer circle. \code{NULL} = no fill (transparent).
+A single value, named vector, or unnamed vector works like \code{add_group_outer_color}.}
+
+\item{add_group_outer_fill_alpha}{Numeric (default = 0.2).
+Alpha (transparency) of the group outer circle fill; 0 = fully transparent, 1 = opaque.}
+
+\item{add_group_outer_linetype}{Integer or character (default = 1).
+Linetype of the group outer circle (e.g. 1 = solid, 2 = dashed).}
+
+\item{add_group_outer_linewidth}{Numeric (default = 0.5).
+Line width of the group outer circle.}
 
 \item{seed}{Integer (default = 1115).
 Random seed for reproducibility.}

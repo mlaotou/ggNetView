@@ -1,9 +1,10 @@
 #' Visualize multiple networks and show the connections between them to highlight key members within the networks
 #'
 #' @param mat Numeric matrix.
-#' A numeric matrix with samples in rows and variables in columns.
+#' A numeric matrix with variables (e.g. genes, taxa) in rows and samples in columns.
 #' @param group_info DataFrame
-#' The group information contains: Sample and Group
+#' The group information contains: Sample and Group.
+#' If Sample or Group contain underscores (\code{_}), they are automatically replaced with hyphens (\code{-}) to avoid parsing issues; \code{mat} column names, \code{order}, and \code{comparisons_groups} are updated accordingly.
 #' @param transfrom.method Character.
 #'Data transformation methods applied before correlation analysis.
 #' Options include:
@@ -61,7 +62,7 @@
 #' @param push_others_delta Numeric (default = 0).
 #' Radial offset applied to the "Others" module to slightly
 #' @param layout.module Character  (default = "random")
-#‘ - random : modules are distributed more randomly and independently.
+#' - random : modules are distributed more randomly and independently.
 #' - adjacent : modules are positioned close to each other, minimizing inter-module gaps.
 #' - order : modules are distributed by order, applicable to `Bipartite, Tripartite, Quadripartite, Multipartite, Pentapartite Layout`
 #' @param pointstroke Integer  (default = 0.3).
@@ -152,14 +153,23 @@
 #' The first value is the minimum multiplier; the second is the maximum multiplier.
 #' @param link_curve_adaptive_bins Integer (default = 7).
 #' Number of bins used to approximate per-link adaptive curvature.
+#' @param link_color_node Character or NULL (default = NULL).
+#' Colors for node-to-node cross-group links. \code{NULL} = use default palette.
+#' A single value, named vector (e.g. \code{c("WT|KO" = "red")}), or unnamed vector (by pair index).
+#' @param link_color_module Character or NULL (default = NULL).
+#' Colors for module-to-module cross-group links. Same rules as \code{link_color_node}.
+#' @param link_linewidth_node Numeric (default = 1).
+#' Line width for node-to-node cross-group links. Single value or vector (by pair index/named).
+#' @param link_linewidth_module Numeric (default = 1).
+#' Line width for module-to-module cross-group links. Single value or vector.
 #' @param link_linetype_node Integer or character (default = 2).
-#' Linetype for node-to-node cross-group links (e.g. 2 = dashed, 1 = solid).
+#' Linetype for node-to-node cross-group links (e.g. 2 = dashed, 1 = solid). Single value or vector.
 #' @param link_linetype_module Integer or character (default = 1).
-#' Linetype for module-to-module cross-group links (e.g. 1 = solid, 2 = dashed).
+#' Linetype for module-to-module cross-group links. Single value or vector.
 #' @param link_linealpha_node Numeric (default = 0.25).
-#' Alpha (transparency) for node-to-node cross-group links.
+#' Alpha (transparency) for node-to-node cross-group links. Single value or vector.
 #' @param link_linealpha_module Numeric (default = 0.5).
-#' Alpha (transparency) for module-to-module cross-group links.
+#' Alpha (transparency) for module-to-module cross-group links. Single value or vector.
 #' @param dropOthers Logical (default = FALSE).
 #' If TRUE, remove nodes in the \code{"Others"} module from each group's
 #' \code{graph_obj} before layout, plotting, and module-overlap comparison.
@@ -180,6 +190,15 @@
 #' 1st = top, 2nd = next clockwise, etc. (e.g. 3 groups = triangle, 4 = square).
 #' Must contain all unique groups from \code{group_info$Group} exactly once.
 #' If \code{NULL}, uses \code{unique(group_info$Group)} order (first occurrence).
+#' @param group_layout Character (default = "circle").
+#' Arrangement of groups in the multi-group plot.
+#' \code{"circle"}: groups placed evenly on a circle (default).
+#' \code{"row"}: groups in a grid, filled row-by-row; uses \code{nrow} and \code{ncol}.
+#' \code{"column"}: groups in a grid, filled column-by-column; uses \code{nrow} and \code{ncol}.
+#' \code{"square"}: 4 groups at corners of a square (top-left, top-right, bottom-right, bottom-left).
+#' \code{"diamond"}: 4 groups at top, right, bottom, left (like a rotated square).
+#' \code{"triangle"}: 3 groups at vertices of an upright triangle (point up).
+#' \code{"triangle_down"}: 3 groups at vertices of an inverted triangle (point down).
 #' @param scale_groups Logical (default = TRUE).
 #' Whether to normalize each group to a comparable coordinate scale before
 #' placing groups on anchors for cross-group visual comparison.
@@ -195,13 +214,32 @@
 #' within each group). If \code{NULL}, it falls back to \code{anchor_dist}
 #' for backward compatibility.
 #' @param nrow Integer (default = NULL).
-#' Number of layout rows for grid-style layouts (e.g. \code{"consensus_module_equal_gephi"}).
+#' Number of rows. Used by: (1) \code{group_layout = "row"} or \code{"column"} for group grid;
+#' (2) layout functions like \code{"consensus_module_equal_gephi"} for module grid.
 #' @param ncol Integer (default = NULL).
-#' Number of layout columns for grid-style layouts (e.g. \code{"consensus_module_equal_gephi"}).
+#' Number of columns. Used by: (1) \code{group_layout = "row"} or \code{"column"} for group grid;
+#' (2) layout functions like \code{"consensus_module_equal_gephi"} for module grid.
 #' @param label_offset Numeric (default = 0.2).
 #' Vertical offset of group labels above each group's layout (added to max y).
 #' @param label_size Numeric (default = 4).
 #' Font size for group labels (Group, Node, Edge, etc.).
+#' @param add_group_outer Logical (default = FALSE).
+#' Whether to add a circle boundary around each group (mimics \code{ggforce::geom_mark_circle}).
+#' @param add_group_outer_expand Numeric (default = 2).
+#' Expansion in mm for the group circle to account for point size; passed to \code{geom_mark_circle(expand = ...)}.
+#' @param add_group_outer_color Character (default = "grey50").
+#' Color of the group outer circle border. A single value applies to all groups;
+#' a named vector maps group names to colors (e.g. \code{c("WT" = "blue", "KO" = "red")});
+#' an unnamed vector is used by index (recycled if needed).
+#' @param add_group_outer_fill Character or NULL (default = NULL).
+#' Fill color of the group outer circle. \code{NULL} = no fill (transparent).
+#' A single value, named vector, or unnamed vector works like \code{add_group_outer_color}.
+#' @param add_group_outer_fill_alpha Numeric (default = 0.2).
+#' Alpha (transparency) of the group outer circle fill; 0 = fully transparent, 1 = opaque.
+#' @param add_group_outer_linetype Integer or character (default = 1).
+#' Linetype of the group outer circle (e.g. 1 = solid, 2 = dashed).
+#' @param add_group_outer_linewidth Numeric (default = 0.5).
+#' Line width of the group outer circle.
 #' @param seed Integer (default = 1115).
 #' Random seed for reproducibility.
 #'
@@ -260,6 +298,10 @@ ggNetView_multi_link <- function(mat,
                                  link_curve_adaptive = TRUE,
                                  link_curve_adaptive_range = c(0.7, 1.3),
                                  link_curve_adaptive_bins = 7,
+                                 link_color_node = NULL,
+                                 link_color_module = NULL,
+                                 link_linewidth_node = 1,
+                                 link_linewidth_module = 1,
                                  link_linetype_node = 2,
                                  link_linetype_module = 1,
                                  link_linealpha_node = 0.25,
@@ -269,6 +311,7 @@ ggNetView_multi_link <- function(mat,
                                  comparisons = TRUE,
                                  comparisons_groups = NULL,
                                  order = NULL,
+                                 group_layout = "circle",
                                  scale_groups = TRUE,
                                  orientation = "up",
                                  angle = 0,
@@ -278,6 +321,13 @@ ggNetView_multi_link <- function(mat,
                                  ncol = NULL,
                                  label_offset = 0.2,
                                  label_size = 4,
+                                 add_group_outer = FALSE,
+                                 add_group_outer_expand = 2,
+                                 add_group_outer_color = "grey50",
+                                 add_group_outer_fill = NULL,
+                                 add_group_outer_fill_alpha = 0.2,
+                                 add_group_outer_linetype = 1,
+                                 add_group_outer_linewidth = 0.5,
                                  seed = 1115
 ){
   # 参数
@@ -307,6 +357,27 @@ ggNetView_multi_link <- function(mat,
   }
   if (!is.data.frame(group_info) || !all(c("Sample", "Group") %in% colnames(group_info))) {
     stop("`group_info` must be a data.frame containing columns `Sample` and `Group`.")
+  }
+  # 若 Sample 或 Group 含下划线，会干扰后续 sep = "_" 的解析，统一替换为中划线
+  has_underscore <- any(grepl("_", group_info$Sample, fixed = TRUE)) ||
+    any(grepl("_", group_info$Group, fixed = TRUE))
+  if (has_underscore) {
+    warning("`group_info` contains underscores in Sample or Group; replacing with hyphens to avoid parsing issues.")
+    group_info <- group_info %>%
+      dplyr::mutate(
+        Sample = gsub("_", "-", as.character(Sample), fixed = TRUE),
+        Group = gsub("_", "-", as.character(Group), fixed = TRUE)
+      )
+    mat <- as.data.frame(mat)
+    if (any(grepl("_", colnames(mat), fixed = TRUE))) {
+      colnames(mat) <- gsub("_", "-", colnames(mat), fixed = TRUE)
+    }
+    if (!is.null(order)) {
+      order <- gsub("_", "-", as.character(order), fixed = TRUE)
+    }
+    if (!is.null(comparisons_groups) && is.list(comparisons_groups)) {
+      comparisons_groups <- lapply(comparisons_groups, function(x) gsub("_", "-", as.character(x), fixed = TRUE))
+    }
   }
   if (!is.logical(comparisons) || length(comparisons) != 1 || is.na(comparisons)) {
     stop("`comparisons` must be TRUE or FALSE.")
@@ -351,6 +422,27 @@ ggNetView_multi_link <- function(mat,
   } else {
     stop("`add_outer` must be a single logical or character string.")
   }
+  if (!is.logical(add_group_outer) || length(add_group_outer) != 1 || is.na(add_group_outer)) {
+    stop("`add_group_outer` must be TRUE or FALSE.")
+  }
+  if (!is.numeric(add_group_outer_expand) || length(add_group_outer_expand) != 1 || is.na(add_group_outer_expand)) {
+    stop("`add_group_outer_expand` must be a single numeric value.")
+  }
+  if (!is.null(add_group_outer_color) && !is.character(add_group_outer_color)) {
+    stop("`add_group_outer_color` must be NULL or a character vector (color string(s)).")
+  }
+  if (!is.null(add_group_outer_fill) && !is.character(add_group_outer_fill)) {
+    stop("`add_group_outer_fill` must be NULL or a character vector (color string(s)).")
+  }
+  if (!is.numeric(add_group_outer_fill_alpha) || length(add_group_outer_fill_alpha) != 1 || is.na(add_group_outer_fill_alpha)) {
+    stop("`add_group_outer_fill_alpha` must be a single numeric value between 0 and 1.")
+  }
+  if (add_group_outer_fill_alpha < 0 || add_group_outer_fill_alpha > 1) {
+    stop("`add_group_outer_fill_alpha` must be between 0 and 1.")
+  }
+  if (!is.numeric(add_group_outer_linewidth) || length(add_group_outer_linewidth) != 1 || is.na(add_group_outer_linewidth) || add_group_outer_linewidth < 0) {
+    stop("`add_group_outer_linewidth` must be a single non-negative numeric value.")
+  }
   if (!is.character(link_level) || length(link_level) != 1 || is.na(link_level)) {
     stop("`link_level` must be one of: 'None', 'Module', 'Node', 'NodeinModule', 'Module&Node', 'Module&Node2'.")
   }
@@ -388,6 +480,18 @@ ggNetView_multi_link <- function(mat,
   link_curve_adaptive_bins <- as.integer(link_curve_adaptive_bins)
   if (link_curve_adaptive_bins < 1) {
     stop("`link_curve_adaptive_bins` must be >= 1.")
+  }
+  if (!is.null(link_color_node) && !is.character(link_color_node)) {
+    stop("`link_color_node` must be NULL or a character vector (color string(s)).")
+  }
+  if (!is.null(link_color_module) && !is.character(link_color_module)) {
+    stop("`link_color_module` must be NULL or a character vector (color string(s)).")
+  }
+  if (!is.numeric(link_linewidth_node) || any(is.na(link_linewidth_node)) || any(link_linewidth_node < 0)) {
+    stop("`link_linewidth_node` must be a numeric vector of non-negative values.")
+  }
+  if (!is.numeric(link_linewidth_module) || any(is.na(link_linewidth_module)) || any(link_linewidth_module < 0)) {
+    stop("`link_linewidth_module` must be a numeric vector of non-negative values.")
   }
   if (!is.logical(inner_curve) || length(inner_curve) != 1 || is.na(inner_curve)) {
     stop("`inner_curve` must be TRUE or FALSE.")
@@ -427,7 +531,12 @@ ggNetView_multi_link <- function(mat,
     stop("`label_size` must be a single positive numeric value.")
   }
   layout.module <- match.arg(layout.module)
+  group_layout <- match.arg(group_layout, choices = c("circle", "row", "column", "square", "diamond", "triangle", "triangle_down"))
   layout_anchor_dist_use <- if (is.null(layout_anchor_dist)) anchor_dist else layout_anchor_dist
+  if (is.null(layout) || length(layout) != 1 || is.na(layout) || trimws(as.character(layout)) == "") {
+    stop("`layout` must be a non-empty character string (e.g. 'gephi', 'square', 'petal').")
+  }
+  layout <- as.character(layout)
 
   graph_list <- list()
 
@@ -575,7 +684,7 @@ ggNetView_multi_link <- function(mat,
       }
     }
 
-    if (layout.module == "order" & func_name != "create_layout_rings") {
+    if (layout.module == "order" && func_name != "create_layout_multirings") {
       ly1_1 <- module_layout4(graph,
                               layout = ly1,
                               center = center,
@@ -736,19 +845,70 @@ ggNetView_multi_link <- function(mat,
     Module_information
   }
 
-  Module_information
-
   # if (isTRUE(scale_groups)) {
   #   anchor_dist = 1
   # }else{
   #   anchor_dist = anchor_dist * 30
   # }
 
-  # 寻找点
-  angles <- pi/2 - 2 * pi * (0:(graph_list_length - 1)) / graph_list_length
-  anchors <- lapply(angles, function(a) {
-    c(anchor_dist * cos(a), anchor_dist * sin(a))
-  })
+  # 寻找点：根据 group_layout 计算各组锚点坐标
+  n_grp <- graph_list_length
+  if (group_layout == "circle") {
+    angles <- pi/2 - 2 * pi * (0:(n_grp - 1)) / n_grp
+    anchors <- lapply(angles, function(a) {
+      c(anchor_dist * cos(a), anchor_dist * sin(a))
+    })
+  } else if (group_layout == "row") {
+    # 水平/网格：使用 nrow、ncol，按行填充（从左到右、从上到下），居中
+    nr <- if (!is.null(nrow)) as.integer(nrow) else 1L
+    nc <- if (!is.null(ncol)) as.integer(ncol) else n_grp
+    if (is.null(nrow) && !is.null(ncol)) nr <- max(1L, as.integer(ceiling(n_grp / nc)))
+    if (!is.null(nrow) && is.null(ncol)) nc <- max(1L, as.integer(ceiling(n_grp / nr)))
+    nr <- max(1L, nr)
+    nc <- max(1L, nc)
+    anchors <- lapply(seq_len(n_grp), function(i) {
+      ii <- i - 1L
+      r <- ii %/% nc
+      c <- ii %% nc
+      x <- (c - (nc - 1) / 2) * anchor_dist
+      y <- -((r - (nr - 1) / 2) * anchor_dist)
+      c(x, y)
+    })
+  } else if (group_layout == "column") {
+    # 垂直/网格：使用 nrow、ncol，按列填充（从上到下、从左到右），居中
+    nr <- if (!is.null(nrow)) as.integer(nrow) else n_grp
+    nc <- if (!is.null(ncol)) as.integer(ncol) else 1L
+    if (is.null(nrow) && !is.null(ncol)) nr <- max(1L, as.integer(ceiling(n_grp / nc)))
+    if (!is.null(nrow) && is.null(ncol)) nc <- max(1L, as.integer(ceiling(n_grp / nr)))
+    nr <- max(1L, nr)
+    nc <- max(1L, nc)
+    anchors <- lapply(seq_len(n_grp), function(i) {
+      ii <- i - 1L
+      r <- ii %% nr
+      c <- ii %/% nr
+      x <- (c - (nc - 1) / 2) * anchor_dist
+      y <- -((r - (nr - 1) / 2) * anchor_dist)
+      c(x, y)
+    })
+  } else if (group_layout %in% c("square", "diamond", "triangle", "triangle_down")) {
+    # 多边形布局：类似 circle，在圆周上均匀分布，起始角度因形状而异
+    # square: 四角 (左上、右上、右下、左下)，base = 3π/4
+    # diamond: 上、右、下、左，base = π/2
+    # triangle: 正三角 (上、左下、右下)，base = π/2
+    # triangle_down: 倒三角 (下、左上、右上)，base = -π/2
+    base_angle <- switch(group_layout,
+      square        = 3 * pi / 4,
+      diamond       = pi / 2,
+      triangle      = pi / 2,
+      triangle_down = -pi / 2
+    )
+    angles <- base_angle - 2 * pi * (0:(n_grp - 1)) / n_grp
+    anchors <- lapply(angles, function(a) {
+      c(anchor_dist * cos(a), anchor_dist * sin(a))
+    })
+  } else {
+    stop("`group_layout` must be one of: 'circle', 'row', 'column', 'square', 'diamond', 'triangle', 'triangle_down'.")
+  }
 
   anchors_df <- do.call(rbind, anchors) %>%
     as.data.frame() %>%
@@ -1065,13 +1225,31 @@ ggNetView_multi_link <- function(mat,
     }
   }
 
+  # 解析跨组连线颜色：NULL 用默认调色板；单值全用；命名向量按 "GroupA|GroupB"；未命名按索引
+  resolve_link_color <- function(color_vec, default_palette, pair_key, pair_idx) {
+    if (is.null(color_vec) || length(color_vec) == 0L) {
+      return(default_palette[((pair_idx - 1L) %% length(default_palette)) + 1L])
+    }
+    if (length(color_vec) == 1L) return(color_vec[1L])
+    if (!is.null(names(color_vec)) && pair_key %in% names(color_vec)) return(color_vec[pair_key])
+    return(color_vec[((pair_idx - 1L) %% length(color_vec)) + 1L])
+  }
+  # 解析跨组连线样式（linewidth/alpha/linetype）：单值全用；命名向量按 pair_key；未命名按索引
+  resolve_link_style <- function(val, pair_key, pair_idx) {
+    if (is.null(val) || length(val) == 0L) return(NULL)
+    if (length(val) == 1L) return(val[1L])
+    if (!is.null(names(val)) && pair_key %in% names(val)) return(val[pair_key])
+    return(val[((pair_idx - 1L) %% length(val)) + 1L])
+  }
+
   # add_link_layer: complex version with group + module circle avoidance for node links.
   # Uses cross_channel_lookup, circle_centers, circle_radius, module_circle_tbl from above.
   add_link_layer <- (function() {
-    add_link_layer_impl <- function(p_obj, df_link, col_link, link_type = c("node", "module"), cross_channel_sign = NULL) {
+    add_link_layer_impl <- function(p_obj, df_link, col_link, link_type = c("node", "module"), cross_channel_sign = NULL, link_lt = NULL, link_al = NULL, link_lw = NULL) {
       link_type <- match.arg(link_type)
-      link_lt <- if (link_type == "module") link_linetype_module else link_linetype_node
-      link_al <- if (link_type == "module") link_linealpha_module else link_linealpha_node
+      link_lt <- if (!is.null(link_lt)) link_lt else (if (link_type == "module") link_linetype_module else link_linetype_node)
+      link_al <- if (!is.null(link_al)) link_al else (if (link_type == "module") link_linealpha_module else link_linealpha_node)
+      link_lw <- if (!is.null(link_lw)) link_lw else (if (link_type == "module") link_linewidth_module else link_linewidth_node)
       if (nrow(df_link) == 0) return(p_obj)
       if (isTRUE(link_curve)) {
         df_draw <- df_link
@@ -1183,7 +1361,7 @@ ggNetView_multi_link <- function(mat,
           if (nrow(bezier_df) == 0) return(p_obj)
           bezier_df <- bezier_df[order(bezier_df$.curve_id, bezier_df$.pt), , drop = FALSE]
           return(p_obj + ggforce::geom_bezier2(data = bezier_df, mapping = ggplot2::aes(x = x, y = y, group = .curve_id),
-            linetype = link_lt, linewidth = 1, alpha = link_al, color = col_link, lineend = "round"))
+            linetype = link_lt, linewidth = link_lw, alpha = link_al, color = col_link, lineend = "round"))
         }
 
         df_draw$.curv_abs <- curv_abs
@@ -1195,14 +1373,14 @@ ggNetView_multi_link <- function(mat,
           if (nrow(df_side) == 0) return(p_side)
           curv_med <- sign_side * stats::median(df_side$.curv_abs, na.rm = TRUE)
           p_side + ggplot2::geom_curve(data = df_side, mapping = ggplot2::aes(x = x, xend = xend, y = y, yend = yend),
-            curvature = curv_med, linetype = link_lt, linewidth = 1, alpha = link_al, color = col_link)
+            curvature = curv_med, linetype = link_lt, linewidth = link_lw, alpha = link_al, color = col_link)
         }
         p_new <- add_curve_side(p_obj, df_pos, dist_pos, 1)
         p_new <- add_curve_side(p_new, df_neg, dist_neg, -1)
         p_new
       } else {
         p_obj + ggplot2::geom_segment(data = df_link, mapping = ggplot2::aes(x = x, y = y, xend = xend, yend = yend),
-          linetype = link_lt, linewidth = 1, alpha = link_al, color = col_link)
+          linetype = link_lt, linewidth = link_lw, alpha = link_al, color = col_link)
       }
     }
     add_link_layer_impl
@@ -1255,10 +1433,13 @@ ggNetView_multi_link <- function(mat,
 
         link_info <- dplyr::bind_rows(link_info, node_links_info)
 
-        col_i <- color_v[((tmpi - 1) %% length(color_v)) + 1]
         pair_key <- paste(sort(c(gA, gB)), collapse = "|")
+        col_i <- resolve_link_color(link_color_node, color_v, pair_key, tmpi)
+        lt_i <- resolve_link_style(link_linetype_node, pair_key, tmpi)
+        al_i <- resolve_link_style(link_linealpha_node, pair_key, tmpi)
+        lw_i <- resolve_link_style(link_linewidth_node, pair_key, tmpi)
         cross_sign <- cross_channel_lookup[[pair_key]]
-        p <- add_link_layer(p, node_links, col_i, link_type = "node", cross_channel_sign = cross_sign)
+        p <- add_link_layer(p, node_links, col_i, link_type = "node", cross_channel_sign = cross_sign, link_lt = lt_i, link_al = al_i, link_lw = lw_i)
         tmpi <- tmpi + 1
       }
     }
@@ -1306,10 +1487,13 @@ ggNetView_multi_link <- function(mat,
 
         if (nrow(nodeinmodule_links) > 0) {
           link_info <- dplyr::bind_rows(link_info, nodeinmodule_links_info)
-          col_i <- color_v[((tmpi - 1) %% length(color_v)) + 1]
           pair_key <- paste(sort(c(gA, gB)), collapse = "|")
+          col_i <- resolve_link_color(link_color_node, color_v, pair_key, tmpi)
+          lt_i <- resolve_link_style(link_linetype_node, pair_key, tmpi)
+          al_i <- resolve_link_style(link_linealpha_node, pair_key, tmpi)
+          lw_i <- resolve_link_style(link_linewidth_node, pair_key, tmpi)
           cross_sign <- cross_channel_lookup[[pair_key]]
-          p <- add_link_layer(p, nodeinmodule_links, col_i, link_type = "node", cross_channel_sign = cross_sign)
+          p <- add_link_layer(p, nodeinmodule_links, col_i, link_type = "node", cross_channel_sign = cross_sign, link_lt = lt_i, link_al = al_i, link_lw = lw_i)
           tmpi <- tmpi + 1
         }
       }
@@ -1319,6 +1503,46 @@ ggNetView_multi_link <- function(mat,
   # 我们先添加点和线 (inner edges, nodes, module outer)
   for (index in seq_along(names(graph_info))) {
     edge_df <- graph_info[[index]]$ggplot_edge_df
+
+    # 分组外圈：在每个分组外围绘制圆圈边界（模仿 geom_mark_circle，考虑点大小）
+    if (isTRUE(add_group_outer) && nrow(graph_info[[index]]$ggplot_node_df) > 0) {
+      gname <- names(graph_info)[index]
+      color_vec <- if (is.null(add_group_outer_color) || length(add_group_outer_color) == 0L) "grey50" else add_group_outer_color
+      # 解析颜色：单值全用；命名向量按组名；未命名按索引（可循环）
+      color_grp <- if (length(color_vec) == 1L) {
+        color_vec
+      } else if (!is.null(names(color_vec)) && gname %in% names(color_vec)) {
+        color_vec[gname]
+      } else {
+        color_vec[((index - 1L) %% length(color_vec)) + 1L]
+      }
+      # 解析填充：NULL 不填充；否则同颜色逻辑
+      fill_grp <- if (is.null(add_group_outer_fill) || length(add_group_outer_fill) == 0L) {
+        NA
+      } else if (length(add_group_outer_fill) == 1L) {
+        add_group_outer_fill
+      } else if (!is.null(names(add_group_outer_fill)) && gname %in% names(add_group_outer_fill)) {
+        add_group_outer_fill[gname]
+      } else {
+        add_group_outer_fill[((index - 1L) %% length(add_group_outer_fill)) + 1L]
+      }
+      group_circle_df <- graph_info[[index]]$ggplot_node_df %>%
+        dplyr::mutate(.group_outer = 1L)
+      circle_n_grp <- max(40, min(300, as.integer(round(8 * sqrt(nrow(group_circle_df))))))
+      alpha_grp <- if (is.na(fill_grp)) 1 else add_group_outer_fill_alpha
+      p <- p +
+        ggforce::geom_mark_circle(
+          data = group_circle_df,
+          mapping = ggplot2::aes(x = x, y = y, group = .group_outer),
+          fill = fill_grp,
+          alpha = alpha_grp,
+          color = color_grp,
+          linetype = add_group_outer_linetype,
+          linewidth = add_group_outer_linewidth,
+          n = circle_n_grp,
+          expand = grid::unit(add_group_outer_expand, "mm")
+        )
+    }
 
     # plot link
     if (isFALSE(mapping_line)) {
@@ -1713,10 +1937,13 @@ ggNetView_multi_link <- function(mat,
           )
       )
 
-      col_i <- color_v[((tmpi - 1) %% length(color_v)) + 1]
       pair_key <- paste(sort(c(GroupA_tmp, GroupB_tmp)), collapse = "|")
+      col_i <- resolve_link_color(link_color_module, color_v, pair_key, tmpi)
+      lt_i <- resolve_link_style(link_linetype_module, pair_key, tmpi)
+      al_i <- resolve_link_style(link_linealpha_module, pair_key, tmpi)
+      lw_i <- resolve_link_style(link_linewidth_module, pair_key, tmpi)
       cross_sign <- cross_channel_lookup[[pair_key]]
-      p <- add_link_layer(p, Module_location_plot, col_i, link_type = "module", cross_channel_sign = cross_sign)
+      p <- add_link_layer(p, Module_location_plot, col_i, link_type = "module", cross_channel_sign = cross_sign, link_lt = lt_i, link_al = al_i, link_lw = lw_i)
       tmpi <- tmpi + 1
     }
   }
