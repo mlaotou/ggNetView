@@ -125,13 +125,15 @@
 #' Alpha for module outer boundaries.
 #' @param link_level Character (default = "Module").
 #' Cross-group link granularity. One of \code{"None"}, \code{"Module"}, \code{"Node"},
-#' \code{"NodeinModule"}, or \code{"Module&Node"}.
+#' \code{"NodeinModule"}, \code{"Module&Node"}, or \code{"Module&Node2"}.
 #' \code{"None"} draws no cross-group links.
 #' \code{"Module"} links significant module matches (module centroids).
 #' \code{"Node"} links shared node names across groups.
 #' \code{"NodeinModule"} links both module centroids and nodes within significantly overlapping
 #' modules (module links show which modules overlap; node links show shared nodes).
 #' \code{"Module&Node"} draws both module-level links and node-level links.
+#' \code{"Module&Node2"} same as \code{"Module&Node"} but adds outer boundaries for all modules
+#' (not only matched ones).
 #' @param link_curve Logical (default = FALSE).
 #' Whether to draw cross-group links as curves (\code{geom_curve}) instead of straight segments.
 #' @param link_curvature Numeric (default = 0.2).
@@ -165,6 +167,19 @@
 #' Whether to compute topology for each group using
 #' \code{get_network_topology_parallel()} and
 #' \code{get_sample_subgraph_topology_parallel()}.
+#' @param comparisons Logical (default = TRUE).
+#' Whether to perform cross-group comparisons and draw links.
+#' If \code{FALSE}, no module overlap or node comparison is done, and no cross-group links are drawn.
+#' @param comparisons_groups List or NULL (default = NULL).
+#' When \code{comparisons = TRUE}, constrains which group pairs are compared.
+#' Each element must be a length-2 character vector, e.g. \code{list(c("WT", "OE"), c("WT", "KO"))}.
+#' Group names must exist in \code{group_info$Group}.
+#' If \code{NULL}, all pairwise group comparisons are performed.
+#' @param order Character vector or NULL (default = NULL).
+#' Order of groups for layout positions. Groups are placed evenly on a circle:
+#' 1st = top, 2nd = next clockwise, etc. (e.g. 3 groups = triangle, 4 = square).
+#' Must contain all unique groups from \code{group_info$Group} exactly once.
+#' If \code{NULL}, uses \code{unique(group_info$Group)} order (first occurrence).
 #' @param scale_groups Logical (default = TRUE).
 #' Whether to normalize each group to a comparable coordinate scale before
 #' placing groups on anchors for cross-group visual comparison.
@@ -183,6 +198,10 @@
 #' Number of layout rows for grid-style layouts (e.g. \code{"consensus_module_equal_gephi"}).
 #' @param ncol Integer (default = NULL).
 #' Number of layout columns for grid-style layouts (e.g. \code{"consensus_module_equal_gephi"}).
+#' @param label_offset Numeric (default = 0.2).
+#' Vertical offset of group labels above each group's layout (added to max y).
+#' @param label_size Numeric (default = 4).
+#' Font size for group labels (Group, Node, Edge, etc.).
 #' @param seed Integer (default = 1115).
 #' Random seed for reproducibility.
 #'
@@ -247,6 +266,9 @@ ggNetView_multi_link <- function(mat,
                                  link_linealpha_module = 0.5,
                                  dropOthers = FALSE,
                                  calculate_topology = FALSE,
+                                 comparisons = TRUE,
+                                 comparisons_groups = NULL,
+                                 order = NULL,
                                  scale_groups = TRUE,
                                  orientation = "up",
                                  angle = 0,
@@ -254,6 +276,8 @@ ggNetView_multi_link <- function(mat,
                                  layout_anchor_dist = NULL,
                                  nrow = NULL,
                                  ncol = NULL,
+                                 label_offset = 0.2,
+                                 label_size = 4,
                                  seed = 1115
 ){
   # 参数
@@ -284,6 +308,27 @@ ggNetView_multi_link <- function(mat,
   if (!is.data.frame(group_info) || !all(c("Sample", "Group") %in% colnames(group_info))) {
     stop("`group_info` must be a data.frame containing columns `Sample` and `Group`.")
   }
+  if (!is.logical(comparisons) || length(comparisons) != 1 || is.na(comparisons)) {
+    stop("`comparisons` must be TRUE or FALSE.")
+  }
+  valid_groups <- unique(group_info$Group)
+  groups_to_process <- if (is.null(order)) {
+    valid_groups
+  } else {
+    if (!is.character(order) || length(order) == 0) {
+      stop("`order` must be NULL or a character vector of group names.")
+    }
+    if (!all(order %in% valid_groups)) {
+      stop("All elements in `order` must be group names from group_info$Group.")
+    }
+    if (!all(valid_groups %in% order)) {
+      stop("`order` must contain all unique groups from group_info$Group.")
+    }
+    if (length(order) != length(valid_groups)) {
+      stop("`order` must contain each group exactly once (no duplicates, no missing).")
+    }
+    order
+  }
   if (!is.null(fill) && !is.character(fill)) {
     stop("`fill` must be NULL or a character vector (preferably named).")
   }
@@ -307,11 +352,11 @@ ggNetView_multi_link <- function(mat,
     stop("`add_outer` must be a single logical or character string.")
   }
   if (!is.character(link_level) || length(link_level) != 1 || is.na(link_level)) {
-    stop("`link_level` must be one of: 'None', 'Module', 'Node', 'NodeinModule', 'Module&Node'.")
+    stop("`link_level` must be one of: 'None', 'Module', 'Node', 'NodeinModule', 'Module&Node', 'Module&Node2'.")
   }
   link_level <- tolower(trimws(link_level))
-  if (!link_level %in% c("none", "module", "node", "nodeinmodule", "module&node")) {
-    stop("`link_level` must be one of: 'None', 'Module', 'Node', 'NodeinModule', 'Module&Node'.")
+  if (!link_level %in% c("none", "module", "node", "nodeinmodule", "module&node", "module&node2")) {
+    stop("`link_level` must be one of: 'None', 'Module', 'Node', 'NodeinModule', 'Module&Node', 'Module&Node2'.")
   }
   if (!is.logical(link_curve) || length(link_curve) != 1 || is.na(link_curve)) {
     stop("`link_curve` must be TRUE or FALSE.")
@@ -375,6 +420,12 @@ ggNetView_multi_link <- function(mat,
       (!is.numeric(layout_anchor_dist) || length(layout_anchor_dist) != 1 || is.na(layout_anchor_dist))) {
     stop("`layout_anchor_dist` must be NULL or a single numeric value.")
   }
+  if (!is.numeric(label_offset) || length(label_offset) != 1 || is.na(label_offset)) {
+    stop("`label_offset` must be a single numeric value.")
+  }
+  if (!is.numeric(label_size) || length(label_size) != 1 || is.na(label_size) || label_size <= 0) {
+    stop("`label_size` must be a single positive numeric value.")
+  }
   layout.module <- match.arg(layout.module)
   layout_anchor_dist_use <- if (is.null(layout_anchor_dist)) anchor_dist else layout_anchor_dist
 
@@ -386,7 +437,7 @@ ggNetView_multi_link <- function(mat,
   topology_network <- list()
   topology_sample <- list()
 
-  for (g in unique(group_info$Group)) {
+  for (g in groups_to_process) {
     group_info_sub <- group_info %>%
       dplyr::filter(Group %in% g)
 
@@ -596,14 +647,45 @@ ggNetView_multi_link <- function(mat,
   }
 
   graph_list_length <- length(graph_list)
-  # 获区比较的分组
-  if (graph_list_length >= 2) {
+  # 获取比较的分组
+  if (!isTRUE(comparisons)) {
+    compare_matrix <- matrix(character(0), nrow = 2, ncol = 0)
+  } else if (graph_list_length >= 2) {
     compare_matrix <- utils::combn(names(graph_list), 2)
+    if (!is.null(comparisons_groups)) {
+      if (!is.list(comparisons_groups)) {
+        stop("`comparisons_groups` must be a list, e.g. list(c('WT', 'OE'), c('WT', 'KO')).")
+      }
+      valid_groups <- names(graph_list)
+      comp_cols <- list()
+      seen_pairs <- character(0)
+      for (comp in comparisons_groups) {
+        if (!is.character(comp) || length(comp) != 2) {
+          stop("Each element of `comparisons_groups` must be a character vector of length 2 (e.g. c('WT', 'OE')).")
+        }
+        if (!all(comp %in% valid_groups)) {
+          warning(sprintf("Skipping comparison c('%s', '%s'): group(s) not in data.", comp[1], comp[2]))
+          next
+        }
+        pair_key <- paste(sort(comp), collapse = "_")
+        if (pair_key %in% seen_pairs) {
+          warning(sprintf("Skipping duplicate comparison c('%s', '%s').", comp[1], comp[2]))
+          next
+        }
+        seen_pairs <- c(seen_pairs, pair_key)
+        comp_cols[[length(comp_cols) + 1]] <- matrix(comp, nrow = 2)
+      }
+      if (length(comp_cols) > 0) {
+        compare_matrix <- do.call(cbind, comp_cols)
+      } else {
+        compare_matrix <- matrix(character(0), nrow = 2, ncol = 0)
+      }
+    }
   } else {
     compare_matrix <- matrix(character(0), nrow = 2, ncol = 0)
   }
 
-  if (link_level %in% c("module", "nodeinmodule", "module&node") && ncol(compare_matrix) > 0) {
+  if (link_level %in% c("module", "nodeinmodule", "module&node", "module&node2") && ncol(compare_matrix) > 0) {
     compare_out_list <- list()
     for (i in seq_len(ncol(compare_matrix))) {
       tmp <- compare_modules_by_overlap(graph_info[[compare_matrix[1, i]]]$ggplot_node_df %>%
@@ -643,7 +725,7 @@ ggNetView_multi_link <- function(mat,
     )
   }
 
-  Module_information_plot <- if (link_level %in% c("module", "nodeinmodule", "module&node")) {
+  Module_information_plot <- if (link_level %in% c("module", "nodeinmodule", "module&node", "module&node2")) {
     if (isTRUE(dropOthers)) {
       Module_information
     } else {
@@ -879,7 +961,362 @@ ggNetView_multi_link <- function(mat,
     return(layers)
   }
 
-  # 我们先添加点和线
+  # link_info, cross_channel_lookup, add_link_layer (needed for node links before nodes)
+  link_info <- tibble::tibble(
+    link_level = character(),
+    group_a = character(),
+    group_b = character(),
+    source = character(),
+    target = character(),
+    x = numeric(),
+    y = numeric(),
+    xend = numeric(),
+    yend = numeric()
+  )
+
+  cross_channel_lookup <- list()
+  circle_centers_x <- circle_centers_y <- circle_radius <- NULL
+  circle_pad <- 0
+  module_circle_tbl <- NULL
+  module_circle_pad <- 0
+  if (identical(link_curve_mode, "cross")) {
+    gnames <- names(graph_info)
+    ngrp <- length(gnames)
+    cx <- vapply(gnames, function(g) mean(graph_info[[g]]$ggplot_node_df$x), numeric(1))
+    cy <- vapply(gnames, function(g) mean(graph_info[[g]]$ggplot_node_df$y), numeric(1))
+    names(cx) <- gnames
+    names(cy) <- gnames
+    circle_centers_x <- cx
+    circle_centers_y <- cy
+    circle_radius <- vapply(
+      gnames,
+      function(g) {
+        node_df <- graph_info[[g]]$ggplot_node_df
+        d <- sqrt((node_df$x - cx[g])^2 + (node_df$y - cy[g])^2)
+        q_outer <- as.numeric(stats::quantile(d, probs = 0.98, na.rm = TRUE))
+        r_max <- max(d, na.rm = TRUE)
+        max(max(q_outer, r_max * 0.98), 1e-6)
+      },
+      numeric(1)
+    )
+    circle_pad <- max(stats::median(circle_radius, na.rm = TRUE) * 0.06, 1e-6)
+    module_rows <- list()
+    rid <- 1L
+    for (g in gnames) {
+      node_df <- graph_info[[g]]$ggplot_node_df
+      if (!"Modularity" %in% colnames(node_df)) next
+      mods <- unique(as.character(node_df$Modularity))
+      mods <- mods[!is.na(mods)]
+      for (m in mods) {
+        md <- node_df[as.character(node_df$Modularity) == m, , drop = FALSE]
+        if (nrow(md) == 0) next
+        mcx <- mean(md$x)
+        mcy <- mean(md$y)
+        mr <- max(sqrt((md$x - mcx)^2 + (md$y - mcy)^2))
+        if (!is.finite(mr) || mr <= 0) next
+        module_rows[[rid]] <- data.frame(
+          group = g,
+          module = m,
+          key = paste0(g, "|", m),
+          cx = mcx,
+          cy = mcy,
+          r = mr,
+          stringsAsFactors = FALSE
+        )
+        rid <- rid + 1L
+      }
+    }
+    if (length(module_rows) > 0) {
+      module_circle_tbl <- dplyr::bind_rows(module_rows)
+      module_circle_pad <- max(stats::median(module_circle_tbl$r, na.rm = TRUE) * 0.10, 1e-6)
+    }
+    if (ngrp >= 2L) {
+      if (ngrp == 3L) {
+        top_ix <- which.max(cy)
+        bottom_ix <- setdiff(seq_len(3L), top_ix)
+        left_ix <- bottom_ix[which.min(cx[bottom_ix])]
+        right_ix <- setdiff(bottom_ix, left_ix)
+        top_g <- gnames[top_ix]
+        left_g <- gnames[left_ix]
+        right_g <- gnames[right_ix]
+        outward_tl <- (cx[top_g] + cx[left_g])/2 * (cy[top_g] - cy[left_g]) + (cy[top_g] + cy[left_g])/2 * (cx[left_g] - cx[top_g])
+        cross_channel_lookup[[paste(sort(c(top_g, left_g)), collapse = "|")]] <- as.integer(if (outward_tl != 0) -sign(outward_tl) else -1L)
+        outward_tr <- (cx[top_g] + cx[right_g])/2 * (cy[top_g] - cy[right_g]) + (cy[top_g] + cy[right_g])/2 * (cx[right_g] - cx[top_g])
+        cross_channel_lookup[[paste(sort(c(top_g, right_g)), collapse = "|")]] <- as.integer(if (outward_tr != 0) -sign(outward_tr) else 1L)
+        outward_lr <- (cx[left_g] + cx[right_g])/2 * (cy[left_g] - cy[right_g]) + (cy[left_g] + cy[right_g])/2 * (cx[right_g] - cx[left_g])
+        cross_channel_lookup[[paste(sort(c(left_g, right_g)), collapse = "|")]] <- as.integer(if (outward_lr != 0) -sign(outward_lr) else 1L)
+      } else {
+        cx_cent <- mean(cx)
+        cy_cent <- mean(cy)
+        for (i in seq_len(ngrp - 1L)) {
+          for (j in (i + 1L):ngrp) {
+            gA <- gnames[i]
+            gB <- gnames[j]
+            dx <- cx[gB] - cx[gA]
+            dy <- cy[gB] - cy[gA]
+            mx <- (cx[gA] + cx[gB]) / 2
+            my <- (cy[gA] + cy[gB]) / 2
+            s <- as.integer(sign((cx_cent - mx) * dy - (cy_cent - my) * dx))
+            key_ij <- paste(sort(c(gA, gB)), collapse = "|")
+            cross_channel_lookup[[key_ij]] <- if (s != 0L) s else 1L
+          }
+        }
+      }
+    }
+  }
+
+  # add_link_layer: complex version with group + module circle avoidance for node links.
+  # Uses cross_channel_lookup, circle_centers, circle_radius, module_circle_tbl from above.
+  add_link_layer <- (function() {
+    add_link_layer_impl <- function(p_obj, df_link, col_link, link_type = c("node", "module"), cross_channel_sign = NULL) {
+      link_type <- match.arg(link_type)
+      link_lt <- if (link_type == "module") link_linetype_module else link_linetype_node
+      link_al <- if (link_type == "module") link_linealpha_module else link_linealpha_node
+      if (nrow(df_link) == 0) return(p_obj)
+      if (isTRUE(link_curve)) {
+        df_draw <- df_link
+        dx <- df_draw$xend - df_draw$x
+        dy <- df_draw$yend - df_draw$y
+        mx <- (df_draw$x + df_draw$xend) / 2
+        my <- (df_draw$y + df_draw$yend) / 2
+        dist_link <- sqrt(dx^2 + dy^2)
+
+        base_abs_curv <- abs(link_curvature)
+        curv_abs <- rep(base_abs_curv, nrow(df_draw))
+        curv_sign <- rep(1L, nrow(df_draw))
+        if (identical(link_curve_mode, "cross")) {
+          preferred_sign <- if (!is.null(cross_channel_sign) && length(cross_channel_sign) == 1 && is.finite(cross_channel_sign)) {
+            as.integer(ifelse(cross_channel_sign >= 0, 1L, -1L))
+          } else {
+            NA_integer_
+          }
+          curv_sign <- rep(ifelse(is.na(preferred_sign), 1L, preferred_sign), nrow(df_draw))
+          curv_abs <- rep(max(base_abs_curv, .Machine$double.eps), nrow(df_draw))
+          if (!is.null(circle_radius) && length(circle_radius) > 0) {
+            t_seq <- seq(0.05, 0.95, length.out = 81)
+            endpoint_allow <- 0.26
+            ctrl_scale <- 0.42
+            candidate_abs <- max(base_abs_curv, 0.02) * c(0.10, 0.14, 0.20, 0.27, 0.36, 0.48, 0.64, 0.84, 1.1, 1.45, 1.9, 2.5, 3.1, 4.0, 5.2, 6.6)
+            path_inside_count <- function(i, k_signed) {
+              x0 <- df_draw$x[i]
+              y0 <- df_draw$y[i]
+              x1 <- df_draw$xend[i]
+              y1 <- df_draw$yend[i]
+              dd <- sqrt((x1 - x0)^2 + (y1 - y0)^2)
+              if (!is.finite(dd) || dd <= .Machine$double.eps) return(0L)
+              midx <- (x0 + x1) / 2
+              midy <- (y0 + y1) / 2
+              ux <- -(y1 - y0) / dd
+              uy <- (x1 - x0) / dd
+              cx_ctrl <- midx + ux * (k_signed * dd * ctrl_scale)
+              cy_ctrl <- midy + uy * (k_signed * dd * ctrl_scale)
+              bx <- (1 - t_seq)^2 * x0 + 2 * (1 - t_seq) * t_seq * cx_ctrl + t_seq^2 * x1
+              by <- (1 - t_seq)^2 * y0 + 2 * (1 - t_seq) * t_seq * cy_ctrl + t_seq^2 * y1
+              gsrc <- gtgt <- NA_character_
+              if (!is.null(df_draw$group_a) && !is.null(df_draw$group_b)) {
+                gsrc <- as.character(df_draw$group_a[i])
+                gtgt <- as.character(df_draw$group_b[i])
+              }
+              inside_any <- rep(FALSE, length(t_seq))
+              for (g in names(circle_radius)) {
+                rr <- (circle_radius[[g]] + circle_pad)^2
+                dist2 <- (bx - circle_centers_x[[g]])^2 + (by - circle_centers_y[[g]])^2
+                inside <- dist2 < rr
+                if (!is.na(gsrc) && identical(g, gsrc)) inside <- inside & (t_seq > endpoint_allow)
+                if (!is.na(gtgt) && identical(g, gtgt)) inside <- inside & (t_seq < (1 - endpoint_allow))
+                inside_any <- inside_any | inside
+              }
+              sum(inside_any)
+            }
+            for (ii in seq_len(nrow(df_draw))) {
+              found <- FALSE
+              best_hit <- Inf
+              best_sign <- ifelse(is.na(preferred_sign), 1L, preferred_sign)
+              best_abs <- max(base_abs_curv, .Machine$double.eps)
+              for (cand_abs in candidate_abs) {
+                sign_trials <- if (cand_abs <= .Machine$double.eps) c(ifelse(is.na(preferred_sign), 1L, preferred_sign)) else
+                  if (is.na(preferred_sign)) c(-1L, 1L) else c(preferred_sign, -preferred_sign)
+                for (sgn_i in sign_trials) {
+                  hit_n <- path_inside_count(ii, sgn_i * cand_abs)
+                  if (hit_n < best_hit) { best_hit <- hit_n; best_sign <- sgn_i; best_abs <- cand_abs }
+                  if (hit_n == 0L) {
+                    curv_sign[ii] <- sgn_i
+                    curv_abs[ii] <- max(cand_abs, .Machine$double.eps)
+                    found <- TRUE
+                    break
+                  }
+                }
+                if (found) break
+              }
+              if (!found) { curv_sign[ii] <- best_sign; curv_abs[ii] <- max(best_abs, .Machine$double.eps) }
+            }
+          }
+        } else if (identical(link_curve_mode, "inward")) {
+          outward_score <- mx * (-dy) + my * dx
+          curv_sign <- ifelse(outward_score >= 0, 1, -1)
+        } else {
+          outward_score <- mx * (-dy) + my * dx
+          curv_sign <- ifelse(outward_score >= 0, -1, 1)
+        }
+
+        if (identical(link_curve_mode, "cross") && !is.null(circle_radius) && length(circle_radius) > 0) {
+          ctrl_scale <- 0.42
+          lerp2 <- function(p, q, t) p + (q - p) * t
+          split_quad <- function(P0, P1, P2, t) {
+            P01 <- lerp2(P0, P1, t); P12 <- lerp2(P1, P2, t); P0112 <- lerp2(P01, P12, t)
+            list(left = list(P0, P01, P0112), right = list(P0112, P12, P2))
+          }
+          bezier_ctrl <- vector("list", nrow(df_draw))
+          for (ii in seq_len(nrow(df_draw))) {
+            x0 <- df_draw$x[ii]; y0 <- df_draw$y[ii]; x1 <- df_draw$xend[ii]; y1 <- df_draw$yend[ii]
+            dd <- sqrt((x1 - x0)^2 + (y1 - y0)^2)
+            if (!is.finite(dd) || dd <= .Machine$double.eps) next
+            midx <- (x0 + x1) / 2; midy <- (y0 + y1) / 2
+            ux <- -(y1 - y0) / dd; uy <- (x1 - x0) / dd
+            k_signed <- curv_sign[ii] * curv_abs[ii]
+            P0 <- c(x0, y0); P1 <- c(midx + ux * (k_signed * dd * ctrl_scale), midy + uy * (k_signed * dd * ctrl_scale)); P2 <- c(x1, y1)
+            sp1 <- split_quad(P0, P1, P2, 0); R0 <- sp1$right[[1]]; R1 <- sp1$right[[2]]; R2 <- sp1$right[[3]]
+            sp2 <- split_quad(R0, R1, R2, 1); S0 <- sp2$left[[1]]; S1 <- sp2$left[[2]]; S2 <- sp2$left[[3]]
+            bezier_ctrl[[ii]] <- data.frame(x = c(S0[1], S1[1], S2[1]), y = c(S0[2], S1[2], S2[2]), .curve_id = ii, .pt = 1:3)
+          }
+          bezier_df <- dplyr::bind_rows(bezier_ctrl)
+          if (nrow(bezier_df) == 0) return(p_obj)
+          bezier_df <- bezier_df[order(bezier_df$.curve_id, bezier_df$.pt), , drop = FALSE]
+          return(p_obj + ggforce::geom_bezier2(data = bezier_df, mapping = ggplot2::aes(x = x, y = y, group = .curve_id),
+            linetype = link_lt, linewidth = 1, alpha = link_al, color = col_link, lineend = "round"))
+        }
+
+        df_draw$.curv_abs <- curv_abs
+        df_pos <- df_draw[curv_sign > 0, , drop = FALSE]
+        df_neg <- df_draw[curv_sign <= 0, , drop = FALSE]
+        dist_pos <- dist_link[curv_sign > 0]
+        dist_neg <- dist_link[curv_sign <= 0]
+        add_curve_side <- function(p_side, df_side, dist_side, sign_side) {
+          if (nrow(df_side) == 0) return(p_side)
+          curv_med <- sign_side * stats::median(df_side$.curv_abs, na.rm = TRUE)
+          p_side + ggplot2::geom_curve(data = df_side, mapping = ggplot2::aes(x = x, xend = xend, y = y, yend = yend),
+            curvature = curv_med, linetype = link_lt, linewidth = 1, alpha = link_al, color = col_link)
+        }
+        p_new <- add_curve_side(p_obj, df_pos, dist_pos, 1)
+        p_new <- add_curve_side(p_new, df_neg, dist_neg, -1)
+        p_new
+      } else {
+        p_obj + ggplot2::geom_segment(data = df_link, mapping = ggplot2::aes(x = x, y = y, xend = xend, yend = yend),
+          linetype = link_lt, linewidth = 1, alpha = link_al, color = col_link)
+      }
+    }
+    add_link_layer_impl
+  })()
+
+  # Node-level links (node, nodeinmodule): draw BEFORE nodes and module visualization
+  if (isTRUE(comparisons)) {
+    if ((link_level == "node" || link_level == "module&node" || link_level == "module&node2") && ncol(compare_matrix) > 0) {
+      tmpi <- 1
+      for (i in seq_len(ncol(compare_matrix))) {
+        gA <- compare_matrix[1, i]
+        gB <- compare_matrix[2, i]
+
+        node_links <- graph_info[[gA]]$ggplot_node_df %>%
+          dplyr::select(name, x, y) %>%
+          dplyr::inner_join(
+            graph_info[[gB]]$ggplot_node_df %>%
+              dplyr::select(name, x, y),
+            by = "name",
+            suffix = c("_A", "_B")
+          ) %>%
+          dplyr::transmute(
+            x = x_A,
+            y = y_A,
+            xend = x_B,
+            yend = y_B,
+            group_a = gA,
+            group_b = gB
+          )
+
+        node_links_info <- graph_info[[gA]]$ggplot_node_df %>%
+          dplyr::select(name, x, y) %>%
+          dplyr::inner_join(
+            graph_info[[gB]]$ggplot_node_df %>%
+              dplyr::select(name, x, y),
+            by = "name",
+            suffix = c("_A", "_B")
+          ) %>%
+          dplyr::transmute(
+            link_level = "node",
+            group_a = gA,
+            group_b = gB,
+            source = as.character(name),
+            target = as.character(name),
+            x = x_A,
+            y = y_A,
+            xend = x_B,
+            yend = y_B
+          )
+
+        link_info <- dplyr::bind_rows(link_info, node_links_info)
+
+        col_i <- color_v[((tmpi - 1) %% length(color_v)) + 1]
+        pair_key <- paste(sort(c(gA, gB)), collapse = "|")
+        cross_sign <- cross_channel_lookup[[pair_key]]
+        p <- add_link_layer(p, node_links, col_i, link_type = "node", cross_channel_sign = cross_sign)
+        tmpi <- tmpi + 1
+      }
+    }
+
+    if (link_level == "nodeinmodule" && nrow(Module_information_plot) > 0) {
+      tmpi <- 1
+      for (ri in seq_len(nrow(Module_information_plot))) {
+        row_i <- Module_information_plot[ri, , drop = FALSE]
+        gA <- row_i$GroupA
+        gB <- row_i$GroupB
+        modA <- as.character(row_i$modA)
+        modB <- as.character(row_i$modB)
+
+        nodes_A <- graph_info[[gA]]$ggplot_node_df %>%
+          dplyr::filter(as.character(Modularity) == modA) %>%
+          dplyr::select(name, x, y)
+        nodes_B <- graph_info[[gB]]$ggplot_node_df %>%
+          dplyr::filter(as.character(Modularity) == modB) %>%
+          dplyr::select(name, x, y)
+
+        nodeinmodule_links <- nodes_A %>%
+          dplyr::inner_join(nodes_B, by = "name", suffix = c("_A", "_B")) %>%
+          dplyr::transmute(
+            x = x_A,
+            y = y_A,
+            xend = x_B,
+            yend = y_B,
+            group_a = gA,
+            group_b = gB
+          )
+
+        nodeinmodule_links_info <- nodes_A %>%
+          dplyr::inner_join(nodes_B, by = "name", suffix = c("_A", "_B")) %>%
+          dplyr::transmute(
+            link_level = "nodeinmodule",
+            group_a = gA,
+            group_b = gB,
+            source = as.character(name),
+            target = as.character(name),
+            x = x_A,
+            y = y_A,
+            xend = x_B,
+            yend = y_B
+          )
+
+        if (nrow(nodeinmodule_links) > 0) {
+          link_info <- dplyr::bind_rows(link_info, nodeinmodule_links_info)
+          col_i <- color_v[((tmpi - 1) %% length(color_v)) + 1]
+          pair_key <- paste(sort(c(gA, gB)), collapse = "|")
+          cross_sign <- cross_channel_lookup[[pair_key]]
+          p <- add_link_layer(p, nodeinmodule_links, col_i, link_type = "node", cross_channel_sign = cross_sign)
+          tmpi <- tmpi + 1
+        }
+      }
+    }
+  }
+
+  # 我们先添加点和线 (inner edges, nodes, module outer)
   for (index in seq_along(names(graph_info))) {
     edge_df <- graph_info[[index]]$ggplot_edge_df
 
@@ -1086,7 +1523,7 @@ ggNetView_multi_link <- function(mat,
       ggplot2::annotate(
         geom = "text",
         x = mean(graph_info[[index]]$ggplot_node_df$x),
-        y = max(graph_info[[index]]$ggplot_node_df$y) + anchor_dist/30,
+        y = max(graph_info[[index]]$ggplot_node_df$y) + label_offset,
         label = if (isTRUE(mapping_line)) {
           paste0("Group = ", names(graph_info[index]), "\n",
                  "Node = ", graph_stat[[index]]$node, "\n",
@@ -1098,26 +1535,13 @@ ggNetView_multi_link <- function(mat,
                  "Node = ", graph_stat[[index]]$node, "\n",
                  "Edge = ", graph_stat[[index]]$edge, "\n")
         },
-        size = 4,
+        size = label_size,
         fontface = "bold"
       )
 
   }
 
-  # 增加跨组连线
-  link_info <- tibble::tibble(
-    link_level = character(),
-    group_a = character(),
-    group_b = character(),
-    source = character(),
-    target = character(),
-    x = numeric(),
-    y = numeric(),
-    xend = numeric(),
-    yend = numeric()
-  )
-
-  # When link_curve_mode == "cross": assign one curvature sign per group-pair so
+  # When link_curve_mode == "cross" (for module links, cross_channel_lookup already set above): assign one curvature sign per group-pair so
   # same-pair links form a bundle along a channel (left/right/bottom arc), not through center.
   # Cross uses the OPPOSITE of the inward rule per pair so that cross = outer arc vs inward = inner arc (they then look distinct).
   cross_channel_lookup <- list()
@@ -1215,297 +1639,7 @@ ggNetView_multi_link <- function(mat,
     }
   }
 
-  add_link_layer <- function(p_obj, df_link, col_link, link_type = c("node", "module"), cross_channel_sign = NULL) {
-    link_type <- match.arg(link_type)
-    link_lt <- if (link_type == "module") link_linetype_module else link_linetype_node
-    link_al <- if (link_type == "module") link_linealpha_module else link_linealpha_node
-    if (nrow(df_link) == 0) return(p_obj)
-    if (isTRUE(link_curve)) {
-      df_draw <- df_link
-      dx <- df_draw$xend - df_draw$x
-      dy <- df_draw$yend - df_draw$y
-      mx <- (df_draw$x + df_draw$xend) / 2
-      my <- (df_draw$y + df_draw$yend) / 2
-      dist_link <- sqrt(dx^2 + dy^2)
-
-      base_abs_curv <- abs(link_curvature)
-      curv_abs <- rep(base_abs_curv, nrow(df_draw))
-      if (identical(link_curve_mode, "cross")) {
-        # Cross mode reset:
-        # Prefer the pre-assigned pair channel so a group-pair consistently uses
-        # the same left/right or up/down side.
-        preferred_sign <- if (!is.null(cross_channel_sign) && length(cross_channel_sign) == 1 && is.finite(cross_channel_sign)) {
-          as.integer(ifelse(cross_channel_sign >= 0, 1L, -1L))
-        } else {
-          NA_integer_
-        }
-        curv_sign <- rep(ifelse(is.na(preferred_sign), 1L, preferred_sign), nrow(df_draw))
-        curv_abs <- rep(max(base_abs_curv, .Machine$double.eps), nrow(df_draw))
-        if (!is.null(circle_radius) && length(circle_radius) > 0) {
-          # We care more about the visible body of the link channel.
-          # Keep a small margin near both ends and enforce avoidance on the middle body.
-          t_seq <- seq(0.05, 0.95, length.out = 81)
-          endpoint_allow <- 0.26
-          ctrl_scale <- 0.42
-          # From almost-straight to larger bends; first feasible is the shortest.
-          # We expand the upper range so the solver can route links fully outside group circles.
-          candidate_abs <- max(base_abs_curv, 0.02) * c(0.10, 0.14, 0.20, 0.27, 0.36, 0.48, 0.64, 0.84, 1.1, 1.45, 1.9, 2.5, 3.1, 4.0, 5.2, 6.6)
-          path_inside_count <- function(i, k_signed) {
-            x0 <- df_draw$x[i]
-            y0 <- df_draw$y[i]
-            x1 <- df_draw$xend[i]
-            y1 <- df_draw$yend[i]
-            dd <- sqrt((x1 - x0)^2 + (y1 - y0)^2)
-            if (!is.finite(dd) || dd <= .Machine$double.eps) return(0L)
-            midx <- (x0 + x1) / 2
-            midy <- (y0 + y1) / 2
-            ux <- -(y1 - y0) / dd
-            uy <- (x1 - x0) / dd
-            cx_ctrl <- midx + ux * (k_signed * dd * ctrl_scale)
-            cy_ctrl <- midy + uy * (k_signed * dd * ctrl_scale)
-            bx <- (1 - t_seq)^2 * x0 + 2 * (1 - t_seq) * t_seq * cx_ctrl + t_seq^2 * x1
-            by <- (1 - t_seq)^2 * y0 + 2 * (1 - t_seq) * t_seq * cy_ctrl + t_seq^2 * y1
-            gsrc <- NA_character_
-            gtgt <- NA_character_
-            if (!is.null(df_draw$group_a) && !is.null(df_draw$group_b)) {
-              gsrc <- as.character(df_draw$group_a[i])
-              gtgt <- as.character(df_draw$group_b[i])
-            }
-            inside_any <- rep(FALSE, length(t_seq))
-            for (g in names(circle_radius)) {
-              rr <- (circle_radius[[g]] + circle_pad)^2
-              dist2 <- (bx - circle_centers_x[[g]])^2 + (by - circle_centers_y[[g]])^2
-              inside <- dist2 < rr
-              # Allow entering source/target group circles near endpoints so links
-              # can actually connect back to module outliers.
-              if (!is.na(gsrc) && identical(g, gsrc)) {
-                inside <- inside & (t_seq > endpoint_allow)
-              }
-              if (!is.na(gtgt) && identical(g, gtgt)) {
-                inside <- inside & (t_seq < (1 - endpoint_allow))
-              }
-              inside_any <- inside_any | inside
-            }
-            sum(inside_any)
-          }
-          path_hits_circle <- function(i, k_signed) {
-            path_inside_count(i, k_signed) > 0L
-          }
-          for (ii in seq_len(nrow(df_draw))) {
-            found <- FALSE
-            best_hit <- Inf
-            best_sign <- ifelse(is.na(preferred_sign), 1L, preferred_sign)
-            best_abs <- max(base_abs_curv, .Machine$double.eps)
-            for (cand_abs in candidate_abs) {
-              if (cand_abs <= .Machine$double.eps) {
-                sign_trials <- c(ifelse(is.na(preferred_sign), 1L, preferred_sign))
-              } else if (is.na(preferred_sign)) {
-                sign_trials <- c(-1L, 1L)
-              } else {
-                sign_trials <- c(preferred_sign, -preferred_sign)
-              }
-              for (sgn_i in sign_trials) {
-                hit_n <- path_inside_count(ii, sgn_i * cand_abs)
-                if (hit_n < best_hit) {
-                  best_hit <- hit_n
-                  best_sign <- sgn_i
-                  best_abs <- cand_abs
-                }
-                if (hit_n == 0L) {
-                  curv_sign[ii] <- sgn_i
-                  curv_abs[ii] <- max(cand_abs, .Machine$double.eps)
-                  found <- TRUE
-                  break
-                }
-              }
-              if (found) break
-            }
-            if (!found) {
-              # Hard fallback: choose the candidate with the smallest circle intrusion.
-              curv_sign[ii] <- best_sign
-              curv_abs[ii] <- max(best_abs, .Machine$double.eps)
-            }
-          }
-        }
-      } else if (identical(link_curve_mode, "inward")) {
-        # Inward rule: bend toward global center (0,0), opposite of outward.
-        outward_score <- mx * (-dy) + my * dx
-        curv_sign <- ifelse(outward_score >= 0, 1, -1)
-      } else {
-        # Outward rule relative to global center (0,0).
-        outward_score <- mx * (-dy) + my * dx
-        curv_sign <- ifelse(outward_score >= 0, -1, 1)
-      }
-
-      if (identical(link_curve_mode, "cross")) {
-        # Render cross links with ggforce bezier curves (same geometry as avoidance solver).
-        # The visible segment is clipped to the source/target group orbit boundary so
-        # cross-group links do not run through the interior of each group circle.
-        ctrl_scale <- 0.42
-        lerp2 <- function(p, q, t) p + (q - p) * t
-        split_quad <- function(P0, P1, P2, t) {
-          P01 <- lerp2(P0, P1, t)
-          P12 <- lerp2(P1, P2, t)
-          P0112 <- lerp2(P01, P12, t)
-          list(
-            left = list(P0, P01, P0112),
-            right = list(P0112, P12, P2)
-          )
-        }
-        bezier_ctrl <- vector("list", nrow(df_draw))
-        for (ii in seq_len(nrow(df_draw))) {
-          x0 <- df_draw$x[ii]
-          y0 <- df_draw$y[ii]
-          x1 <- df_draw$xend[ii]
-          y1 <- df_draw$yend[ii]
-          dd <- sqrt((x1 - x0)^2 + (y1 - y0)^2)
-          if (!is.finite(dd) || dd <= .Machine$double.eps) next
-          midx <- (x0 + x1) / 2
-          midy <- (y0 + y1) / 2
-          ux <- -(y1 - y0) / dd
-          uy <- (x1 - x0) / dd
-          k_signed <- curv_sign[ii] * curv_abs[ii]
-          P0 <- c(x0, y0)
-          P1 <- c(midx + ux * (k_signed * dd * ctrl_scale), midy + uy * (k_signed * dd * ctrl_scale))
-          P2 <- c(x1, y1)
-          t0 <- 0
-          t1 <- 1
-          # Extract the trimmed quadratic sub-curve on [t0, t1].
-          sp1 <- split_quad(P0, P1, P2, t0)
-          R0 <- sp1$right[[1]]
-          R1 <- sp1$right[[2]]
-          R2 <- sp1$right[[3]]
-          u <- (t1 - t0) / (1 - t0)
-          sp2 <- split_quad(R0, R1, R2, u)
-          S0 <- sp2$left[[1]]
-          S1 <- sp2$left[[2]]
-          S2 <- sp2$left[[3]]
-          bezier_ctrl[[ii]] <- data.frame(
-            x = c(S0[1], S1[1], S2[1]),
-            y = c(S0[2], S1[2], S2[2]),
-            .curve_id = ii,
-            .pt = 1:3
-          )
-        }
-        bezier_df <- dplyr::bind_rows(bezier_ctrl)
-        if (nrow(bezier_df) == 0) return(p_obj)
-        bezier_df <- bezier_df[order(bezier_df$.curve_id, bezier_df$.pt), , drop = FALSE]
-        return(
-          p_obj + ggforce::geom_bezier2(
-            data = bezier_df,
-            mapping = ggplot2::aes(x = x, y = y, group = .curve_id),
-            linetype = link_lt,
-            linewidth = 1,
-            alpha = link_al,
-            color = col_link,
-            lineend = "round"
-          )
-        )
-      }
-
-      df_draw$.curv_abs <- curv_abs
-      df_pos <- df_draw[curv_sign > 0, , drop = FALSE]
-      df_neg <- df_draw[curv_sign <= 0, , drop = FALSE]
-      dist_pos <- dist_link[curv_sign > 0]
-      dist_neg <- dist_link[curv_sign <= 0]
-
-      p_new <- p_obj
-      add_curve_side <- function(p_side, df_side, dist_side, sign_side) {
-        if (nrow(df_side) == 0) return(p_side)
-
-        if (identical(link_curve_mode, "cross") && ".curv_abs" %in% colnames(df_side) && nrow(df_side) > 1) {
-          curv_bins <- min(10L, nrow(df_side))
-          breaks_curv <- unique(stats::quantile(df_side$.curv_abs, probs = seq(0, 1, length.out = curv_bins + 1), na.rm = TRUE))
-          if (length(breaks_curv) > 2) {
-            df_side$.curv_bin <- as.integer(cut(df_side$.curv_abs, breaks = breaks_curv, include.lowest = TRUE))
-            bin_levels_curv <- sort(unique(df_side$.curv_bin))
-            p_tmp <- p_side
-            for (bid in bin_levels_curv) {
-              df_bin <- df_side[df_side$.curv_bin == bid, , drop = FALSE]
-              p_tmp <- p_tmp + ggplot2::geom_curve(
-                data = df_bin,
-                mapping = ggplot2::aes(x = x, xend = xend, y = y, yend = yend),
-                curvature = sign_side * stats::median(df_bin$.curv_abs, na.rm = TRUE),
-                linetype = link_lt,
-                linewidth = 1,
-                alpha = link_al,
-                color = col_link
-              )
-            }
-            return(p_tmp)
-          }
-        }
-
-        if (!isTRUE(link_curve_adaptive) || nrow(df_side) == 1 || diff(range(dist_side)) == 0) {
-          return(
-            p_side + ggplot2::geom_curve(
-              data = df_side,
-              mapping = ggplot2::aes(x = x, xend = xend, y = y, yend = yend),
-              curvature = sign_side * stats::median(df_side$.curv_abs, na.rm = TRUE),
-              linetype = link_lt,
-              linewidth = 1,
-              alpha = link_al,
-              color = col_link
-            )
-          )
-        }
-
-        bins_n <- min(link_curve_adaptive_bins, nrow(df_side))
-        cuts <- seq(min(dist_side), max(dist_side), length.out = bins_n + 1)
-        # Guard against duplicated cut boundaries in edge cases
-        cuts <- unique(cuts)
-        if (length(cuts) <= 2) {
-          return(
-            p_side + ggplot2::geom_curve(
-              data = df_side,
-              mapping = ggplot2::aes(x = x, xend = xend, y = y, yend = yend),
-              curvature = sign_side * stats::median(df_side$.curv_abs, na.rm = TRUE),
-              linetype = link_lt,
-              linewidth = 1,
-              alpha = link_al,
-              color = col_link
-            )
-          )
-        }
-
-        bin_id <- cut(dist_side, breaks = cuts, include.lowest = TRUE, labels = FALSE)
-        bin_levels <- sort(unique(bin_id))
-        mul_levels <- seq(link_curve_adaptive_range[1], link_curve_adaptive_range[2], length.out = length(bin_levels))
-
-        p_tmp <- p_side
-        for (k in seq_along(bin_levels)) {
-          bid <- bin_levels[k]
-          df_bin <- df_side[bin_id == bid, , drop = FALSE]
-          curv_k <- sign_side * stats::median(df_bin$.curv_abs, na.rm = TRUE) * mul_levels[k]
-          p_tmp <- p_tmp + ggplot2::geom_curve(
-            data = df_bin,
-            mapping = ggplot2::aes(x = x, xend = xend, y = y, yend = yend),
-            curvature = curv_k,
-            linetype = link_lt,
-            linewidth = 1,
-            alpha = link_al,
-            color = col_link
-          )
-        }
-        p_tmp
-      }
-
-      p_new <- add_curve_side(p_new, df_pos, dist_pos, 1)
-      p_new <- add_curve_side(p_new, df_neg, dist_neg, -1)
-      p_new
-    } else {
-      p_obj + ggplot2::geom_segment(
-        data = df_link,
-        mapping = ggplot2::aes(x = x, xend = xend, y = y, yend = yend),
-        linetype = link_lt,
-        linewidth = 1,
-        alpha = link_al,
-        color = col_link
-      )
-    }
-  }
-
-  if ((link_level == "module" || link_level == "module&node" || link_level == "nodeinmodule") && nrow(Module_information_plot) > 0) {
+  if (isTRUE(comparisons) && (link_level == "module" || link_level == "module&node" || link_level == "module&node2" || link_level == "nodeinmodule") && nrow(Module_information_plot) > 0) {
     tmpi <- 1
     for (link_type in names(table(Module_information_plot$Group))) {
       modA_tmp <- Module_information_plot %>%
@@ -1583,111 +1717,6 @@ ggNetView_multi_link <- function(mat,
       pair_key <- paste(sort(c(GroupA_tmp, GroupB_tmp)), collapse = "|")
       cross_sign <- cross_channel_lookup[[pair_key]]
       p <- add_link_layer(p, Module_location_plot, col_i, link_type = "module", cross_channel_sign = cross_sign)
-      tmpi <- tmpi + 1
-    }
-  }
-
-  if (link_level == "nodeinmodule" && nrow(Module_information_plot) > 0) {
-    tmpi <- 1
-    for (ri in seq_len(nrow(Module_information_plot))) {
-      row_i <- Module_information_plot[ri, , drop = FALSE]
-      gA <- row_i$GroupA
-      gB <- row_i$GroupB
-      modA <- as.character(row_i$modA)
-      modB <- as.character(row_i$modB)
-
-      nodes_A <- graph_info[[gA]]$ggplot_node_df %>%
-        dplyr::filter(as.character(Modularity) == modA) %>%
-        dplyr::select(name, x, y)
-      nodes_B <- graph_info[[gB]]$ggplot_node_df %>%
-        dplyr::filter(as.character(Modularity) == modB) %>%
-        dplyr::select(name, x, y)
-
-      nodeinmodule_links <- nodes_A %>%
-        dplyr::inner_join(nodes_B, by = "name", suffix = c("_A", "_B")) %>%
-        dplyr::transmute(
-          x = x_A,
-          y = y_A,
-          xend = x_B,
-          yend = y_B,
-          group_a = gA,
-          group_b = gB
-        )
-
-      nodeinmodule_links_info <- nodes_A %>%
-        dplyr::inner_join(nodes_B, by = "name", suffix = c("_A", "_B")) %>%
-        dplyr::transmute(
-          link_level = "nodeinmodule",
-          group_a = gA,
-          group_b = gB,
-          source = as.character(name),
-          target = as.character(name),
-          x = x_A,
-          y = y_A,
-          xend = x_B,
-          yend = y_B
-        )
-
-      if (nrow(nodeinmodule_links) > 0) {
-        link_info <- dplyr::bind_rows(link_info, nodeinmodule_links_info)
-        col_i <- color_v[((tmpi - 1) %% length(color_v)) + 1]
-        pair_key <- paste(sort(c(gA, gB)), collapse = "|")
-        cross_sign <- cross_channel_lookup[[pair_key]]
-        p <- add_link_layer(p, nodeinmodule_links, col_i, link_type = "node", cross_channel_sign = cross_sign)
-        tmpi <- tmpi + 1
-      }
-    }
-  }
-
-  if ((link_level == "node" || link_level == "module&node") && ncol(compare_matrix) > 0) {
-    tmpi <- 1
-    for (i in seq_len(ncol(compare_matrix))) {
-      gA <- compare_matrix[1, i]
-      gB <- compare_matrix[2, i]
-
-      node_links <- graph_info[[gA]]$ggplot_node_df %>%
-        dplyr::select(name, x, y) %>%
-        dplyr::inner_join(
-          graph_info[[gB]]$ggplot_node_df %>%
-            dplyr::select(name, x, y),
-          by = "name",
-          suffix = c("_A", "_B")
-        ) %>%
-        dplyr::transmute(
-          x = x_A,
-          y = y_A,
-          xend = x_B,
-          yend = y_B,
-          group_a = gA,
-          group_b = gB
-        )
-
-      node_links_info <- graph_info[[gA]]$ggplot_node_df %>%
-        dplyr::select(name, x, y) %>%
-        dplyr::inner_join(
-          graph_info[[gB]]$ggplot_node_df %>%
-            dplyr::select(name, x, y),
-          by = "name",
-          suffix = c("_A", "_B")
-        ) %>%
-        dplyr::transmute(
-          link_level = "node",
-          group_a = gA,
-          group_b = gB,
-          source = as.character(name),
-          target = as.character(name),
-          x = x_A,
-          y = y_A,
-          xend = x_B,
-          yend = y_B
-        )
-
-      link_info <- dplyr::bind_rows(link_info, node_links_info)
-
-      col_i <- color_v[((tmpi - 1) %% length(color_v)) + 1]
-      pair_key <- paste(sort(c(gA, gB)), collapse = "|")
-      cross_sign <- cross_channel_lookup[[pair_key]]
-      p <- add_link_layer(p, node_links, col_i, link_type = "node", cross_channel_sign = cross_sign)
       tmpi <- tmpi + 1
     }
   }
