@@ -63,6 +63,9 @@ ggNetView_multi_link(
   link_linealpha_module = 0.5,
   dropOthers = FALSE,
   calculate_topology = FALSE,
+  comparisons = TRUE,
+  comparisons_groups = NULL,
+  order = NULL,
   scale_groups = TRUE,
   orientation = "up",
   angle = 0,
@@ -70,6 +73,8 @@ ggNetView_multi_link(
   layout_anchor_dist = NULL,
   nrow = NULL,
   ncol = NULL,
+  label_offset = 0.2,
+  label_size = 4,
   seed = 1115
 )
 }
@@ -240,13 +245,15 @@ Alpha for module outer boundaries.}
 
 \item{link_level}{Character (default = "Module").
 Cross-group link granularity. One of \code{"None"}, \code{"Module"}, \code{"Node"},
-\code{"NodeinModule"}, or \code{"Module&Node"}.
+\code{"NodeinModule"}, \code{"Module&Node"}, or \code{"Module&Node2"}.
 \code{"None"} draws no cross-group links.
 \code{"Module"} links significant module matches (module centroids).
 \code{"Node"} links shared node names across groups.
 \code{"NodeinModule"} links both module centroids and nodes within significantly overlapping
 modules (module links show which modules overlap; node links show shared nodes).
-\code{"Module&Node"} draws both module-level links and node-level links.}
+\code{"Module&Node"} draws both module-level links and node-level links.
+\code{"Module&Node2"} same as \code{"Module&Node"} but adds outer boundaries for all modules
+(not only matched ones).}
 
 \item{link_curve}{Logical (default = FALSE).
 Whether to draw cross-group links as curves (\code{geom_curve}) instead of straight segments.}
@@ -293,6 +300,22 @@ Whether to compute topology for each group using
 \code{get_network_topology_parallel()} and
 \code{get_sample_subgraph_topology_parallel()}.}
 
+\item{comparisons}{Logical (default = TRUE).
+Whether to perform cross-group comparisons and draw links.
+If \code{FALSE}, no module overlap or node comparison is done, and no cross-group links are drawn.}
+
+\item{comparisons_groups}{List or NULL (default = NULL).
+When \code{comparisons = TRUE}, constrains which group pairs are compared.
+Each element must be a length-2 character vector, e.g. \code{list(c("WT", "OE"), c("WT", "KO"))}.
+Group names must exist in \code{group_info$Group}.
+If \code{NULL}, all pairwise group comparisons are performed.}
+
+\item{order}{Character vector or NULL (default = NULL).
+Order of groups for layout positions. Groups are placed evenly on a circle:
+1st = top, 2nd = next clockwise, etc. (e.g. 3 groups = triangle, 4 = square).
+Must contain all unique groups from \code{group_info$Group} exactly once.
+If \code{NULL}, uses \code{unique(group_info$Group)} order (first occurrence).}
+
 \item{scale_groups}{Logical (default = TRUE).
 Whether to normalize each group to a comparable coordinate scale before
 placing groups on anchors for cross-group visual comparison.}
@@ -317,6 +340,12 @@ Number of layout rows for grid-style layouts (e.g. \code{"consensus_module_equal
 
 \item{ncol}{Integer (default = NULL).
 Number of layout columns for grid-style layouts (e.g. \code{"consensus_module_equal_gephi"}).}
+
+\item{label_offset}{Numeric (default = 0.2).
+Vertical offset of group labels above each group's layout (added to max y).}
+
+\item{label_size}{Numeric (default = 4).
+Font size for group labels (Group, Node, Edge, etc.).}
 
 \item{seed}{Integer (default = 1115).
 Random seed for reproducibility.}
