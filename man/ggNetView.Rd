@@ -54,7 +54,6 @@ ggNetView(
   anchor_dist = 6,
   nrow = NULL,
   ncol = NULL,
-  snake = FALSE,
   seed = 1115
 )
 }

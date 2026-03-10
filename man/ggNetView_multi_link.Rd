@@ -78,6 +78,7 @@ ggNetView_multi_link(
   layout_anchor_dist = NULL,
   nrow = NULL,
   ncol = NULL,
+  sine_period = 4,
   label_offset = 0.2,
   label_size = 4,
   add_group_outer = FALSE,
@@ -351,7 +352,18 @@ Arrangement of groups in the multi-group plot.
 \code{"square"}: 4 groups at corners of a square (top-left, top-right, bottom-right, bottom-left).
 \code{"diamond"}: 4 groups at top, right, bottom, left (like a rotated square).
 \code{"triangle"}: 3 groups at vertices of an upright triangle (point up).
-\code{"triangle_down"}: 3 groups at vertices of an inverted triangle (point down).}
+\code{"triangle_down"}: 3 groups at vertices of an inverted triangle (point down).
+\code{"snake"}: groups in a grid with snake-like ordering; first row left-to-right,
+second row right-to-left, third row left-to-right, etc. Uses \code{nrow} and \code{ncol}.
+\code{"snake_vertical"}: groups along a smooth sine curve; uses \code{sine_period}.
+\code{"snake_vertical_sin"}: same as \code{"snake_vertical"}.
+\code{"snake_vertical_cos"}: groups along a smooth cosine curve; uses \code{sine_period}.
+\code{"snake_vertical_neg_sin"}: smooth \code{-sin} curve.
+\code{"snake_vertical_neg_cos"}: smooth \code{-cos} curve.
+\code{"sin"}: vertex-only; group 1 at center; groups 2+ alternate peaks and troughs.
+\code{"cos"}: vertex-only; group 1 at peak; groups 2+ alternate peak and trough.
+\code{"-sin"}: vertex-only; group 1 at center; groups 2+ alternate down, up.
+\code{"-cos"}: vertex-only; group 1 at trough; groups 2+ alternate trough and peak.}
 
 \item{scale_groups}{Logical (default = TRUE).
 Whether to normalize each group to a comparable coordinate scale before
@@ -373,12 +385,15 @@ within each group). If \code{NULL}, it falls back to \code{anchor_dist}
 for backward compatibility.}
 
 \item{nrow}{Integer (default = NULL).
-Number of rows. Used by: (1) \code{group_layout = "row"} or \code{"column"} for group grid;
+Number of rows. Used by: (1) \code{group_layout = "row"}, \code{"column"}, or \code{"snake"} for group grid;
 (2) layout functions like \code{"consensus_module_equal_gephi"} for module grid.}
 
 \item{ncol}{Integer (default = NULL).
-Number of columns. Used by: (1) \code{group_layout = "row"} or \code{"column"} for group grid;
+Number of columns. Used by: (1) \code{group_layout = "row"}, \code{"column"}, or \code{"snake"} for group grid;
 (2) layout functions like \code{"consensus_module_equal_gephi"} for module grid.}
+
+\item{sine_period}{Numeric (default = 4).
+Groups per wavelength for \code{snake_vertical*}; ignored for \code{sin}, \code{cos}, \code{-sin}, \code{-cos}.}
 
 \item{label_offset}{Numeric (default = 0.2).
 Vertical offset of group labels above each group's layout (added to max y).}

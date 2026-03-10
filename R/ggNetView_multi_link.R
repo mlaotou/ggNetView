@@ -199,6 +199,19 @@
 #' \code{"diamond"}: 4 groups at top, right, bottom, left (like a rotated square).
 #' \code{"triangle"}: 3 groups at vertices of an upright triangle (point up).
 #' \code{"triangle_down"}: 3 groups at vertices of an inverted triangle (point down).
+#' \code{"snake"}: groups in a grid with snake-like ordering; first row left-to-right,
+#' second row right-to-left, third row left-to-right, etc. Uses \code{nrow} and \code{ncol}.
+#' \code{"snake_vertical"}: groups along a smooth sine curve; uses \code{sine_period}.
+#' \code{"snake_vertical_sin"}: same as \code{"snake_vertical"}.
+#' \code{"snake_vertical_cos"}: groups along a smooth cosine curve; uses \code{sine_period}.
+#' \code{"snake_vertical_neg_sin"}: smooth \code{-sin} curve.
+#' \code{"snake_vertical_neg_cos"}: smooth \code{-cos} curve.
+#' \code{"sin"}: vertex-only; group 1 at center; groups 2+ alternate peaks and troughs.
+#' \code{"cos"}: vertex-only; group 1 at peak; groups 2+ alternate peak and trough.
+#' \code{"-sin"}: vertex-only; group 1 at center; groups 2+ alternate down, up.
+#' \code{"-cos"}: vertex-only; group 1 at trough; groups 2+ alternate trough and peak.
+#' @param sine_period Numeric (default = 4).
+#' Groups per wavelength for \code{snake_vertical*}; ignored for \code{sin}, \code{cos}, \code{-sin}, \code{-cos}.
 #' @param scale_groups Logical (default = TRUE).
 #' Whether to normalize each group to a comparable coordinate scale before
 #' placing groups on anchors for cross-group visual comparison.
@@ -214,10 +227,10 @@
 #' within each group). If \code{NULL}, it falls back to \code{anchor_dist}
 #' for backward compatibility.
 #' @param nrow Integer (default = NULL).
-#' Number of rows. Used by: (1) \code{group_layout = "row"} or \code{"column"} for group grid;
+#' Number of rows. Used by: (1) \code{group_layout = "row"}, \code{"column"}, or \code{"snake"} for group grid;
 #' (2) layout functions like \code{"consensus_module_equal_gephi"} for module grid.
 #' @param ncol Integer (default = NULL).
-#' Number of columns. Used by: (1) \code{group_layout = "row"} or \code{"column"} for group grid;
+#' Number of columns. Used by: (1) \code{group_layout = "row"}, \code{"column"}, or \code{"snake"} for group grid;
 #' (2) layout functions like \code{"consensus_module_equal_gephi"} for module grid.
 #' @param label_offset Numeric (default = 0.2).
 #' Vertical offset of group labels above each group's layout (added to max y).
@@ -319,6 +332,7 @@ ggNetView_multi_link <- function(mat,
                                  layout_anchor_dist = NULL,
                                  nrow = NULL,
                                  ncol = NULL,
+                                 sine_period = 4,
                                  label_offset = 0.2,
                                  label_size = 4,
                                  add_group_outer = FALSE,
@@ -530,8 +544,11 @@ ggNetView_multi_link <- function(mat,
   if (!is.numeric(label_size) || length(label_size) != 1 || is.na(label_size) || label_size <= 0) {
     stop("`label_size` must be a single positive numeric value.")
   }
+  if (!is.numeric(sine_period) || length(sine_period) != 1 || is.na(sine_period) || sine_period <= 0) {
+    stop("`sine_period` must be a single positive numeric value.")
+  }
   layout.module <- match.arg(layout.module)
-  group_layout <- match.arg(group_layout, choices = c("circle", "row", "column", "square", "diamond", "triangle", "triangle_down"))
+  group_layout <- match.arg(group_layout, choices = c("circle", "row", "column", "square", "diamond", "triangle", "triangle_down", "snake", "snake_vertical", "snake_vertical_sin", "snake_vertical_cos", "snake_vertical_neg_sin", "snake_vertical_neg_cos", "sin", "cos", "-sin", "-cos"))
   layout_anchor_dist_use <- if (is.null(layout_anchor_dist)) anchor_dist else layout_anchor_dist
   if (is.null(layout) || length(layout) != 1 || is.na(layout) || trimws(as.character(layout)) == "") {
     stop("`layout` must be a non-empty character string (e.g. 'gephi', 'square', 'petal').")
@@ -890,6 +907,46 @@ ggNetView_multi_link <- function(mat,
       y <- -((r - (nr - 1) / 2) * anchor_dist)
       c(x, y)
     })
+  } else if (group_layout == "snake") {
+    # 蛇形布局：按行填充，奇数行从左到右，偶数行从右到左，交替排布
+    nr <- if (!is.null(nrow)) as.integer(nrow) else 1L
+    nc <- if (!is.null(ncol)) as.integer(ncol) else n_grp
+    if (is.null(nrow) && !is.null(ncol)) nr <- max(1L, as.integer(ceiling(n_grp / nc)))
+    if (!is.null(nrow) && is.null(ncol)) nc <- max(1L, as.integer(ceiling(n_grp / nr)))
+    nr <- max(1L, nr)
+    nc <- max(1L, nc)
+    anchors <- lapply(seq_len(n_grp), function(i) {
+      ii <- i - 1L
+      r <- ii %/% nc
+      c <- if (r %% 2L == 0L) ii %% nc else (nc - 1L) - (ii %% nc)
+      x <- (c - (nc - 1) / 2) * anchor_dist
+      y <- -((r - (nr - 1) / 2) * anchor_dist)
+      c(x, y)
+    })
+  } else if (group_layout %in% c("snake_vertical", "snake_vertical_sin", "snake_vertical_cos", "snake_vertical_neg_sin", "snake_vertical_neg_cos")) {
+    # 平滑曲线布局：沿 sin/cos 曲线排布，使用 sine_period 控制波长
+    t_vals <- 2 * pi * (0:(n_grp - 1)) / sine_period
+    x_centered <- (0:(n_grp - 1) - (n_grp - 1) / 2) * anchor_dist
+    layout_curve <- if (group_layout == "snake_vertical_sin") "snake_vertical" else group_layout
+    y_fun <- switch(layout_curve,
+      snake_vertical         = sin,
+      snake_vertical_cos     = cos,
+      snake_vertical_neg_sin = function(x) -sin(x),
+      snake_vertical_neg_cos = function(x) -cos(x)
+    )
+    y_vals <- anchor_dist * y_fun(t_vals)
+    anchors <- lapply(seq_len(n_grp), function(i) c(x_centered[i], y_vals[i]))
+  } else if (group_layout %in% c("sin", "cos", "-sin", "-cos")) {
+    # 正弦/余弦顶点布局：1 在中线，2 起在波峰/波谷交替，不回到中线
+    # sin: 1 水平，2 上、3 下、4 上、5 下…；cos: 1 峰、2 谷、3 峰…；-sin/-cos 同理
+    x_centered <- (0:(n_grp - 1) - (n_grp - 1) / 2) * anchor_dist
+    y_vals <- switch(group_layout,
+      sin = c(0, anchor_dist * rep(c(1, -1), length.out = n_grp - 1)),
+      cos = anchor_dist * rep(c(1, -1), length.out = n_grp),
+      "-sin" = c(0, anchor_dist * rep(c(-1, 1), length.out = n_grp - 1)),
+      "-cos" = anchor_dist * rep(c(-1, 1), length.out = n_grp)
+    )
+    anchors <- lapply(seq_len(n_grp), function(i) c(x_centered[i], y_vals[i]))
   } else if (group_layout %in% c("square", "diamond", "triangle", "triangle_down")) {
     # 多边形布局：类似 circle，在圆周上均匀分布，起始角度因形状而异
     # square: 四角 (左上、右上、右下、左下)，base = 3π/4
@@ -907,7 +964,7 @@ ggNetView_multi_link <- function(mat,
       c(anchor_dist * cos(a), anchor_dist * sin(a))
     })
   } else {
-    stop("`group_layout` must be one of: 'circle', 'row', 'column', 'square', 'diamond', 'triangle', 'triangle_down'.")
+    stop("`group_layout` must be one of: 'circle', 'row', 'column', 'square', 'diamond', 'triangle', 'triangle_down', 'snake', 'snake_vertical', 'snake_vertical_sin', 'snake_vertical_cos', 'snake_vertical_neg_sin', 'snake_vertical_neg_cos', 'sin', 'cos', '-sin', '-cos'.")
   }
 
   anchors_df <- do.call(rbind, anchors) %>%
