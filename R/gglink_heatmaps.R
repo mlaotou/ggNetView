@@ -44,6 +44,19 @@
 #' Character vector defining which heatmap quadrants to display. Can include any combination of `"top_right"`, `"bottom_right"`, `"top_left"`, and `"bottom_left"`.
 #' @param r Numeric
 #' radius of the central species layout (in plot units).
+#' @param group_layout Character (default = "circle").
+#' Arrangement of multiple species networks when \code{spec_select} has multiple elements.
+#' Options: \code{"circle"}, \code{"row"}, \code{"column"}, \code{"square"}, \code{"diamond"},
+#' \code{"triangle"}, \code{"triangle_down"}, \code{"snake"}.
+#' @param anchor_dist Numeric (default = 6).
+#' Distance between species networks when multiple \code{spec_select} blocks are used.
+#' @param scale_networks Logical (default = TRUE).
+#' If \code{TRUE}, normalize each species network to the same scale (radius \code{r}) before placing on anchors.
+#' If \code{FALSE}, \code{r} is the minimum network radius; larger networks scale proportionally by node count.
+#' @param nrow Integer (default = NULL).
+#' Number of rows for \code{group_layout = "row"}, \code{"column"}, or \code{"snake"}.
+#' @param ncol Integer (default = NULL).
+#' Number of columns for \code{group_layout = "row"}, \code{"column"}, or \code{"snake"}.
 #' @param HeatmapLabelSize Numeric (default = 5)
 #' Text size for heatmap axis labels (ID/Type).
 #' @param HeatmapSigSize Numeric (default = 5)
@@ -92,7 +105,9 @@
 #' - [[1]]: ggplot object with straight link segments.
 #' - [[2]]: ggplot object with curved link segments.
 #' - [[3]]: data.frame of full species–environment correlation statistics
-#'          (unfiltered, not affected by `drop_nonsig`).
+#'          (unfiltered, not affected by `drop_nonsig`), with columns
+#'          \code{ID}, \code{Type}, \code{Correlation}, \code{Pvalue}, \code{spec_block},
+#'          \code{env_block}, and \code{method} (e.g. \code{"correlation"} or \code{"mantel"}).
 #' @export
 #'
 #' @examples NULL
@@ -127,10 +142,18 @@ gglink_heatmaps <- function(
     HeatmapTileSize = 0,
     fontsize = 5,
     orientation = c("top_right", "bottom_right", "top_left","bottom_left"),
-    r = 6
+    r = 6,
+    group_layout = c("circle", "row", "column", "square", "diamond", "triangle", "triangle_down", "snake"),
+    anchor_dist = 6,
+    scale_networks = TRUE,
+    nrow = NULL,
+    ncol = NULL
 ){
 
   # argument test
+  if (is.null(env_select) || is.null(spec_select)) {
+    stop("`env_select` and `spec_select` must be provided (non-NULL lists).", call. = FALSE)
+  }
   relation_method <- match.arg(relation_method)
   cor.method      <- match.arg(cor.method)
   cor.use         <- match.arg(cor.use)
@@ -138,6 +161,11 @@ gglink_heatmaps <- function(
   mantel.method2  <- match.arg(mantel.method2)
   mantel.alternative <- match.arg(mantel.alternative)
   orientation     <- match.arg(orientation, several.ok = TRUE)
+  group_layout    <- match.arg(group_layout)
+  anchor_dist     <- as.numeric(anchor_dist)
+  if (length(anchor_dist) != 1 || is.na(anchor_dist) || anchor_dist < 0) {
+    stop("`anchor_dist` must be a single non-negative numeric value.", call. = FALSE)
+  }
 
 
 
@@ -232,7 +260,7 @@ gglink_heatmaps <- function(
   spec_list <- purrr::map(spec_select, ~ spec[, .x, drop = FALSE])
 
   # 这里需要统计一下
-  k_vec  <- purrr::map_int(env_list, ncol)
+  k_vec  <- purrr::map_int(env_list, function(x) ncol(x))
   k_ref  <- max(k_vec)
 
   # distance controls the extra gap between the central species layout (radius)
@@ -476,21 +504,23 @@ gglink_heatmaps <- function(
 
   ####----核心物种与环境因子之间的关系----####
 
+  spec_block_names <- names(spec_list)
+  if (is.null(spec_block_names)) spec_block_names <- paste0("Spec", seq_along(spec_list))
+
+  env_block_names <- names(env_list)
+  if (is.null(env_block_names)) env_block_names <- paste0("Env", seq_along(env_list))
+
   if (relation_method == "correlation") {
-    cor_spec_env_list <- list()
-
-    for (p in seq_along(env_list)) {
-      for (j in seq_along(spec_list)) {
-        # correlation
+    cor_spec_env_parts <- list()
+    for (j in seq_along(spec_list)) {
+      for (p in seq_along(env_list)) {
         cor_env_list_tmp <- psych::corr.test(spec_list[[j]], env_list[[p]])
-
         cor_env_list_tmp_r <- cor_env_list_tmp$r %>%
           as.data.frame() %>%
           tibble::rownames_to_column(var = "ID") %>%
           tidyr::pivot_longer(cols = -ID,
                               names_to = "Type",
                               values_to = "Correlation")
-
         cor_env_list_tmp_p <- cor_env_list_tmp$p %>%
           as.data.frame() %>%
           tibble::rownames_to_column(var = "ID") %>%
@@ -503,142 +533,206 @@ gglink_heatmaps <- function(
             Pvalue < 0.01 & Pvalue >= 0.001 ~ "**",
             Pvalue < 0.001 ~ "***"
           ))
-
         cor_env_list_tmp_r_p <- cbind(cor_env_list_tmp_r,
-                                      cor_env_list_tmp_p %>% dplyr::select(3,4))
-
-        cor_spec_env_list[[p]] <- cor_env_list_tmp_r_p
-
+                                      cor_env_list_tmp_p %>% dplyr::select(3, 4)) %>%
+          dplyr::mutate(spec_block = spec_block_names[j], env_block = env_block_names[p])
+        cor_spec_env_parts[[length(cor_spec_env_parts) + 1L]] <- cor_env_list_tmp_r_p
       }
-
     }
-
-    cor_spec_env_list_out <- do.call(rbind, cor_spec_env_list)
-
+    cor_spec_env_list_out <- do.call(rbind, cor_spec_env_parts) %>%
+      dplyr::mutate(method = "correlation")
+  } else if (relation_method == "mantel") {
+    cor_spec_env_parts <- list()
+    for (j in seq_along(spec_list)) {
+      for (p in seq_along(env_list)) {
+        mout <- mantel_pairwise(
+          spec_df = spec_list[[j]],
+          env_df = env_list[[p]],
+          method = mantel.method2,
+          permutations = 999L,
+          na_omit = TRUE
+        )
+        mout <- mout %>% dplyr::mutate(spec_block = spec_block_names[j], env_block = env_block_names[p])
+        cor_spec_env_parts[[length(cor_spec_env_parts) + 1L]] <- mout
+      }
+    }
+    cor_spec_env_list_out <- do.call(rbind, cor_spec_env_parts) %>%
+      dplyr::mutate(method = "mantel")
   }
 
+  cor_spec_env_list <- lapply(seq_along(orientation), function(i) {
+    cor_spec_env_list_out %>%
+      dplyr::filter(.data$env_block == env_block_names[i])
+  })
   names(cor_spec_env_list) <- orientation
 
   cor_spec_env_list_out
 
-  # core location layout
-  # create graph obj
-  # first to calculate spec correlation
-  if (isTRUE(spec_relation)) {
-    # compute relationship
-    spec_relation_df <- spec_list[[1]]
-
-    # single correlation analysis
-    spec_cor_out_self <- psych::corr.test(spec_relation_df, use = cor.use, method = cor.method)
-
-    # correlation
-    spec_cor_self_r <- spec_cor_out_self$r %>% as.data.frame()
-    spec_cor_self_r[lower.tri(spec_cor_self_r)] <- NA
-
-    # pvalue
-    spec_cor_self_p <- spec_cor_out_self$p %>% as.data.frame()
-    spec_cor_self_p[lower.tri(spec_cor_self_p)] <- NA
-
-    # combine
-    spec_cor_self_r <- spec_cor_self_r %>%
-      tibble::rownames_to_column(var = "ID") %>%
-      tidyr::pivot_longer(cols = -ID,
-                          names_to = "Type",
-                          values_to = "Correlation") %>%
-      dplyr::mutate(ID = factor(ID, levels = unique(ID), ordered = T),
-                    Type = factor(Type, levels = unique(Type), ordered = T),
-                    ID2 = as.numeric(ID),
-                    Type2 = as.numeric(Type)
-      ) %>%
-      stats::na.omit()
-
-    spec_cor_self_p <- spec_cor_self_p %>%
-      tibble::rownames_to_column(var = "ID") %>%
-      tidyr::pivot_longer(cols = -ID,
-                          names_to = "Type",
-                          values_to = "Pvalue") %>%
-      dplyr::mutate(ID = factor(ID, levels = unique(ID), ordered = T),
-                    Type = factor(Type, levels = unique(Type), ordered = T),
-                    ID2 = as.numeric(ID),
-                    Type2 = as.numeric(Type)) %>%
-      stats::na.omit() %>%
-      dplyr::mutate(p_signif = dplyr::case_when(
-        Pvalue > 0.05 ~ "",
-        Pvalue > 0.01 & Pvalue <= 0.05 ~ "*",
-        Pvalue < 0.01 & Pvalue >= 0.001 ~ "**",
-        Pvalue < 0.001 ~ "***"
-      ))
-
-    spec_cor_self_r_p <- cbind(spec_cor_self_r %>% dplyr::select(1,2,4,5,3),
-                               spec_cor_self_p %>% dplyr::select(3,6)
-                               ) %>%
-      dplyr::filter(ID != Type) %>%
-      dplyr::mutate(tmp = ifelse(ID > Type, stringr::str_c(ID, Type), stringr::str_c(Type, ID))) %>%
-      dplyr::distinct(tmp, .keep_all = T) %>%
-      dplyr::select(-tmp) %>%
-      dplyr::select(ID, Type, Correlation, p_signif) %>%
-      purrr::set_names(c("from", "to", "weight", "sig"))
-  }
-
-  # create graph obj
-  spec_graph_obj <- build_graph_from_df(
-    df = spec_cor_self_r_p,
-    node_annotation = NULL,
-    directed = F,
-    module.method = "Fast_greedy"
-  )
-
-  # spec_graph_obj <- igraph::graph_from_data_frame(
-  #   d = spec_cor_self_r_p,
-  #   vertices = NULL,
-  #   directed = F
-  # )
-  # g <- spec_graph_obj
-  #
-  # tidygraph::as_tbl_graph(spec_graph_obj)
-
-  # get location
-  # find layout function
-  # spec_layout = "diamond"
-  # spec_layout = "gephi"
-  # spec_layout = "square"
-  # spec_layout = "rectangle_outline"
-
+  # core location layout: one network per spec block
   func_name <- paste0("create_layout_", spec_layout)
-
-  # find layout functions from ggNetView package
   lay_func <- utils::getFromNamespace(func_name, "ggNetView")
 
+  n_spec <- length(spec_list)
+  layout_list <- list()
 
-  ly1 = lay_func(graph_obj = spec_graph_obj,
-                 r = radius,
-                 node_add = NULL,
-                 orientation = spec_orientation)
-
-  ggplot(data = ly1) + geom_point(aes(x = x , y = y))
-
-  # # 查看一下里面有多少个变量, 然后将其均等分
-  # n_points <- cor_spec_env_list_out$ID %>% unique() %>% length()
-  #
-  # # 计算每一个点的角度
-  # angles <- seq(0, 2*pi, length.out = n_points + 1)[-(n_points+1)]
-  # center_x <- 0
-  # center_y <- 0
-  #
-  # # 计算坐标
-  # x <- center_x + radius * cos(angles)
-  # y <- center_y + radius * sin(angles)
-
-  # 中间点的物理位置
-  cor_spec_env <- data.frame(
-    # ID = cor_spec_env_list_out$ID %>% unique() %>% sort(),
-    ID = spec_graph_obj %>%
+  for (j in seq_len(n_spec)) {
+    spec_relation_df <- spec_list[[j]]
+    n_spec_cols <- ncol(spec_relation_df)
+    if (isTRUE(spec_relation) && n_spec_cols >= 2L) {
+      spec_cor_out_self <- psych::corr.test(spec_relation_df, use = cor.use, method = cor.method)
+      spec_cor_self_r <- spec_cor_out_self$r %>% as.data.frame()
+      spec_cor_self_r[lower.tri(spec_cor_self_r)] <- NA
+      spec_cor_self_p <- spec_cor_out_self$p %>% as.data.frame()
+      spec_cor_self_p[lower.tri(spec_cor_self_p)] <- NA
+      spec_cor_self_r <- spec_cor_self_r %>%
+        tibble::rownames_to_column(var = "ID") %>%
+        tidyr::pivot_longer(cols = -ID, names_to = "Type", values_to = "Correlation") %>%
+        dplyr::mutate(ID = factor(ID, levels = unique(ID), ordered = TRUE),
+                      Type = factor(Type, levels = unique(Type), ordered = TRUE),
+                      ID2 = as.numeric(ID), Type2 = as.numeric(Type)) %>%
+        stats::na.omit()
+      spec_cor_self_p <- spec_cor_self_p %>%
+        tibble::rownames_to_column(var = "ID") %>%
+        tidyr::pivot_longer(cols = -ID, names_to = "Type", values_to = "Pvalue") %>%
+        dplyr::mutate(ID = factor(ID, levels = unique(ID), ordered = TRUE),
+                      Type = factor(Type, levels = unique(Type), ordered = TRUE),
+                      ID2 = as.numeric(ID), Type2 = as.numeric(Type)) %>%
+        stats::na.omit() %>%
+        dplyr::mutate(p_signif = dplyr::case_when(
+          Pvalue > 0.05 ~ "", Pvalue > 0.01 & Pvalue <= 0.05 ~ "*",
+          Pvalue < 0.01 & Pvalue >= 0.001 ~ "**", Pvalue < 0.001 ~ "***"
+        ))
+      spec_cor_self_r_p <- cbind(spec_cor_self_r %>% dplyr::select(1, 2, 4, 5, 3),
+                                 spec_cor_self_p %>% dplyr::select(3, 6)) %>%
+        dplyr::filter(ID != Type) %>%
+        dplyr::mutate(tmp = ifelse(ID > Type, paste0(ID, Type), paste0(Type, ID))) %>%
+        dplyr::distinct(tmp, .keep_all = TRUE) %>%
+        dplyr::select(-tmp) %>%
+        dplyr::select(ID, Type, Correlation, p_signif) %>%
+        purrr::set_names(c("from", "to", "weight", "sig"))
+    } else {
+      # spec_relation = FALSE or single-column spec (no within-block correlation)
+      spec_cor_self_r_p <- data.frame(
+        from = character(0), to = character(0), weight = numeric(0), sig = character(0)
+      )
+    }
+    if (base::nrow(spec_cor_self_r_p) > 0L) {
+      spec_graph_obj <- build_graph_from_df(
+        df = spec_cor_self_r_p,
+        node_annotation = NULL,
+        directed = FALSE,
+        module.method = "Fast_greedy"
+      )
+    } else {
+      node_names <- colnames(spec_relation_df)
+      spec_graph_obj <- igraph::graph_from_data_frame(
+        d = data.frame(from = character(0), to = character(0), weight = numeric(0)),
+        vertices = data.frame(name = node_names),
+        directed = FALSE
+      ) %>% tidygraph::as_tbl_graph()
+    }
+    lay_args <- list(graph_obj = spec_graph_obj, r = radius, node_add = NULL, orientation = spec_orientation)
+    lay_args <- lay_args[names(lay_args) %in% names(formals(lay_func))]
+    ly_j <- do.call(lay_func, lay_args)
+    node_names <- spec_graph_obj %>%
       tidygraph::activate(nodes) %>%
       tidygraph::as_tibble() %>%
-      tidygraph::pull(name),
-    x = ly1$x,
-    y = ly1$y
-  )
+      dplyr::pull(name)
+    layout_list[[j]] <- data.frame(ID = node_names, x = ly_j$x, y = ly_j$y, spec_block = spec_block_names[j])
+  }
+
+  # compute anchors for multi-network placement
+  .compute_anchors <- function(n_grp, group_layout, anchor_dist, nrow, ncol) {
+    if (group_layout == "circle") {
+      angles <- pi / 2 - 2 * pi * (0:(n_grp - 1)) / n_grp
+      anchors <- lapply(angles, function(a) c(anchor_dist * cos(a), anchor_dist * sin(a)))
+    } else if (group_layout == "row") {
+      nr <- if (!is.null(nrow)) as.integer(nrow) else 1L
+      nc <- if (!is.null(ncol)) as.integer(ncol) else n_grp
+      if (is.null(nrow) && !is.null(ncol)) nr <- max(1L, as.integer(ceiling(n_grp / nc)))
+      if (!is.null(nrow) && is.null(ncol)) nc <- max(1L, as.integer(ceiling(n_grp / nr)))
+      nr <- max(1L, nr)
+      nc <- max(1L, nc)
+      anchors <- lapply(seq_len(n_grp), function(i) {
+        ii <- i - 1L
+        r <- ii %/% nc
+        c <- ii %% nc
+        c((c - (nc - 1) / 2) * anchor_dist, -((r - (nr - 1) / 2) * anchor_dist))
+      })
+    } else if (group_layout == "column") {
+      nr <- if (!is.null(nrow)) as.integer(nrow) else n_grp
+      nc <- if (!is.null(ncol)) as.integer(ncol) else 1L
+      if (is.null(nrow) && !is.null(ncol)) nr <- max(1L, as.integer(ceiling(n_grp / nc)))
+      if (!is.null(nrow) && is.null(ncol)) nc <- max(1L, as.integer(ceiling(n_grp / nr)))
+      nr <- max(1L, nr)
+      nc <- max(1L, nc)
+      anchors <- lapply(seq_len(n_grp), function(i) {
+        ii <- i - 1L
+        r <- ii %% nr
+        c <- ii %/% nr
+        c((c - (nc - 1) / 2) * anchor_dist, -((r - (nr - 1) / 2) * anchor_dist))
+      })
+    } else if (group_layout == "snake") {
+      nr <- if (!is.null(nrow)) as.integer(nrow) else 1L
+      nc <- if (!is.null(ncol)) as.integer(ncol) else n_grp
+      if (is.null(nrow) && !is.null(ncol)) nr <- max(1L, as.integer(ceiling(n_grp / nc)))
+      if (!is.null(nrow) && is.null(ncol)) nc <- max(1L, as.integer(ceiling(n_grp / nr)))
+      nr <- max(1L, nr)
+      nc <- max(1L, nc)
+      anchors <- lapply(seq_len(n_grp), function(i) {
+        ii <- i - 1L
+        r <- ii %/% nc
+        c <- if (r %% 2L == 0L) ii %% nc else (nc - 1L) - (ii %% nc)
+        c((c - (nc - 1) / 2) * anchor_dist, -((r - (nr - 1) / 2) * anchor_dist))
+      })
+    } else if (group_layout %in% c("square", "diamond", "triangle", "triangle_down")) {
+      base_angle <- switch(group_layout,
+        square = 3 * pi / 4, diamond = pi / 2,
+        triangle = pi / 2, triangle_down = -pi / 2
+      )
+      angles <- base_angle - 2 * pi * (0:(n_grp - 1)) / n_grp
+      anchors <- lapply(angles, function(a) c(anchor_dist * cos(a), anchor_dist * sin(a)))
+    } else {
+      angles <- pi / 2 - 2 * pi * (0:(n_grp - 1)) / n_grp
+      anchors <- lapply(angles, function(a) c(anchor_dist * cos(a), anchor_dist * sin(a)))
+    }
+    do.call(rbind, anchors)
+  }
+
+  if (n_spec == 1L) {
+    cor_spec_env <- layout_list[[1L]] %>% dplyr::select(ID, x, y)
+  } else {
+    anchors_df <- .compute_anchors(n_spec, group_layout, anchor_dist, nrow, ncol)
+    n_nodes <- vapply(layout_list, function(x) base::nrow(x), integer(1))
+    n_min <- min(n_nodes)
+    cor_spec_env_parts <- list()
+    for (j in seq_len(n_spec)) {
+      ly_df <- layout_list[[j]]
+      ax <- anchors_df[j, 1]
+      ay <- anchors_df[j, 2]
+      if (isTRUE(scale_networks)) {
+        xmin <- min(ly_df$x)
+        xmax <- max(ly_df$x)
+        ymin <- min(ly_df$y)
+        ymax <- max(ly_df$y)
+        xmid <- (xmax + xmin) / 2
+        ymid <- (ymax + ymin) / 2
+        scale_v <- max(xmax - xmin, ymax - ymin, 1e-8)
+        ly_df <- ly_df %>%
+          dplyr::mutate(
+            x = (x - xmid) / scale_v * (2 * radius) + ax,
+            y = (y - ymid) / scale_v * (2 * radius) + ay
+          )
+      } else {
+        # r = minimum radius; larger networks scale by node count (n_j / n_min)
+        scale_j <- n_nodes[j] / n_min
+        ly_df <- ly_df %>%
+          dplyr::mutate(x = x * scale_j + ax, y = y * scale_j + ay)
+      }
+      cor_spec_env_parts[[j]] <- ly_df %>% dplyr::select(ID, x, y)
+    }
+    cor_spec_env <- do.call(rbind, cor_spec_env_parts)
+  }
 
   k_vec
   k_gap
@@ -773,20 +867,20 @@ gglink_heatmaps <- function(
     p +
       ggplot2::geom_tile(
         data = tile,
-        aes(x = x_tile, y = y_tile, fill = Correlation),
+        ggplot2::aes(x = x_tile, y = y_tile, fill = Correlation),
         colour = HeatmapTileColor,
         linewidth = HeatmapTileSize
       ) +
-      ggplot2::geom_text(data = tile, aes(x = x_tile, y = y_tile, label = p_signif), size = HeatmapSigSize) +
-      ggplot2::geom_text(data = id_lab, aes(x = x_id,   y = y_id,   label = ID),
+      ggplot2::geom_text(data = tile, ggplot2::aes(x = x_tile, y = y_tile, label = p_signif), size = HeatmapSigSize) +
+      ggplot2::geom_text(data = id_lab, ggplot2::aes(x = x_id,   y = y_id,   label = ID),
                 size = HeatmapLabelSize,
                 vjust = vjust_id,
                 hjust = hjust_id,
                 angle = HeatmapLabelOrient) +
-      ggplot2::geom_text(data = type_lab, aes(x = x_type, y = y_type, label = Type),
+      ggplot2::geom_text(data = type_lab, ggplot2::aes(x = x_type, y = y_type, label = Type),
                 hjust = type_lab$hjust_type[1],
                 size = HeatmapLabelSize) +
-      ggplot2::geom_point(data = diag, aes(x = x_diag, y = y_diag),
+      ggplot2::geom_point(data = diag, ggplot2::aes(x = x_diag, y = y_diag),
                  shape = 21, fill = HeatmapPointFill, size = HeatmapPointSize) +
       ggplot2::scale_fill_gradient2(
         low = low_pal[idx], mid = "#ffffff", high = high_pal[idx],
@@ -902,7 +996,7 @@ gglink_heatmaps <- function(
     ggnewscale::new_scale_color() +
     ggplot2::geom_segment(
       data = link_df,
-      aes(x = x, y = y, xend = x_to, yend = y_to,
+      ggplot2::aes(x = x, y = y, xend = x_to, yend = y_to,
           color = Correlation,
           linetype = line_type,
           linewidth = -log10(Pvalue)),
@@ -914,21 +1008,21 @@ gglink_heatmaps <- function(
     # 再次覆盖绘制热图对角点，保证在线段上方
     ggplot2::geom_point(
       data = diag_all,
-      aes(x = x_diag, y = y_diag),
+      ggplot2::aes(x = x_diag, y = y_diag),
       shape = 21, fill = HeatmapPointFill, size = HeatmapPointSize
     ) +
     ggplot2::geom_point(
       data = cor_spec_env,
-      aes(x = x, y = y), shape = 21, fill = CorePointFill, size = CorePointSize
+      ggplot2::aes(x = x, y = y), shape = 21, fill = CorePointFill, size = CorePointSize
     ) +
     ggplot2::geom_text(
       data = cor_spec_env,
-      aes(x = x, y = y, label = ID), size = 5
+      ggplot2::aes(x = x, y = y, label = ID), size = 5
     ) +
     ggplot2::coord_cartesian(clip = "off") +
     ggplot2::theme_void() +
     ggplot2::theme(
-      plot.margin = margin(10,10,10,10),
+      plot.margin = ggplot2::margin(10, 10, 10, 10),
       aspect.ratio = 1,
       legend.position = "top"
     )
@@ -940,7 +1034,7 @@ gglink_heatmaps <- function(
     ggnewscale::new_scale_color() +
     ggplot2::geom_segment(
       data = link_df,
-      aes(x = x, y = y, xend = x_to, yend = y_to,
+      ggplot2::aes(x = x, y = y, xend = x_to, yend = y_to,
           color = Correlation,
           linetype = line_type,
           linewidth = -log10(Pvalue)),
@@ -951,22 +1045,22 @@ gglink_heatmaps <- function(
     ggplot2::scale_linetype_identity() +
     ggplot2::geom_point(
       data = diag_all,
-      aes(x = x_diag, y = y_diag),
+      ggplot2::aes(x = x_diag, y = y_diag),
       shape = 21, fill = HeatmapPointFill, size = HeatmapPointSize
     ) +
     ggplot2::geom_point(
       data = cor_spec_env,
-      aes(x = x, y = y), shape = 21, fill = CorePointFill, size = CorePointSize
+      ggplot2::aes(x = x, y = y), shape = 21, fill = CorePointFill, size = CorePointSize
     ) +
     ggplot2::geom_text(
       data = cor_spec_env,
-      aes(x = x, y = y, label = ID),
+      ggplot2::aes(x = x, y = y, label = ID),
       size = 5
     ) +
     ggplot2::coord_cartesian(clip = "off") +
     ggplot2::theme_void() +
     ggplot2::theme(
-      plot.margin = margin(10,10,10,10),
+      plot.margin = ggplot2::margin(10, 10, 10, 10),
       aspect.ratio = 1,
       legend.position = "top"
     )
@@ -974,7 +1068,7 @@ gglink_heatmaps <- function(
   p2 <- p0 +
     ggnewscale::new_scale_fill() +
     ggplot2::geom_curve(data = link_df,
-              mapping = aes(x = x, y = y, xend = x_to, yend = y_to,
+              mapping = ggplot2::aes(x = x, y = y, xend = x_to, yend = y_to,
                             color = Correlation,
                             linetype = line_type,
                             linewidth = -log10(Pvalue)),
@@ -986,26 +1080,26 @@ gglink_heatmaps <- function(
     ggplot2::scale_linetype_identity() +
     ggplot2::geom_point(
       data = diag_all,
-      aes(x = x_diag, y = y_diag),
+      ggplot2::aes(x = x_diag, y = y_diag),
       shape = 21, fill = HeatmapPointFill, size = HeatmapPointSize
     ) +
     ggplot2::geom_point(data = cor_spec_env,
-               mapping = aes(x = x, y = y, fill = ID),
+               mapping = ggplot2::aes(x = x, y = y, fill = ID),
                shape = 21,
                fill = CorePointFill,
                size = CorePointSize) +
     ggplot2::geom_text(data = cor_spec_env,
-              mapping = aes(x =x, y = y, label = ID),
+              mapping = ggplot2::aes(x =x, y = y, label = ID),
               size = 5) +
     # geom_line(data = cor_spec_env_location %>% dplyr::distinct(ID, .keep_all = T) %>% dplyr::select(ID, x, y),
-    #           mapping = aes(x = x, y = y, group = 1),
+    #           mapping = ggplot2::aes(x = x, y = y, group = 1),
     #           linetype = 1,
     #           linewidth = 1.5,
     #           color = "#41b6c4") +
     ggplot2::coord_cartesian(clip = "off") +
     ggplot2::theme_void() +
     ggplot2::theme(
-      plot.margin = margin(1,1,1,1,"cm"),
+      plot.margin = ggplot2::margin(1, 1, 1, 1, "cm"),
       aspect.ratio = 1,
       legend.position = "top"
     )

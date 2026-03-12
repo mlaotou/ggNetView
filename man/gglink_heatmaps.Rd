@@ -35,7 +35,13 @@ gglink_heatmaps(
   HeatmapTileSize = 0,
   fontsize = 5,
   orientation = c("top_right", "bottom_right", "top_left", "bottom_left"),
-  r = 6
+  r = 6,
+  group_layout = c("circle", "row", "column", "square", "diamond", "triangle",
+    "triangle_down", "snake"),
+  anchor_dist = 6,
+  scale_networks = TRUE,
+  nrow = NULL,
+  ncol = NULL
 )
 }
 \arguments{
@@ -154,13 +160,33 @@ Character vector defining which heatmap quadrants to display. Can include any co
 
 \item{r}{Numeric
 radius of the central species layout (in plot units).}
+
+\item{group_layout}{Character (default = "circle").
+Arrangement of multiple species networks when \code{spec_select} has multiple elements.
+Options: \code{"circle"}, \code{"row"}, \code{"column"}, \code{"square"}, \code{"diamond"},
+\code{"triangle"}, \code{"triangle_down"}, \code{"snake"}.}
+
+\item{anchor_dist}{Numeric (default = 6).
+Distance between species networks when multiple \code{spec_select} blocks are used.}
+
+\item{scale_networks}{Logical (default = TRUE).
+If \code{TRUE}, normalize each species network to the same scale (radius \code{r}) before placing on anchors.
+If \code{FALSE}, \code{r} is the minimum network radius; larger networks scale proportionally by node count.}
+
+\item{nrow}{Integer (default = NULL).
+Number of rows for \code{group_layout = "row"}, \code{"column"}, or \code{"snake"}.}
+
+\item{ncol}{Integer (default = NULL).
+Number of columns for \code{group_layout = "row"}, \code{"column"}, or \code{"snake"}.}
 }
 \value{
 A list of length 3:
 - [[1]]: ggplot object with straight link segments.
 - [[2]]: ggplot object with curved link segments.
 - [[3]]: data.frame of full species–environment correlation statistics
-         (unfiltered, not affected by `drop_nonsig`).
+         (unfiltered, not affected by `drop_nonsig`), with columns
+         \code{ID}, \code{Type}, \code{Correlation}, \code{Pvalue}, \code{spec_block},
+         \code{env_block}, and \code{method} (e.g. \code{"correlation"} or \code{"mantel"}).
 }
 \description{
 Visualize multi-orientation environmental–species correlation heatmaps
