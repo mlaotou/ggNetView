@@ -36,6 +36,15 @@
 #' Alternative hypothesis for Mantel test. One of `"two.sided"`, `"less"`, or `"greater"`.
 #' @param drop_nonsig Logical
 #' if `TRUE`, non-significant correlations are dropped from the final visualization.
+#' @param comparisons Logical (default = TRUE).
+#' Whether to perform species–environment correlation or Mantel analysis.
+#' If \code{FALSE}, no spec–env links are computed or drawn.
+#' @param comparisons_groups List or NULL (default = NULL).
+#' When \code{comparisons = TRUE}, constrains which (env_block, spec_block) pairs are analyzed.
+#' Each element must be a length-2 character vector: \code{c(env_block_name, spec_block_name)},
+#' e.g. \code{list(c("Env01", "Spec01"), c("Env02", "Spec01"))}.
+#' Block names must match \code{names(env_select)} and \code{names(spec_select)}.
+#' If \code{NULL}, all env–spec block pairs are analyzed (default).
 #' @param shape Intrger
 #' Integer or numeric specifying the shape of species nodes in the plot (passed to `geom_point()`).
 #' @param distance Numeric
@@ -126,6 +135,8 @@ gglink_heatmaps <- function(
     mantel.method2 = c("pearson", "kendall", "spearman"),
     mantel.alternative = c("two.sided", "less", "greater"),
     drop_nonsig = FALSE,
+    comparisons = TRUE,
+    comparisons_groups = NULL,
     shape = 22,
     distance = 3,
     HeatmapLabelSize = 5,
@@ -510,11 +521,55 @@ gglink_heatmaps <- function(
   env_block_names <- names(env_list)
   if (is.null(env_block_names)) env_block_names <- paste0("Env", seq_along(env_list))
 
+  # comparisons & comparisons_groups: which (env_block, spec_block) pairs to analyze
+  if (!is.logical(comparisons) || length(comparisons) != 1 || is.na(comparisons)) {
+    stop("`comparisons` must be TRUE or FALSE.", call. = FALSE)
+  }
+  if (!is.null(comparisons_groups)) {
+    if (!is.list(comparisons_groups)) {
+      stop("`comparisons_groups` must be a list, e.g. list(c('Env01', 'Spec01'), c('Env02', 'Spec01')).", call. = FALSE)
+    }
+    for (comp in comparisons_groups) {
+      if (!is.character(comp) || length(comp) != 2) {
+        stop("Each element of `comparisons_groups` must be a character vector of length 2: c(env_block, spec_block).", call. = FALSE)
+      }
+      if (!comp[1] %in% env_block_names) {
+        stop(sprintf("`comparisons_groups`: env_block '%s' not in env_select names.", comp[1]), call. = FALSE)
+      }
+      if (!comp[2] %in% spec_block_names) {
+        stop(sprintf("`comparisons_groups`: spec_block '%s' not in spec_select names.", comp[2]), call. = FALSE)
+      }
+    }
+  }
+
+  # Build (env_block, spec_block) pairs to compute
+  if (!isTRUE(comparisons)) {
+    pairs_to_compute <- matrix(character(0), nrow = 2, ncol = 0)
+  } else if (!is.null(comparisons_groups) && length(comparisons_groups) > 0) {
+    pairs_to_compute <- do.call(cbind, lapply(comparisons_groups, function(x) matrix(x, nrow = 2)))
+    # Remove duplicates and invalid pairs (validation already done above)
+    pairs_to_compute <- unique(as.data.frame(t(pairs_to_compute)))
+    pairs_to_compute <- as.matrix(pairs_to_compute)
+    if (nrow(pairs_to_compute) > 0) {
+      pairs_to_compute <- t(pairs_to_compute)
+    } else {
+      pairs_to_compute <- matrix(character(0), nrow = 2, ncol = 0)
+    }
+  } else {
+    # Default: all pairs (env_block x spec_block)
+    grid_df <- expand.grid(env_block = env_block_names, spec_block = spec_block_names, stringsAsFactors = FALSE)
+    pairs_to_compute <- t(as.matrix(grid_df[, c("env_block", "spec_block")]))
+  }
+
   if (relation_method == "correlation") {
     cor_spec_env_parts <- list()
-    for (j in seq_along(spec_list)) {
-      for (p in seq_along(env_list)) {
-        cor_env_list_tmp <- psych::corr.test(spec_list[[j]], env_list[[p]])
+    for (col in seq_len(ncol(pairs_to_compute))) {
+      env_blk <- pairs_to_compute[1, col]
+      spec_blk <- pairs_to_compute[2, col]
+      j <- which(spec_block_names == spec_blk)
+      p <- which(env_block_names == env_blk)
+      if (length(j) != 1 || length(p) != 1) next
+      cor_env_list_tmp <- psych::corr.test(spec_list[[j]], env_list[[p]])
         cor_env_list_tmp_r <- cor_env_list_tmp$r %>%
           as.data.frame() %>%
           tibble::rownames_to_column(var = "ID") %>%
@@ -535,29 +590,52 @@ gglink_heatmaps <- function(
           ))
         cor_env_list_tmp_r_p <- cbind(cor_env_list_tmp_r,
                                       cor_env_list_tmp_p %>% dplyr::select(3, 4)) %>%
-          dplyr::mutate(spec_block = spec_block_names[j], env_block = env_block_names[p])
+          dplyr::mutate(spec_block = spec_blk, env_block = env_blk)
         cor_spec_env_parts[[length(cor_spec_env_parts) + 1L]] <- cor_env_list_tmp_r_p
-      }
     }
-    cor_spec_env_list_out <- do.call(rbind, cor_spec_env_parts) %>%
-      dplyr::mutate(method = "correlation")
+    cor_spec_env_list_out <- if (length(cor_spec_env_parts) > 0) {
+      do.call(rbind, cor_spec_env_parts) %>%
+        dplyr::mutate(method = "correlation")
+    } else {
+      tibble::tibble(ID = character(), Type = character(), Correlation = numeric(), Pvalue = numeric(),
+                     p_signif = character(), spec_block = character(), env_block = character(), method = "correlation")
+    }
   } else if (relation_method == "mantel") {
     cor_spec_env_parts <- list()
-    for (j in seq_along(spec_list)) {
-      for (p in seq_along(env_list)) {
-        mout <- mantel_pairwise(
-          spec_df = spec_list[[j]],
-          env_df = env_list[[p]],
-          method = mantel.method2,
-          permutations = 999L,
-          na_omit = TRUE
+    for (col in seq_len(ncol(pairs_to_compute))) {
+      env_blk <- pairs_to_compute[1, col]
+      spec_blk <- pairs_to_compute[2, col]
+      j <- which(spec_block_names == spec_blk)
+      p <- which(env_block_names == env_blk)
+      if (length(j) != 1 || length(p) != 1) next
+      mout <- mantel_pairwise(
+        spec_df = spec_list[[j]],
+        env_df = env_list[[p]],
+        method = mantel.method2,
+        permutations = 999L,
+        na_omit = TRUE
+      )
+      mout <- mout %>%
+        dplyr::mutate(
+          spec_block = spec_blk,
+          env_block = env_blk,
+          p_signif = dplyr::case_when(
+            Pvalue > 0.05 ~ "",
+            Pvalue > 0.01 & Pvalue <= 0.05 ~ "*",
+            Pvalue < 0.01 & Pvalue >= 0.001 ~ "**",
+            Pvalue < 0.001 ~ "***",
+            TRUE ~ ""
+          )
         )
-        mout <- mout %>% dplyr::mutate(spec_block = spec_block_names[j], env_block = env_block_names[p])
-        cor_spec_env_parts[[length(cor_spec_env_parts) + 1L]] <- mout
-      }
+      cor_spec_env_parts[[length(cor_spec_env_parts) + 1L]] <- mout
     }
-    cor_spec_env_list_out <- do.call(rbind, cor_spec_env_parts) %>%
-      dplyr::mutate(method = "mantel")
+    cor_spec_env_list_out <- if (length(cor_spec_env_parts) > 0) {
+      do.call(rbind, cor_spec_env_parts) %>%
+        dplyr::mutate(method = "mantel")
+    } else {
+      tibble::tibble(ID = character(), Type = character(), Correlation = numeric(), Pvalue = numeric(),
+                     p_signif = character(), spec_block = character(), env_block = character(), method = "mantel")
+    }
   }
 
   cor_spec_env_list <- lapply(seq_along(orientation), function(i) {

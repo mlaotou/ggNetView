@@ -19,6 +19,8 @@ gglink_heatmaps(
   mantel.method2 = c("pearson", "kendall", "spearman"),
   mantel.alternative = c("two.sided", "less", "greater"),
   drop_nonsig = FALSE,
+  comparisons = TRUE,
+  comparisons_groups = NULL,
   shape = 22,
   distance = 3,
   HeatmapLabelSize = 5,
@@ -94,6 +96,17 @@ Alternative hypothesis for Mantel test. One of `"two.sided"`, `"less"`, or `"gre
 
 \item{drop_nonsig}{Logical
 if `TRUE`, non-significant correlations are dropped from the final visualization.}
+
+\item{comparisons}{Logical (default = TRUE).
+Whether to perform species–environment correlation or Mantel analysis.
+If \code{FALSE}, no spec–env links are computed or drawn.}
+
+\item{comparisons_groups}{List or NULL (default = NULL).
+When \code{comparisons = TRUE}, constrains which (env_block, spec_block) pairs are analyzed.
+Each element must be a length-2 character vector: \code{c(env_block_name, spec_block_name)},
+e.g. \code{list(c("Env01", "Spec01"), c("Env02", "Spec01"))}.
+Block names must match \code{names(env_select)} and \code{names(spec_select)}.
+If \code{NULL}, all env–spec block pairs are analyzed (default).}
 
 \item{shape}{Intrger
 Integer or numeric specifying the shape of species nodes in the plot (passed to `geom_point()`).}
