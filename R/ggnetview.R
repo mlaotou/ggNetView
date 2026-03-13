@@ -84,8 +84,22 @@
 #' Change  label segment size.
 #' @param labelsegmentalpha Integer  (default = 1).
 #' Change  label segment alpha.
+#' @param add_group_outer Logical (default = FALSE).
+#' Whether to add a circle boundary around the entire network (mimics \code{ggforce::geom_mark_circle}).
+#' @param add_group_outer_expand Numeric (default = 2).
+#' Expansion in mm for the group circle to account for point size; passed to \code{geom_mark_circle(expand = ...)}.
+#' @param add_group_outer_color Character (default = "grey50").
+#' Color of the group outer circle border.
+#' @param add_group_outer_fill Character or NULL (default = NULL).
+#' Fill color of the group outer circle. \code{NULL} = no fill (transparent).
+#' @param add_group_outer_fill_alpha Numeric (default = 0.2).
+#' Alpha (transparency) of the group outer circle fill; 0 = fully transparent, 1 = opaque.
+#' @param add_group_outer_linetype Integer or character (default = 1).
+#' Linetype of the group outer circle (e.g. 1 = solid, 2 = dashed).
+#' @param add_group_outer_linewidth Numeric (default = 0.5).
+#' Line width of the group outer circle.
 #' @param add_outer Logical (default = FALSE).
-#' Whether to add an outer circle/border around the layout.
+#' Whether to add an outer circle/border around each module.
 #' @param q_outer Numeric (default = 0.88).
 #' Quantile of radial distance used to construct the smooth outer boundary for each module.
 #' Higher values make the boundary more expanded; lower values make it tighter.
@@ -161,6 +175,13 @@ ggNetView <- function(graph_obj,
                       labelsize = 10,
                       labelsegmentsize = 1,
                       labelsegmentalpha = 1,
+                      add_group_outer = FALSE,
+                      add_group_outer_expand = 2,
+                      add_group_outer_color = "grey50",
+                      add_group_outer_fill = NULL,
+                      add_group_outer_fill_alpha = 0.2,
+                      add_group_outer_linetype = 1,
+                      add_group_outer_linewidth = 0.5,
                       add_outer = FALSE,
                       q_outer = 0.88,
                       expand_outer = 1.02,
@@ -462,6 +483,27 @@ ggNetView <- function(graph_obj,
     ####----Plot----####
     # base plot
     p1_1 <- ggplot2::ggplot()
+
+    # 整个网络最外层圆圈：可选添加
+    if (isTRUE(add_group_outer) && nrow(ly1_1[["ggplot_data"]][[1]]) > 0) {
+      group_circle_df <- ly1_1[["ggplot_data"]][[1]] %>%
+        dplyr::mutate(.group_outer = 1L)
+      circle_n_grp <- max(40, min(300, as.integer(round(8 * sqrt(nrow(group_circle_df))))))
+      fill_grp <- if (is.null(add_group_outer_fill) || length(add_group_outer_fill) == 0L) NA else add_group_outer_fill[1L]
+      alpha_grp <- if (is.na(fill_grp)) 1 else add_group_outer_fill_alpha
+      p1_1 <- p1_1 +
+        ggforce::geom_mark_circle(
+          data = group_circle_df,
+          mapping = ggplot2::aes(x = x, y = y, group = .group_outer),
+          fill = fill_grp,
+          alpha = alpha_grp,
+          color = add_group_outer_color,
+          linetype = add_group_outer_linetype,
+          linewidth = add_group_outer_linewidth,
+          n = circle_n_grp,
+          expand = grid::unit(add_group_outer_expand, "mm")
+        )
+    }
 
   # line parameter
   line_color_by <- NULL

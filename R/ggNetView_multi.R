@@ -61,7 +61,7 @@
 #' @param push_others_delta Numeric (default = 0).
 #' Radial offset applied to the "Others" module to slightly
 #' @param layout.module Character  (default = "random")
-#‘ - random : modules are distributed more randomly and independently.
+#' - random : modules are distributed more randomly and independently.
 #' - adjacent : modules are positioned close to each other, minimizing inter-module gaps.
 #' - order : modules are distributed by order, applicable to `Bipartite, Tripartite, Quadripartite, Multipartite, Pentapartite Layout`
 #' @param shape Integer  (default = 21).
@@ -103,16 +103,30 @@
 #' Change  line alpha.
 #' @param linecolor Character  (default = "grey70").
 #' Change  line color.
-#' @param label Logical (default = FALSE).
-#' Whether to display node labels in the center points.
+#' @param label Logical or Character (default = FALSE).
+#' Whether to display module labels. If a character string, used as legend prefix.
 #' @param labelsize Integer  (default = 10).
 #' Change Module label size.
 #' @param labelsegmentsize Integer  (default = 1).
 #' Change  label segment size.
 #' @param labelsegmentalpha Integer  (default = 1).
 #' Change  label segment alpha.
+#' @param add_group_outer Logical (default = FALSE).
+#' Whether to add a circle boundary around the entire network (mimics \code{ggforce::geom_mark_circle}).
+#' @param add_group_outer_expand Numeric (default = 2).
+#' Expansion in mm for the group circle; passed to \code{geom_mark_circle(expand = ...)}.
+#' @param add_group_outer_color Character (default = "grey50").
+#' Color of the group outer circle border.
+#' @param add_group_outer_fill Character or NULL (default = NULL).
+#' Fill color of the group outer circle. \code{NULL} = no fill (transparent).
+#' @param add_group_outer_fill_alpha Numeric (default = 0.2).
+#' Alpha (transparency) of the group outer circle fill.
+#' @param add_group_outer_linetype Integer or character (default = 1).
+#' Linetype of the group outer circle (e.g. 1 = solid, 2 = dashed).
+#' @param add_group_outer_linewidth Numeric (default = 0.5).
+#' Line width of the group outer circle.
 #' @param add_outer Logical (default = FALSE).
-#' Whether to add an outer circle/border around the layout.
+#' Whether to add an outer circle/border around each module.
 #' @param q_outer Numeric (default = 0.88).
 #' Quantile of radial distance used to construct the smooth outer boundary for each module.
 #' @param expand_outer Numeric (default = 1.02).
@@ -126,7 +140,7 @@
 #' @param nodelabsize Integer  (default = 5).
 #' Change  node label size.
 #' @param remove Logical (default = FALSE).
-#' Delect nodes that are not modules.
+#' Remove nodes that are not modules.
 #' @param dropOthers Logical (default = FALSE).
 #' If TRUE, remove nodes in the \code{"Others"} module before layout and visualization.
 #' @param orientation Character string.
@@ -141,8 +155,6 @@
 #' Number of layout rows passed to \code{ggNetView} when using consensus-module grid layouts.
 #' @param layout_ncol Integer (default = NULL).
 #' Number of layout columns passed to \code{ggNetView} when using consensus-module grid layouts.
-#' @param snake Logical (default = FALSE).
-#' Whether to use snake arrangement in supported layouts.
 #' @param seed Integer (default = 1115).
 #' Random seed for reproducibility.
 #' @param nrow Integer (default = NULL).
@@ -201,6 +213,13 @@ ggNetView_multi <- function(mat,
                             labelsize = 10,
                             labelsegmentsize = 1,
                             labelsegmentalpha = 1,
+                            add_group_outer = FALSE,
+                            add_group_outer_expand = 2,
+                            add_group_outer_color = "grey50",
+                            add_group_outer_fill = NULL,
+                            add_group_outer_fill_alpha = 0.2,
+                            add_group_outer_linetype = 1,
+                            add_group_outer_linewidth = 0.5,
                             add_outer = FALSE,
                             q_outer = 0.88,
                             expand_outer = 1.02,
@@ -216,7 +235,6 @@ ggNetView_multi <- function(mat,
                             anchor_dist = 6,
                             layout_nrow = NULL,
                             layout_ncol = NULL,
-                            snake = FALSE,
                             seed = 1115,
                             nrow = NULL,
                             ncol = NULL
@@ -289,6 +307,13 @@ ggNetView_multi <- function(mat,
       labelsize = labelsize,
       labelsegmentsize = labelsegmentsize,
       labelsegmentalpha = labelsegmentalpha,
+      add_group_outer = add_group_outer,
+      add_group_outer_expand = add_group_outer_expand,
+      add_group_outer_color = add_group_outer_color,
+      add_group_outer_fill = add_group_outer_fill,
+      add_group_outer_fill_alpha = add_group_outer_fill_alpha,
+      add_group_outer_linetype = add_group_outer_linetype,
+      add_group_outer_linewidth = add_group_outer_linewidth,
       add_outer = add_outer,
       q_outer = q_outer,
       expand_outer = expand_outer,
@@ -304,7 +329,6 @@ ggNetView_multi <- function(mat,
       anchor_dist = anchor_dist,
       nrow = layout_nrow,
       ncol = layout_ncol,
-      snake = snake,
       seed = seed
     )
 

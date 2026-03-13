@@ -13,7 +13,7 @@
 
 
 Yue Liu, Chao Wang (2026). ggNetView: An R Package for Reproducible and Deterministic Network Analysis and Visualization.
-Version: 1.4.26
+Version: 1.4.27
 
   Maintainers:
    - Yue Liu <yueliu@iae.ac.cn>

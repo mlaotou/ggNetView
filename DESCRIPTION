@@ -1,7 +1,7 @@
 Type: Package
 Package: ggNetView
 Title: An R Package for Reproducible and Deterministic Network Analysis and Visualization.
-Version: 1.4.26
+Version: 1.4.27
 Authors@R: 
     person("Yue", "Liu", , "yueliu@iae.ac.cn", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-6180-8068"))

@@ -39,6 +39,13 @@ ggNetView(
   labelsize = 10,
   labelsegmentsize = 1,
   labelsegmentalpha = 1,
+  add_group_outer = FALSE,
+  add_group_outer_expand = 2,
+  add_group_outer_color = "grey50",
+  add_group_outer_fill = NULL,
+  add_group_outer_fill_alpha = 0.2,
+  add_group_outer_linetype = 1,
+  add_group_outer_linewidth = 0.5,
   add_outer = FALSE,
   q_outer = 0.88,
   expand_outer = 1.02,
@@ -174,8 +181,29 @@ Change  label segment size.}
 \item{labelsegmentalpha}{Integer  (default = 1).
 Change  label segment alpha.}
 
+\item{add_group_outer}{Logical (default = FALSE).
+Whether to add a circle boundary around the entire network (mimics \code{ggforce::geom_mark_circle}).}
+
+\item{add_group_outer_expand}{Numeric (default = 2).
+Expansion in mm for the group circle to account for point size; passed to \code{geom_mark_circle(expand = ...)}.}
+
+\item{add_group_outer_color}{Character (default = "grey50").
+Color of the group outer circle border.}
+
+\item{add_group_outer_fill}{Character or NULL (default = NULL).
+Fill color of the group outer circle. \code{NULL} = no fill (transparent).}
+
+\item{add_group_outer_fill_alpha}{Numeric (default = 0.2).
+Alpha (transparency) of the group outer circle fill; 0 = fully transparent, 1 = opaque.}
+
+\item{add_group_outer_linetype}{Integer or character (default = 1).
+Linetype of the group outer circle (e.g. 1 = solid, 2 = dashed).}
+
+\item{add_group_outer_linewidth}{Numeric (default = 0.5).
+Line width of the group outer circle.}
+
 \item{add_outer}{Logical (default = FALSE).
-Whether to add an outer circle/border around the layout.}
+Whether to add an outer circle/border around each module.}
 
 \item{q_outer}{Numeric (default = 0.88).
 Quantile of radial distance used to construct the smooth outer boundary for each module.
