@@ -63,8 +63,12 @@ Each list element corresponds to one quadrant of the heatmap layout.}
 of species to include. If multiple elements are provided, they define
 separate species clusters in the visualization.}
 
-\item{spec_layout}{Character
-Character string specifying the spatial arrangement of species nodes. Options include `"ringle"` (radial) and other supported layouts.}
+\item{spec_layout}{Character or character vector (default = \code{"circle_outline"}).
+Spatial arrangement of species nodes for each central network.
+If a single value, applied to all spec blocks.
+If a vector, length must match the number of spec blocks; each element specifies
+the layout for that block in order. Valid options: \code{"circle_outline"},
+\code{"diamond_outline"}, \code{"rectangle_outline"}, \code{"square_outline"}.}
 
 \item{spec_orientation}{Character
 spec_oritation. Options include: "up","down","left","right"}

@@ -12,8 +12,12 @@
 #' @param spec_select Optional list specifying column indices (or names)
 #' of species to include. If multiple elements are provided, they define
 #' separate species clusters in the visualization.
-#' @param spec_layout Character
-#' Character string specifying the spatial arrangement of species nodes. Options include `"ringle"` (radial) and other supported layouts.
+#' @param spec_layout Character or character vector (default = \code{"circle_outline"}).
+#' Spatial arrangement of species nodes for each central network.
+#' If a single value, applied to all spec blocks.
+#' If a vector, length must match the number of spec blocks; each element specifies
+#' the layout for that block in order. Valid options: \code{"circle_outline"},
+#' \code{"diamond_outline"}, \code{"rectangle_outline"}, \code{"square_outline"}.
 #' @param spec_orientation Character
 #' spec_oritation. Options include: "up","down","left","right"
 #' @param spec_relation Logical (defalt = TRUE)
@@ -647,13 +651,24 @@ gglink_heatmaps <- function(
   cor_spec_env_list_out
 
   # core location layout: one network per spec block
-  func_name <- paste0("create_layout_", spec_layout)
-  lay_func <- utils::getFromNamespace(func_name, "ggNetView")
-
   n_spec <- length(spec_list)
+  valid_spec_layouts <- c("circle_outline", "diamond_outline", "rectangle_outline", "square_outline")
+  if (length(spec_layout) == 1) {
+    spec_layout <- match.arg(spec_layout, valid_spec_layouts)
+    spec_layout_vec <- rep(spec_layout, n_spec)
+  } else {
+    if (length(spec_layout) != n_spec) {
+      stop(sprintf("`spec_layout` must be length 1 or length %d (number of spec blocks).", n_spec), call. = FALSE)
+    }
+    spec_layout_vec <- vapply(spec_layout, function(x) match.arg(x, valid_spec_layouts), character(1))
+  }
+
   layout_list <- list()
 
   for (j in seq_len(n_spec)) {
+    lay_name <- spec_layout_vec[j]
+    func_name <- paste0("create_layout_", lay_name)
+    lay_func <- utils::getFromNamespace(func_name, "ggNetView")
     spec_relation_df <- spec_list[[j]]
     n_spec_cols <- ncol(spec_relation_df)
     if (isTRUE(spec_relation) && n_spec_cols >= 2L) {
