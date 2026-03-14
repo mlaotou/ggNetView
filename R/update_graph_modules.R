@@ -154,3 +154,88 @@ update_graph_modules <- function(graph_obj,
 
   return(graph_obj_new)
 }
+
+
+#' Update module assignments from an existing column in graph object
+#'
+#' Uses the values of an existing node column as the new module assignment,
+#' updating \code{Modularity}, \code{modularity2}, and \code{modularity3}
+#' for seamless integration with \code{ggNetView()}. All other node columns
+#' are preserved.
+#'
+#' @param graph_obj A graph object returned by \code{build_graph_*()}.
+#' @param modules_new Character. Name of an existing column in \code{graph_obj}
+#'   nodes whose values define the new module assignment. The column may or may
+#'   not contain \code{"Others"}.
+#' @param levels Character vector. Optional explicit module order.
+#'   If \code{NULL}, order by module size (descending) and place
+#'   \code{"Others"} at the end when present.
+#'
+#' @returns A new graph object with updated \code{Modularity}, \code{modularity2},
+#'   and \code{modularity3} (and \code{modularity} if that column exists).
+#'   All other node columns are preserved.
+#' @export
+#'
+#' @examples NULL
+update_graph_modules2 <- function(graph_obj,
+                                 modules_new,
+                                 levels = NULL) {
+  if (!inherits(graph_obj, "tbl_graph")) {
+    stop("`graph_obj` must be a `tbl_graph` object.", call. = FALSE)
+  }
+
+  node_df <- graph_obj %>%
+    tidygraph::activate(nodes) %>%
+    tidygraph::as_tibble()
+
+  if (!is.character(modules_new) || length(modules_new) != 1 || is.na(modules_new)) {
+    stop("`modules_new` must be a single character string (column name).", call. = FALSE)
+  }
+  if (!modules_new %in% colnames(node_df)) {
+    stop(sprintf("Column `%s` not found in `graph_obj` nodes.", modules_new), call. = FALSE)
+  }
+
+  new_mod <- as.character(node_df[[modules_new]])
+  na_idx <- is.na(new_mod) | new_mod == ""
+  if (any(na_idx)) {
+    new_mod[na_idx] <- "Others"
+  }
+
+  if (is.null(levels)) {
+    level_tab <- sort(table(new_mod), decreasing = TRUE)
+    levels_final <- names(level_tab)
+  } else {
+    levels_final <- unique(as.character(levels))
+    missing_levels <- setdiff(unique(new_mod), levels_final)
+    levels_final <- c(levels_final, missing_levels)
+  }
+  levels_final <- c(setdiff(levels_final, "Others"), intersect("Others", levels_final))
+
+  new_mod_factor <- factor(new_mod, levels = levels_final, ordered = TRUE)
+
+  graph_obj_new <- graph_obj %>%
+    tidygraph::activate(nodes) %>%
+    tidygraph::mutate(
+      Modularity = new_mod_factor,
+      modularity2 = new_mod_factor,
+      modularity3 = as.character(new_mod_factor)
+    )
+
+  if ("modularity" %in% colnames(node_df)) {
+    graph_obj_new <- graph_obj_new %>%
+      tidygraph::activate(nodes) %>%
+      tidygraph::mutate(modularity = new_mod_factor)
+  }
+
+  if ("Degree" %in% colnames(node_df)) {
+    graph_obj_new <- graph_obj_new %>%
+      tidygraph::activate(nodes) %>%
+      tidygraph::arrange(Modularity, dplyr::desc(Degree))
+  } else {
+    graph_obj_new <- graph_obj_new %>%
+      tidygraph::activate(nodes) %>%
+      tidygraph::arrange(Modularity)
+  }
+
+  return(graph_obj_new)
+}
