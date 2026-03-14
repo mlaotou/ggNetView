@@ -1,10 +1,17 @@
 #' Visualize multiple networks and show the connections between them to highlight key members within the networks
 #'
-#' @param mat Numeric matrix.
+#' Provide either \code{(mat, group_info)} or \code{graph_obj_list} as input.
+#' When \code{graph_obj_list} is provided, \code{mat} and \code{group_info} are ignored.
+#'
+#' @param mat Numeric matrix. Required when \code{graph_obj_list} is \code{NULL}.
 #' A numeric matrix with variables (e.g. genes, taxa) in rows and samples in columns.
-#' @param group_info DataFrame
+#' @param group_info DataFrame. Required when \code{graph_obj_list} is \code{NULL}.
 #' The group information contains: Sample and Group.
 #' If Sample or Group contain underscores (\code{_}), they are automatically replaced with hyphens (\code{-}) to avoid parsing issues; \code{mat} column names, \code{order}, and \code{comparisons_groups} are updated accordingly.
+#' @param graph_obj_list Named list of \code{tbl_graph} objects. Alternative to \code{mat} and \code{group_info}.
+#' Each element is a graph object (e.g. from \code{build_graph_from_mat} or \code{build_graph_from_df}).
+#' List names define group names (e.g. \code{list(WT = g1, KO = g2)}).
+#' When provided, \code{mat} and \code{group_info} are ignored. Enables custom pre-built networks.
 #' @param transfrom.method Character.
 #'Data transformation methods applied before correlation analysis.
 #' Options include:
@@ -183,13 +190,13 @@
 #' @param comparisons_groups List or NULL (default = NULL).
 #' When \code{comparisons = TRUE}, constrains which group pairs are compared.
 #' Each element must be a length-2 character vector, e.g. \code{list(c("WT", "OE"), c("WT", "KO"))}.
-#' Group names must exist in \code{group_info$Group}.
+#' Group names must exist in \code{group_info$Group} or \code{names(graph_obj_list)}.
 #' If \code{NULL}, all pairwise group comparisons are performed.
 #' @param order Character vector or NULL (default = NULL).
 #' Order of groups for layout positions. Groups are placed evenly on a circle:
 #' 1st = top, 2nd = next clockwise, etc. (e.g. 3 groups = triangle, 4 = square).
-#' Must contain all unique groups from \code{group_info$Group} exactly once.
-#' If \code{NULL}, uses \code{unique(group_info$Group)} order (first occurrence).
+#' Must contain all unique groups from \code{group_info$Group} or \code{names(graph_obj_list)} exactly once.
+#' If \code{NULL}, uses \code{unique(group_info$Group)} or \code{names(graph_obj_list)} order (first occurrence).
 #' @param group_layout Character (default = "circle").
 #' Arrangement of groups in the multi-group plot.
 #' \code{"circle"}: groups placed evenly on a circle (default).
@@ -210,6 +217,9 @@
 #' \code{"cos"}: vertex-only; group 1 at peak; groups 2+ alternate peak and trough.
 #' \code{"-sin"}: vertex-only; group 1 at center; groups 2+ alternate down, up.
 #' \code{"-cos"}: vertex-only; group 1 at trough; groups 2+ alternate trough and peak.
+#' \code{"center_pairs"}: group 1 at center (y=0); remaining groups form pairs on peak (y=1) and trough (y=-1),
+#' with one \code{anchor_dist} gap between center and first pair. Pairs alternate right/left of center.
+#' If a pair has only one group, it goes on top (peak). Empty pair slots keep their positions.
 #' @param sine_period Numeric (default = 4).
 #' Groups per wavelength for \code{snake_vertical*}; ignored for \code{sin}, \code{cos}, \code{-sin}, \code{-cos}.
 #' @param scale_groups Logical (default = TRUE).
@@ -261,8 +271,9 @@
 #' @export
 #'
 #' @examples NULL
-ggNetView_multi_link <- function(mat,
-                                 group_info,
+ggNetView_multi_link <- function(mat = NULL,
+                                 group_info = NULL,
+                                 graph_obj_list = NULL,
                                  transfrom.method = c("none", "scale", "center", "log2", "log10", "ln", "rrarefy", "rrarefy_relative"),
                                  r.threshold = 0.7,
                                  p.threshold = 0.05,
@@ -369,34 +380,59 @@ ggNetView_multi_link <- function(mat,
   if (!is.logical(calculate_topology) || length(calculate_topology) != 1 || is.na(calculate_topology)) {
     stop("`calculate_topology` must be TRUE or FALSE.")
   }
-  if (!is.data.frame(group_info) || !all(c("Sample", "Group") %in% colnames(group_info))) {
-    stop("`group_info` must be a data.frame containing columns `Sample` and `Group`.")
+
+  use_graph_obj_list <- !is.null(graph_obj_list)
+  if (use_graph_obj_list) {
+    if (!is.list(graph_obj_list) || length(graph_obj_list) == 0) {
+      stop("`graph_obj_list` must be a non-empty named list of tbl_graph objects.")
+    }
+    if (is.null(names(graph_obj_list)) || any(names(graph_obj_list) == "")) {
+      stop("`graph_obj_list` must be a named list (e.g. list(WT = g1, KO = g2)).")
+    }
+    for (i in seq_along(graph_obj_list)) {
+      if (!inherits(graph_obj_list[[i]], "tbl_graph")) {
+        stop(sprintf("`graph_obj_list[[%s]]` must be a tbl_graph object.", names(graph_obj_list)[i]))
+      }
+    }
+    valid_groups <- names(graph_obj_list)
+    if (isTRUE(calculate_topology)) {
+      warning("`calculate_topology` requires mat and group_info; topology will be skipped when using graph_obj_list.")
+      calculate_topology <- FALSE
+    }
+  } else {
+    if (is.null(mat) || is.null(group_info)) {
+      stop("Provide either (mat, group_info) or graph_obj_list.")
+    }
+    if (!is.data.frame(group_info) || !all(c("Sample", "Group") %in% colnames(group_info))) {
+      stop("`group_info` must be a data.frame containing columns `Sample` and `Group`.")
+    }
+    # 若 Sample 或 Group 含下划线，会干扰后续 sep = "_" 的解析，统一替换为中划线
+    has_underscore <- any(grepl("_", group_info$Sample, fixed = TRUE)) ||
+      any(grepl("_", group_info$Group, fixed = TRUE))
+    if (has_underscore) {
+      warning("`group_info` contains underscores in Sample or Group; replacing with hyphens to avoid parsing issues.")
+      group_info <- group_info %>%
+        dplyr::mutate(
+          Sample = gsub("_", "-", as.character(Sample), fixed = TRUE),
+          Group = gsub("_", "-", as.character(Group), fixed = TRUE)
+        )
+      mat <- as.data.frame(mat)
+      if (any(grepl("_", colnames(mat), fixed = TRUE))) {
+        colnames(mat) <- gsub("_", "-", colnames(mat), fixed = TRUE)
+      }
+      if (!is.null(order)) {
+        order <- gsub("_", "-", as.character(order), fixed = TRUE)
+      }
+      if (!is.null(comparisons_groups) && is.list(comparisons_groups)) {
+        comparisons_groups <- lapply(comparisons_groups, function(x) gsub("_", "-", as.character(x), fixed = TRUE))
+      }
+    }
+    valid_groups <- unique(group_info$Group)
   }
-  # 若 Sample 或 Group 含下划线，会干扰后续 sep = "_" 的解析，统一替换为中划线
-  has_underscore <- any(grepl("_", group_info$Sample, fixed = TRUE)) ||
-    any(grepl("_", group_info$Group, fixed = TRUE))
-  if (has_underscore) {
-    warning("`group_info` contains underscores in Sample or Group; replacing with hyphens to avoid parsing issues.")
-    group_info <- group_info %>%
-      dplyr::mutate(
-        Sample = gsub("_", "-", as.character(Sample), fixed = TRUE),
-        Group = gsub("_", "-", as.character(Group), fixed = TRUE)
-      )
-    mat <- as.data.frame(mat)
-    if (any(grepl("_", colnames(mat), fixed = TRUE))) {
-      colnames(mat) <- gsub("_", "-", colnames(mat), fixed = TRUE)
-    }
-    if (!is.null(order)) {
-      order <- gsub("_", "-", as.character(order), fixed = TRUE)
-    }
-    if (!is.null(comparisons_groups) && is.list(comparisons_groups)) {
-      comparisons_groups <- lapply(comparisons_groups, function(x) gsub("_", "-", as.character(x), fixed = TRUE))
-    }
-  }
+
   if (!is.logical(comparisons) || length(comparisons) != 1 || is.na(comparisons)) {
     stop("`comparisons` must be TRUE or FALSE.")
   }
-  valid_groups <- unique(group_info$Group)
   groups_to_process <- if (is.null(order)) {
     valid_groups
   } else {
@@ -404,10 +440,10 @@ ggNetView_multi_link <- function(mat,
       stop("`order` must be NULL or a character vector of group names.")
     }
     if (!all(order %in% valid_groups)) {
-      stop("All elements in `order` must be group names from group_info$Group.")
+      stop("All elements in `order` must be group names from group_info$Group or names(graph_obj_list).")
     }
     if (!all(valid_groups %in% order)) {
-      stop("`order` must contain all unique groups from group_info$Group.")
+      stop("`order` must contain all unique groups from group_info$Group or names(graph_obj_list).")
     }
     if (length(order) != length(valid_groups)) {
       stop("`order` must contain each group exactly once (no duplicates, no missing).")
@@ -548,7 +584,7 @@ ggNetView_multi_link <- function(mat,
     stop("`sine_period` must be a single positive numeric value.")
   }
   layout.module <- match.arg(layout.module)
-  group_layout <- match.arg(group_layout, choices = c("circle", "row", "column", "square", "diamond", "triangle", "triangle_down", "snake", "snake_vertical", "snake_vertical_sin", "snake_vertical_cos", "snake_vertical_neg_sin", "snake_vertical_neg_cos", "sin", "cos", "-sin", "-cos"))
+  group_layout <- match.arg(group_layout, choices = c("circle", "row", "column", "square", "diamond", "triangle", "triangle_down", "snake", "snake_vertical", "snake_vertical_sin", "snake_vertical_cos", "snake_vertical_neg_sin", "snake_vertical_neg_cos", "sin", "cos", "-sin", "-cos", "center_pairs"))
   layout_anchor_dist_use <- if (is.null(layout_anchor_dist)) anchor_dist else layout_anchor_dist
   if (is.null(layout) || length(layout) != 1 || is.na(layout) || trimws(as.character(layout)) == "") {
     stop("`layout` must be a non-empty character string (e.g. 'gephi', 'square', 'petal').")
@@ -564,34 +600,38 @@ ggNetView_multi_link <- function(mat,
   topology_sample <- list()
 
   for (g in groups_to_process) {
-    group_info_sub <- group_info %>%
-      dplyr::filter(Group %in% g)
+    if (use_graph_obj_list) {
+      graph <- graph_obj_list[[g]]
+    } else {
+      group_info_sub <- group_info %>%
+        dplyr::filter(Group %in% g)
 
-    mat_sub <- mat %>%
-      as.data.frame() %>%
-      dplyr::select(all_of(group_info_sub$Sample)) %>%
-      tibble::rownames_to_column(var = "ID") %>%
-      dplyr::rowwise() %>%
-      dplyr::mutate(sum = sum(dplyr::c_across(where(is.numeric)))) %>%
-      dplyr::ungroup() %>%
-      dplyr::filter(sum != 0) %>%
-      dplyr::select(-sum) %>%
-      tibble::column_to_rownames(var = "ID")
+      mat_sub <- mat %>%
+        as.data.frame() %>%
+        dplyr::select(all_of(group_info_sub$Sample)) %>%
+        tibble::rownames_to_column(var = "ID") %>%
+        dplyr::rowwise() %>%
+        dplyr::mutate(sum = sum(dplyr::c_across(where(is.numeric)))) %>%
+        dplyr::ungroup() %>%
+        dplyr::filter(sum != 0) %>%
+        dplyr::select(-sum) %>%
+        tibble::column_to_rownames(var = "ID")
 
-    graph <- build_graph_from_mat(
-      mat = mat_sub,
-      transfrom.method = transfrom.method,
-      r.threshold = r.threshold,
-      p.threshold = p.threshold,
-      method = method,
-      cor.method = cor.method,
-      proc = proc,
-      module.method = module.method,
-      SpiecEasi.method = SpiecEasi.method,
-      node_annotation = node_annotation,
-      top_modules = top_modules,
-      seed = seed
-    )
+      graph <- build_graph_from_mat(
+        mat = mat_sub,
+        transfrom.method = transfrom.method,
+        r.threshold = r.threshold,
+        p.threshold = p.threshold,
+        method = method,
+        cor.method = cor.method,
+        proc = proc,
+        module.method = module.method,
+        SpiecEasi.method = SpiecEasi.method,
+        node_annotation = node_annotation,
+        top_modules = top_modules,
+        seed = seed
+      )
+    }
 
     # dropOthers acts on the source graph_obj BEFORE layout:
     # it removes "Others" nodes first, then downstream layout/plot are rebuilt.
@@ -947,6 +987,29 @@ ggNetView_multi_link <- function(mat,
       "-cos" = anchor_dist * rep(c(-1, 1), length.out = n_grp)
     )
     anchors <- lapply(seq_len(n_grp), function(i) c(x_centered[i], y_vals[i]))
+  } else if (group_layout == "center_pairs") {
+    # 布局：A1 A2 A3 A4 A5 (上) / O (中) / B1 B2 B3 B4 B5 (下)
+    # O 居中 (0,0)，A/B 对 x 从左到右：1,2,3,4,5；y：A=1，B=-1
+    anchors <- vector("list", n_grp)
+    anchors[[1]] <- c(0, 0)
+    if (n_grp >= 2) {
+      k <- (n_grp - 1) %/% 2
+      x_vals <- seq_len(k) * anchor_dist
+      pair_idx <- 0
+      i <- 2
+      while (i <= n_grp) {
+        pair_idx <- pair_idx + 1
+        x_pos <- x_vals[pair_idx]
+        if (i + 1 <= n_grp) {
+          anchors[[i]] <- c(x_pos, anchor_dist)
+          anchors[[i + 1]] <- c(x_pos, -anchor_dist)
+          i <- i + 2
+        } else {
+          anchors[[i]] <- c(x_pos, anchor_dist)
+          i <- i + 1
+        }
+      }
+    }
   } else if (group_layout %in% c("square", "diamond", "triangle", "triangle_down")) {
     # 多边形布局：类似 circle，在圆周上均匀分布，起始角度因形状而异
     # square: 四角 (左上、右上、右下、左下)，base = 3π/4
@@ -964,7 +1027,7 @@ ggNetView_multi_link <- function(mat,
       c(anchor_dist * cos(a), anchor_dist * sin(a))
     })
   } else {
-    stop("`group_layout` must be one of: 'circle', 'row', 'column', 'square', 'diamond', 'triangle', 'triangle_down', 'snake', 'snake_vertical', 'snake_vertical_sin', 'snake_vertical_cos', 'snake_vertical_neg_sin', 'snake_vertical_neg_cos', 'sin', 'cos', '-sin', '-cos'.")
+    stop("`group_layout` must be one of: 'circle', 'row', 'column', 'square', 'diamond', 'triangle', 'triangle_down', 'snake', 'snake_vertical', 'snake_vertical_sin', 'snake_vertical_cos', 'snake_vertical_neg_sin', 'snake_vertical_neg_cos', 'sin', 'cos', '-sin', '-cos', 'center_pairs'.")
   }
 
   anchors_df <- do.call(rbind, anchors) %>%
@@ -1275,7 +1338,7 @@ ggNetView_multi_link <- function(mat,
             my <- (cy[gA] + cy[gB]) / 2
             s <- as.integer(sign((cx_cent - mx) * dy - (cy_cent - my) * dx))
             key_ij <- paste(sort(c(gA, gB)), collapse = "|")
-            cross_channel_lookup[[key_ij]] <- if (s != 0L) s else 1L
+            cross_channel_lookup[[key_ij]] <- if (is.finite(s) && s != 0L) s else 1L
           }
         }
       }
@@ -1913,7 +1976,7 @@ ggNetView_multi_link <- function(mat,
             my <- (cy[gA] + cy[gB]) / 2
             s <- as.integer(sign((cx_cent - mx) * dy - (cy_cent - my) * dx))
             key_ij <- paste(sort(c(gA, gB)), collapse = "|")
-            cross_channel_lookup[[key_ij]] <- if (s != 0L) s else 1L
+            cross_channel_lookup[[key_ij]] <- if (is.finite(s) && s != 0L) s else 1L
           }
         }
       }

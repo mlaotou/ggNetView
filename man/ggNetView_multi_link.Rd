@@ -5,8 +5,9 @@
 \title{Visualize multiple networks and show the connections between them to highlight key members within the networks}
 \usage{
 ggNetView_multi_link(
-  mat,
-  group_info,
+  mat = NULL,
+  group_info = NULL,
+  graph_obj_list = NULL,
   transfrom.method = c("none", "scale", "center", "log2", "log10", "ln", "rrarefy",
     "rrarefy_relative"),
   r.threshold = 0.7,
@@ -92,12 +93,17 @@ ggNetView_multi_link(
 )
 }
 \arguments{
-\item{mat}{Numeric matrix.
+\item{mat}{Numeric matrix. Required when \code{graph_obj_list} is \code{NULL}.
 A numeric matrix with variables (e.g. genes, taxa) in rows and samples in columns.}
 
-\item{group_info}{DataFrame
+\item{group_info}{DataFrame. Required when \code{graph_obj_list} is \code{NULL}.
 The group information contains: Sample and Group.
 If Sample or Group contain underscores (\code{_}), they are automatically replaced with hyphens (\code{-}) to avoid parsing issues; \code{mat} column names, \code{order}, and \code{comparisons_groups} are updated accordingly.}
+
+\item{graph_obj_list}{Named list of \code{tbl_graph} objects. Alternative to \code{mat} and \code{group_info}.
+Each element is a graph object (e.g. from \code{build_graph_from_mat} or \code{build_graph_from_df}).
+List names define group names (e.g. \code{list(WT = g1, KO = g2)}).
+When provided, \code{mat} and \code{group_info} are ignored. Enables custom pre-built networks.}
 
 \item{transfrom.method}{Character.
 Data transformation methods applied before correlation analysis.
@@ -335,14 +341,14 @@ If \code{FALSE}, no module overlap or node comparison is done, and no cross-grou
 \item{comparisons_groups}{List or NULL (default = NULL).
 When \code{comparisons = TRUE}, constrains which group pairs are compared.
 Each element must be a length-2 character vector, e.g. \code{list(c("WT", "OE"), c("WT", "KO"))}.
-Group names must exist in \code{group_info$Group}.
+Group names must exist in \code{group_info$Group} or \code{names(graph_obj_list)}.
 If \code{NULL}, all pairwise group comparisons are performed.}
 
 \item{order}{Character vector or NULL (default = NULL).
 Order of groups for layout positions. Groups are placed evenly on a circle:
 1st = top, 2nd = next clockwise, etc. (e.g. 3 groups = triangle, 4 = square).
-Must contain all unique groups from \code{group_info$Group} exactly once.
-If \code{NULL}, uses \code{unique(group_info$Group)} order (first occurrence).}
+Must contain all unique groups from \code{group_info$Group} or \code{names(graph_obj_list)} exactly once.
+If \code{NULL}, uses \code{unique(group_info$Group)} or \code{names(graph_obj_list)} order (first occurrence).}
 
 \item{group_layout}{Character (default = "circle").
 Arrangement of groups in the multi-group plot.
@@ -363,7 +369,10 @@ second row right-to-left, third row left-to-right, etc. Uses \code{nrow} and \co
 \code{"sin"}: vertex-only; group 1 at center; groups 2+ alternate peaks and troughs.
 \code{"cos"}: vertex-only; group 1 at peak; groups 2+ alternate peak and trough.
 \code{"-sin"}: vertex-only; group 1 at center; groups 2+ alternate down, up.
-\code{"-cos"}: vertex-only; group 1 at trough; groups 2+ alternate trough and peak.}
+\code{"-cos"}: vertex-only; group 1 at trough; groups 2+ alternate trough and peak.
+\code{"center_pairs"}: group 1 at center (y=0); remaining groups form pairs on peak (y=1) and trough (y=-1),
+with one \code{anchor_dist} gap between center and first pair. Pairs alternate right/left of center.
+If a pair has only one group, it goes on top (peak). Empty pair slots keep their positions.}
 
 \item{scale_groups}{Logical (default = TRUE).
 Whether to normalize each group to a comparable coordinate scale before
@@ -435,7 +444,8 @@ A list containing plot, module-overlap info, link info, group graphs,
 and optional topology results.
 }
 \description{
-Visualize multiple networks and show the connections between them to highlight key members within the networks
+Provide either \code{(mat, group_info)} or \code{graph_obj_list} as input.
+When \code{graph_obj_list} is provided, \code{mat} and \code{group_info} are ignored.
 }
 \examples{
 NULL
