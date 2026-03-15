@@ -288,7 +288,7 @@ gglink_heatmaps <- function(
     stop("`distance` must be non-negative.")
   }
 
-  length_dist <- max(k_vec) + 0.5 * radius + distance
+  length_dist <- max(k_vec)
 
   # 真实不够的，我们需要使用gap去补充
   k_gap <- length_dist - k_vec
@@ -831,38 +831,98 @@ gglink_heatmaps <- function(
   k_gap
   length_dist
 
+  .diag_xy <- function(id_idx, type_idx, ori, k_gap, length_dist, side_anchor, heatmap_step) {
+    x_anchor <- if (ori %in% c("top_right", "bottom_right")) side_anchor[["right"]] else side_anchor[["left"]]
+    y_anchor <- if (ori %in% c("top_right", "top_left")) side_anchor[["top"]] else side_anchor[["bottom"]]
+
+    x_out <- if (ori %in% c("top_right", "bottom_right")) {
+      x_anchor + heatmap_step * (k_gap[[ori]] + id_idx - 1)
+    } else {
+      -x_anchor - heatmap_step * (length_dist - id_idx)
+    }
+
+    y_out <- if (ori %in% c("top_right", "top_left")) {
+      y_anchor + heatmap_step * (k_gap[[ori]] + type_idx - 2)
+    } else {
+      -y_anchor - heatmap_step * (length_dist - type_idx - 1)
+    }
+
+    list(x = x_out, y = y_out)
+  }
+
+  # Scale heatmaps with larger central layouts so they remain readable.
+  heatmap_step <- max(1, 0.5 * radius / max(length_dist, 1))
+  diag_default <- min(max(abs(cor_spec_env$x), na.rm = TRUE),
+                      max(abs(cor_spec_env$y), na.rm = TRUE)) / sqrt(2)
+  .quad_reach <- function(df, ori, default_val) {
+    val <- switch(
+      ori,
+      top_right = {
+        idx <- df$x >= 0 & df$y >= 0
+        if (!any(idx)) NA_real_ else max(pmin(df$x[idx], df$y[idx]), na.rm = TRUE)
+      },
+      bottom_right = {
+        idx <- df$x >= 0 & df$y <= 0
+        if (!any(idx)) NA_real_ else max(pmin(df$x[idx], -df$y[idx]), na.rm = TRUE)
+      },
+      top_left = {
+        idx <- df$x <= 0 & df$y >= 0
+        if (!any(idx)) NA_real_ else max(pmin(-df$x[idx], df$y[idx]), na.rm = TRUE)
+      },
+      bottom_left = {
+        idx <- df$x <= 0 & df$y <= 0
+        if (!any(idx)) NA_real_ else max(pmin(-df$x[idx], -df$y[idx]), na.rm = TRUE)
+      }
+    )
+    if (!is.finite(val)) default_val else val
+  }
+  quad_anchor <- stats::setNames(
+    vapply(
+      orientation,
+      function(ori) .quad_reach(cor_spec_env, ori, diag_default) + distance,
+      numeric(1)
+    ),
+    orientation
+  )
+  side_anchor <- c(
+    right = max(quad_anchor[intersect(c("top_right", "bottom_right"), orientation)], na.rm = TRUE),
+    left = max(quad_anchor[intersect(c("top_left", "bottom_left"), orientation)], na.rm = TRUE),
+    top = max(quad_anchor[intersect(c("top_right", "top_left"), orientation)], na.rm = TRUE),
+    bottom = max(quad_anchor[intersect(c("bottom_right", "bottom_left"), orientation)], na.rm = TRUE)
+  )
+
   # get targets informations
   # 针对每一个 orientation 设置 x_to y_to
-  .make_targets <- function(df, ori, k_gap, length_dist){
-    df %>%
+  .make_targets <- function(df, ori, k_gap, length_dist, side_anchor, heatmap_step){
+    df_diag <- df %>%
       dplyr::mutate(
         ID = as.character(ID),
         Type = as.character(Type)
       ) %>%
-      dplyr::filter(ID == Type) %>%
-      dplyr::transmute(ID,
-                       x_to = dplyr::case_when(
-                         ori == "top_right" ~ ID2 + k_gap[ori],
-                         ori == "bottom_right" ~ ID2 + k_gap[ori],
-                         ori == "top_left" ~ ID2 - length_dist,
-                         ori == "bottom_left" ~ID2 - length_dist
-                       ),
-                       y_to = dplyr::case_when(
-                         ori == "top_right" ~ Type2+k_gap[ori]-1,
-                         ori == "bottom_right" ~ Type2-length_dist+1,
-                         ori == "top_left" ~ Type2+k_gap[ori]-1,
-                         ori == "bottom_left" ~Type2-length_dist+1
-                       ))
+      dplyr::filter(ID == Type)
+
+    xy_diag <- .diag_xy(
+      id_idx = df_diag$ID2,
+      type_idx = df_diag$Type2,
+      ori = ori,
+      k_gap = k_gap,
+      length_dist = length_dist,
+      side_anchor = side_anchor,
+      heatmap_step = heatmap_step
+    )
+
+    df_diag %>%
+      dplyr::transmute(ID, x_to = xy_diag$x, y_to = xy_diag$y)
   }
 
   xy_targets <- purrr::imap_dfr(
     .x = env_cor_self_list[orientation],
     .f = .make_targets,
     k_gap = k_gap,
-    length_dist = length_dist
+    length_dist = length_dist,
+    side_anchor = side_anchor,
+    heatmap_step = heatmap_step
   )
-
-  xy_targets
 
   cor_spec_env_location <- cor_spec_env_list_out %>%
     dplyr::mutate(ID = as.character(ID), Type = as.character(Type)) %>%
@@ -878,51 +938,87 @@ gglink_heatmaps <- function(
     link_df <- link_df %>% dplyr::filter(.data$Pvalue <= 0.05)
   }
 
-  .offset_env <- function(df, ori, k_gap, length_dist, HeatmapLabelOrient = 0,
+  .offset_env <- function(df, ori, k_gap, length_dist, side_anchor, heatmap_step,
+                          HeatmapLabelOrient = 0,
                           y_top_all = NULL, y_bottom_all = NULL){
     stopifnot(ori %in% c("top_right","bottom_right","top_left","bottom_left"))
     df <- df %>% dplyr::mutate(ID = as.character(ID), Type = as.character(Type))
+    x_anchor <- if (ori %in% c("top_right", "bottom_right")) side_anchor[["right"]] else side_anchor[["left"]]
+    y_anchor <- if (ori %in% c("top_right", "top_left")) side_anchor[["top"]] else side_anchor[["bottom"]]
 
     # tile 坐标（四象限通用规则）
-    x_tile <- if (ori %in% c("top_right","bottom_right")) df$ID2 + k_gap[[ori]] else df$ID2 - length_dist
-    y_tile <- if (ori %in% c("top_right","top_left"))      df$Type2 + k_gap[[ori]] else df$Type2 - length_dist
+    x_tile <- if (ori %in% c("top_right","bottom_right")) {
+      x_anchor + heatmap_step * (k_gap[[ori]] + df$ID2 - 1)
+    } else {
+      -x_anchor - heatmap_step * (length_dist - df$ID2)
+    }
+    y_tile <- if (ori %in% c("top_right","top_left")) {
+      y_anchor + heatmap_step * (k_gap[[ori]] + df$Type2 - 1)
+    } else {
+      -y_anchor - heatmap_step * (length_dist - df$Type2)
+    }
 
     tile <- df %>% dplyr::mutate(x_tile = x_tile, y_tile = y_tile, orientation = ori)
 
     # 对角点（你原来用于标注主对角）
     diag_df <- df %>% dplyr::filter(ID == Type)
-    x_diag  <- if (ori %in% c("top_right","bottom_right")) diag_df$ID2 + k_gap[[ori]] else diag_df$ID2 - length_dist
-    y_diag  <- if (ori %in% c("top_right","top_left"))     diag_df$Type2 + k_gap[[ori]] - 1 else diag_df$Type2 - length_dist + 1
+    diag_xy <- .diag_xy(
+      id_idx = diag_df$ID2,
+      type_idx = diag_df$Type2,
+      ori = ori,
+      k_gap = k_gap,
+      length_dist = length_dist,
+      side_anchor = side_anchor,
+      heatmap_step = heatmap_step
+    )
+    x_diag <- diag_xy$x
+    y_diag <- diag_xy$y
     diag    <- diag_df %>% dplyr::transmute(ID, x_diag, y_diag, orientation = ori)
 
     # 轴标签位置
     # HeatmapLabelOrient == 0: 保持原来的相对位置
     # HeatmapLabelOrient != 0: 使用全局的顶部/底部边界，再外移 1 个单位，保证上下各象限对齐
     if (HeatmapLabelOrient == 0 || is.null(y_top_all) || is.null(y_bottom_all)) {
-      y_id_lab <- if (ori %in% c("top_right","top_left")) length_dist + 1 else 0 - length_dist
+      y_id_lab <- if (ori %in% c("top_right","top_left")) {
+        y_anchor + heatmap_step * length_dist
+      } else {
+        -y_anchor - heatmap_step * length_dist
+      }
     } else {
       if (ori %in% c("top_right","top_left")) {
         # 顶部两个象限：在全局热图最上边界基础上再向上挪动 1 个单位
-        y_id_lab <- y_top_all + 1
+        y_id_lab <- y_top_all + heatmap_step
       } else {
         # 底部两个象限：在全局热图最下边界基础上再向下挪动 1 个单位
-        y_id_lab <- y_bottom_all - 1
+        y_id_lab <- y_bottom_all - heatmap_step
       }
     }
-    x_type_lab <- if (ori %in% c("top_right","bottom_right")) length_dist + 1 else 0 - length_dist
+    x_type_lab <- if (ori %in% c("top_right","bottom_right")) {
+      x_anchor + heatmap_step * (length_dist - 0.5)
+    } else {
+      -x_anchor - heatmap_step * (length_dist - 0.5)
+    }
     hjust_type <- if (ori %in% c("top_right","bottom_right")) "left" else "right"
 
     id_lab <- df %>%
       dplyr::distinct(ID, .keep_all = TRUE) %>%
       dplyr::transmute(ID,
-                       x_id = if (ori %in% c("top_right","bottom_right")) ID2 + k_gap[[ori]] else ID2 - length_dist,
+                       x_id = if (ori %in% c("top_right","bottom_right")) {
+                         x_anchor + heatmap_step * (k_gap[[ori]] + ID2 - 1)
+                       } else {
+                         -x_anchor - heatmap_step * (length_dist - ID2)
+                       },
                        y_id = y_id_lab, orientation = ori)
 
     type_lab <- df %>%
       dplyr::distinct(Type, .keep_all = TRUE) %>%
       dplyr::transmute(Type,
                        x_type = x_type_lab,
-                       y_type = if (ori %in% c("top_right","top_left")) Type2 + k_gap[[ori]] else Type2 - length_dist,
+                       y_type = if (ori %in% c("top_right","top_left")) {
+                         y_anchor + heatmap_step * (k_gap[[ori]] + Type2 - 1)
+                       } else {
+                         -y_anchor - heatmap_step * (length_dist - Type2)
+                       },
                        hjust_type = hjust_type, orientation = ori)
 
     list(tile = tile, diag = diag, id_lab = id_lab, type_lab = type_lab)
@@ -1025,10 +1121,14 @@ gglink_heatmaps <- function(
   }
 
   # 先计算所有象限中 tile 的全局顶部/底部边界，便于对齐标签
-  .compute_y_range <- function(df, ori, k_gap, length_dist){
+  .compute_y_range <- function(df, ori, k_gap, length_dist, side_anchor, heatmap_step){
     df <- df %>% dplyr::mutate(ID = as.character(ID), Type = as.character(Type))
-    x_tile <- if (ori %in% c("top_right","bottom_right")) df$ID2 + k_gap[[ori]] else df$ID2 - length_dist
-    y_tile <- if (ori %in% c("top_right","top_left"))      df$Type2 + k_gap[[ori]] else df$Type2 - length_dist
+    y_anchor <- if (ori %in% c("top_right", "top_left")) side_anchor[["top"]] else side_anchor[["bottom"]]
+    y_tile <- if (ori %in% c("top_right","top_left")) {
+      y_anchor + heatmap_step * (k_gap[[ori]] + df$Type2 - 1)
+    } else {
+      -y_anchor - heatmap_step * (length_dist - df$Type2)
+    }
     data.frame(
       orientation = ori,
       ymin = min(y_tile, na.rm = TRUE),
@@ -1038,7 +1138,7 @@ gglink_heatmaps <- function(
 
   y_ranges <- purrr::imap_dfr(
     env_cor_self_list[orientation],
-    ~ .compute_y_range(.x, .y, k_gap, length_dist)
+    ~ .compute_y_range(.x, .y, k_gap, length_dist, side_anchor, heatmap_step)
   )
 
   y_top_all <- y_ranges %>%
@@ -1054,7 +1154,7 @@ gglink_heatmaps <- function(
   # 先为每个方位算好偏移后的数据包
   packs <- purrr::imap(
     env_cor_self_list[orientation],
-    ~ .offset_env(.x, .y, k_gap, length_dist,
+    ~ .offset_env(.x, .y, k_gap, length_dist, side_anchor, heatmap_step,
                   HeatmapLabelOrient = HeatmapLabelOrient,
                   y_top_all = y_top_all,
                   y_bottom_all = y_bottom_all)
