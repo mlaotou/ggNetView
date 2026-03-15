@@ -179,6 +179,10 @@ get_module_abundance <- function(otu_mat,
 #' @param distance Numeric. Gap between the scaled network boundary and the
 #'   environmental heatmaps.
 #' @param r Numeric. Effective radius for scaling the central network.
+#' @param HeatmapScale Numeric (default = 1). Global scale factor for the overall
+#'   heatmap size. Values > 1 enlarge the whole heatmap layout.
+#' @param SigLineAlpha Numeric (default = 0.5). Transparency for module–heatmap
+#'   link lines. Must be between 0 and 1.
 #' @param ... Additional arguments passed to \code{ggNetView} (e.g. \code{layout},
 #'   \code{label}, \code{add_outer}, \code{fill}, \code{pointsize}).
 #'
@@ -202,6 +206,8 @@ ggnetview_modularity_heatmaps <- function(
     orientation = c("top_right", "bottom_right", "top_left", "bottom_left"),
     distance = 3,
     r = 6,
+    HeatmapScale = 1,
+    SigLineAlpha = 0.5,
     HeatmapLabelSize = 5,
     HeatmapSigSize = 5,
     HeatmapColorBar = NULL,
@@ -231,6 +237,14 @@ ggnetview_modularity_heatmaps <- function(
   r <- as.numeric(r)
   if (length(r) != 1 || is.na(r) || r <= 0) {
     stop("`r` must be a single positive numeric value.", call. = FALSE)
+  }
+  HeatmapScale <- as.numeric(HeatmapScale)
+  SigLineAlpha <- as.numeric(SigLineAlpha)
+  if (length(HeatmapScale) != 1 || !is.finite(HeatmapScale) || HeatmapScale <= 0) {
+    stop("`HeatmapScale` must be a single positive numeric value.", call. = FALSE)
+  }
+  if (length(SigLineAlpha) != 1 || !is.finite(SigLineAlpha) || SigLineAlpha < 0 || SigLineAlpha > 1) {
+    stop("`SigLineAlpha` must be a single numeric value between 0 and 1.", call. = FALSE)
   }
 
   if (is.null(env_select)) {
@@ -409,23 +423,26 @@ ggnetview_modularity_heatmaps <- function(
   }
   names(env_cor_self_list) <- orientation
 
-  .diag_xy <- function(id_idx, type_idx, ori, k_gap, length_dist, quad_anchor, heatmap_step) {
+  .diag_xy <- function(id_idx, type_idx, ori, k_gap, length_dist, side_anchor, heatmap_step) {
+    x_anchor <- if (ori %in% c("top_right", "bottom_right")) side_anchor[["right"]] else side_anchor[["left"]]
+    y_anchor <- if (ori %in% c("top_right", "top_left")) side_anchor[["top"]] else side_anchor[["bottom"]]
+
     x_out <- if (ori %in% c("top_right", "bottom_right")) {
-      quad_anchor[[ori]] + heatmap_step * (k_gap[[ori]] + id_idx - 1)
+      x_anchor + heatmap_step * (k_gap[[ori]] + id_idx - 1)
     } else {
-      -quad_anchor[[ori]] - heatmap_step * (length_dist - id_idx)
+      -x_anchor - heatmap_step * (length_dist - id_idx)
     }
 
     y_out <- if (ori %in% c("top_right", "top_left")) {
-      quad_anchor[[ori]] + heatmap_step * (k_gap[[ori]] + type_idx - 2)
+      y_anchor + heatmap_step * (k_gap[[ori]] + type_idx - 2)
     } else {
-      -quad_anchor[[ori]] - heatmap_step * (length_dist - type_idx - 1)
+      -y_anchor - heatmap_step * (length_dist - type_idx - 1)
     }
 
     list(x = x_out, y = y_out)
   }
 
-  .make_targets <- function(df, ori, k_gap, length_dist, quad_anchor, heatmap_step) {
+  .make_targets <- function(df, ori, k_gap, length_dist, side_anchor, heatmap_step) {
     df_diag <- df %>%
       dplyr::mutate(ID = as.character(ID), Type = as.character(Type)) %>%
       dplyr::filter(ID == Type)
@@ -436,7 +453,7 @@ ggnetview_modularity_heatmaps <- function(
       ori = ori,
       k_gap = k_gap,
       length_dist = length_dist,
-      quad_anchor = quad_anchor,
+      side_anchor = side_anchor,
       heatmap_step = heatmap_step
     )
 
@@ -536,8 +553,11 @@ ggnetview_modularity_heatmaps <- function(
     ymax = max(graph_ly_scaled$y, na.rm = TRUE)
   )
 
-  # Enlarge heatmaps when the network radius is large, so they remain readable.
-  heatmap_step <- max(1, 0.5 * r / max(length_dist, 1))
+  # Heatmap step is independent of r so that r controls only the network size.
+  # Using a fixed reference radius (6) keeps heatmaps at a consistent scale;
+  # when r increases, the network grows while heatmaps stay fixed, so the network
+  # appears larger relative to the plot.
+  heatmap_step <- max(1, 0.5 * 6 / max(length_dist, 1)) * HeatmapScale
   diag_default <- min(max(abs(graph_ly_scaled$x), na.rm = TRUE),
                       max(abs(graph_ly_scaled$y), na.rm = TRUE)) / sqrt(2)
   .quad_reach <- function(df, ori, default_val) {
@@ -570,13 +590,20 @@ ggnetview_modularity_heatmaps <- function(
     ),
     orientation
   )
+  fallback_anchor <- diag_default + distance
+  side_anchor <- c(
+    right = max(c(quad_anchor[intersect(c("top_right", "bottom_right"), orientation)], fallback_anchor), na.rm = TRUE),
+    left = max(c(quad_anchor[intersect(c("top_left", "bottom_left"), orientation)], fallback_anchor), na.rm = TRUE),
+    top = max(c(quad_anchor[intersect(c("top_right", "top_left"), orientation)], fallback_anchor), na.rm = TRUE),
+    bottom = max(c(quad_anchor[intersect(c("bottom_right", "bottom_left"), orientation)], fallback_anchor), na.rm = TRUE)
+  )
 
   xy_targets <- purrr::imap_dfr(
     env_cor_self_list[orientation],
     .make_targets,
     k_gap = k_gap,
     length_dist = length_dist,
-    quad_anchor = quad_anchor,
+    side_anchor = side_anchor,
     heatmap_step = heatmap_step
   )
 
@@ -591,19 +618,22 @@ ggnetview_modularity_heatmaps <- function(
     link_df <- link_df %>% dplyr::filter(.data$Pvalue <= 0.05)
   }
 
-  .offset_env <- function(df, ori, k_gap, length_dist, quad_anchor, heatmap_step,
+  .offset_env <- function(df, ori, k_gap, length_dist, side_anchor, heatmap_step,
                           HeatmapLabelOrient = 0, y_top_all = NULL,
                           y_bottom_all = NULL) {
     df <- df %>% dplyr::mutate(ID = as.character(ID), Type = as.character(Type))
+    x_anchor <- if (ori %in% c("top_right", "bottom_right")) side_anchor[["right"]] else side_anchor[["left"]]
+    y_anchor <- if (ori %in% c("top_right", "top_left")) side_anchor[["top"]] else side_anchor[["bottom"]]
+
     x_tile <- if (ori %in% c("top_right", "bottom_right")) {
-      quad_anchor[[ori]] + heatmap_step * (k_gap[[ori]] + df$ID2 - 1)
+      x_anchor + heatmap_step * (k_gap[[ori]] + df$ID2 - 1)
     } else {
-      -quad_anchor[[ori]] - heatmap_step * (length_dist - df$ID2)
+      -x_anchor - heatmap_step * (length_dist - df$ID2)
     }
     y_tile <- if (ori %in% c("top_right", "top_left")) {
-      quad_anchor[[ori]] + heatmap_step * (k_gap[[ori]] + df$Type2 - 1)
+      y_anchor + heatmap_step * (k_gap[[ori]] + df$Type2 - 1)
     } else {
-      -quad_anchor[[ori]] - heatmap_step * (length_dist - df$Type2)
+      -y_anchor - heatmap_step * (length_dist - df$Type2)
     }
     tile <- df %>% dplyr::mutate(x_tile = x_tile, y_tile = y_tile, orientation = ori)
     diag_df <- df %>% dplyr::filter(ID == Type)
@@ -613,29 +643,29 @@ ggnetview_modularity_heatmaps <- function(
       ori = ori,
       k_gap = k_gap,
       length_dist = length_dist,
-      quad_anchor = quad_anchor,
+      side_anchor = side_anchor,
       heatmap_step = heatmap_step
     )
     x_diag <- diag_xy$x
     y_diag <- diag_xy$y
     diag <- diag_df %>% dplyr::transmute(ID, x_diag, y_diag, orientation = ori)
-    y_id_lab <- if (is.null(y_top_all) || is.null(y_bottom_all)) {
-      if (ori %in% c("top_right", "top_left")) {
-        quad_anchor[[ori]] + heatmap_step * length_dist + heatmap_step
+    if (HeatmapLabelOrient == 0 || is.null(y_top_all) || is.null(y_bottom_all)) {
+      y_id_lab <- if (ori %in% c("top_right", "top_left")) {
+        y_anchor + heatmap_step * length_dist
       } else {
-        -quad_anchor[[ori]] - heatmap_step * length_dist - heatmap_step
+        -y_anchor - heatmap_step * length_dist
       }
     } else {
-      if (ori %in% c("top_right", "top_left")) {
+      y_id_lab <- if (ori %in% c("top_right", "top_left")) {
         y_top_all + heatmap_step
       } else {
         y_bottom_all - heatmap_step
       }
     }
     x_type_lab <- if (ori %in% c("top_right", "bottom_right")) {
-      quad_anchor[[ori]] + heatmap_step * length_dist + heatmap_step
+      x_anchor + heatmap_step * length_dist
     } else {
-      -quad_anchor[[ori]] - heatmap_step * length_dist - heatmap_step
+      -x_anchor - heatmap_step * length_dist
     }
     hjust_type <- if (ori %in% c("top_right", "bottom_right")) "left" else "right"
     id_lab <- df %>%
@@ -643,9 +673,9 @@ ggnetview_modularity_heatmaps <- function(
       dplyr::transmute(
         ID,
         x_id = if (ori %in% c("top_right", "bottom_right")) {
-          quad_anchor[[ori]] + heatmap_step * (k_gap[[ori]] + ID2 - 1)
+          x_anchor + heatmap_step * (k_gap[[ori]] + ID2 - 1)
         } else {
-          -quad_anchor[[ori]] - heatmap_step * (length_dist - ID2)
+          -x_anchor - heatmap_step * (length_dist - ID2)
         },
         y_id = y_id_lab,
         orientation = ori
@@ -656,9 +686,9 @@ ggnetview_modularity_heatmaps <- function(
         Type,
         x_type = x_type_lab,
         y_type = if (ori %in% c("top_right", "top_left")) {
-          quad_anchor[[ori]] + heatmap_step * (k_gap[[ori]] + Type2 - 1)
+          y_anchor + heatmap_step * (k_gap[[ori]] + Type2 - 1)
         } else {
-          -quad_anchor[[ori]] - heatmap_step * (length_dist - Type2)
+          -y_anchor - heatmap_step * (length_dist - Type2)
         },
         hjust_type = hjust_type,
         orientation = ori
@@ -666,26 +696,27 @@ ggnetview_modularity_heatmaps <- function(
     list(tile = tile, diag = diag, id_lab = id_lab, type_lab = type_lab)
   }
 
-  .compute_y_range <- function(df, ori, k_gap, length_dist, quad_anchor, heatmap_step) {
+  .compute_y_range <- function(df, ori, k_gap, length_dist, side_anchor, heatmap_step) {
     df <- df %>% dplyr::mutate(ID = as.character(ID), Type = as.character(Type))
+    y_anchor <- if (ori %in% c("top_right", "top_left")) side_anchor[["top"]] else side_anchor[["bottom"]]
     y_tile <- if (ori %in% c("top_right", "top_left")) {
-      quad_anchor[[ori]] + heatmap_step * (k_gap[[ori]] + df$Type2 - 1)
+      y_anchor + heatmap_step * (k_gap[[ori]] + df$Type2 - 1)
     } else {
-      -quad_anchor[[ori]] - heatmap_step * (length_dist - df$Type2)
+      -y_anchor - heatmap_step * (length_dist - df$Type2)
     }
     data.frame(orientation = ori, ymin = min(y_tile, na.rm = TRUE), ymax = max(y_tile, na.rm = TRUE))
   }
 
   y_ranges <- purrr::imap_dfr(
     env_cor_self_list[orientation],
-    ~ .compute_y_range(.x, .y, k_gap, length_dist, quad_anchor, heatmap_step)
+    ~ .compute_y_range(.x, .y, k_gap, length_dist, side_anchor, heatmap_step)
   )
   y_top_all <- max(y_ranges$ymax[y_ranges$orientation %in% c("top_right", "top_left")], na.rm = TRUE)
   y_bottom_all <- min(y_ranges$ymin[y_ranges$orientation %in% c("bottom_right", "bottom_left")], na.rm = TRUE)
 
   packs <- purrr::imap(
     env_cor_self_list[orientation],
-    ~ .offset_env(.x, .y, k_gap, length_dist, quad_anchor, heatmap_step,
+    ~ .offset_env(.x, .y, k_gap, length_dist, side_anchor, heatmap_step,
                   HeatmapLabelOrient = HeatmapLabelOrient,
                   y_top_all = y_top_all,
                   y_bottom_all = y_bottom_all)
@@ -768,7 +799,7 @@ ggnetview_modularity_heatmaps <- function(
       data = link_df,
       ggplot2::aes(x = x, y = y, xend = x_to, yend = y_to,
                    color = Correlation, linetype = line_type, linewidth = -log10(pmax(Pvalue, 1e-10))),
-      alpha = 0.5
+      alpha = SigLineAlpha
     ) +
     ggplot2::scale_color_gradient(low = SigLineColor[1], high = SigLineColor[2]) +
     ggplot2::scale_linewidth_continuous(range = SigLineWidth) +
@@ -792,7 +823,7 @@ ggnetview_modularity_heatmaps <- function(
       data = link_df,
       ggplot2::aes(x = x, y = y, xend = x_to, yend = y_to,
                    color = Correlation, linetype = line_type, linewidth = -log10(pmax(Pvalue, 1e-10))),
-      alpha = 0.5,
+      alpha = SigLineAlpha,
       curvature = 0.25
     ) +
     ggplot2::scale_color_gradient(low = SigLineColor[1], high = SigLineColor[2]) +

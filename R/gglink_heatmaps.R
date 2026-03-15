@@ -110,6 +110,11 @@
 #' Border color for heatmap tiles (passed to `geom_tile(colour=...)`).
 #' @param HeatmapTileSize Numeric (default = 0)
 #' Border line width for heatmap tiles (passed to `geom_tile(size=...)`).
+#' @param HeatmapScale Numeric (default = 1)
+#' Global scale factor for the overall heatmap size. Values > 1 enlarge the
+#' whole heatmap layout, while values < 1 shrink it.
+#' @param SigLineAlpha Numeric (default = 0.5)
+#' Transparency for species-network to heatmap link lines. Must be between 0 and 1.
 #'
 #' @param fontsize Numeric (default = 5)
 #' (Deprecated) Use `HeatmapLabelSize` instead.
@@ -155,6 +160,8 @@ gglink_heatmaps <- function(
     CorePointFill = "#41b6c4",
     HeatmapTileColor = NA,
     HeatmapTileSize = 0,
+    HeatmapScale = 1,
+    SigLineAlpha = 0.5,
     fontsize = 5,
     orientation = c("top_right", "bottom_right", "top_left","bottom_left"),
     r = 6,
@@ -215,6 +222,8 @@ gglink_heatmaps <- function(
   CorePointFill    <- as.character(CorePointFill)
   HeatmapTileColor <- HeatmapTileColor
   HeatmapTileSize  <- as.numeric(HeatmapTileSize)
+  HeatmapScale     <- as.numeric(HeatmapScale)
+  SigLineAlpha     <- as.numeric(SigLineAlpha)
   if (is.na(HeatmapLabelSize) || length(HeatmapLabelSize) != 1 || HeatmapLabelSize <= 0) {
     stop("`HeatmapLabelSize` must be a single positive numeric value.")
   }
@@ -245,6 +254,12 @@ gglink_heatmaps <- function(
   }
   if (length(HeatmapTileSize) != 1 || !is.finite(HeatmapTileSize) || HeatmapTileSize < 0) {
     stop("`HeatmapTileSize` must be a single non-negative numeric value.")
+  }
+  if (length(HeatmapScale) != 1 || !is.finite(HeatmapScale) || HeatmapScale <= 0) {
+    stop("`HeatmapScale` must be a single positive numeric value.")
+  }
+  if (length(SigLineAlpha) != 1 || !is.finite(SigLineAlpha) || SigLineAlpha < 0 || SigLineAlpha > 1) {
+    stop("`SigLineAlpha` must be a single numeric value between 0 and 1.")
   }
   # if env_select = NULL & spec_select = NULL
   # 说明是最简单的方式 1个点，1个矩阵
@@ -851,7 +866,7 @@ gglink_heatmaps <- function(
   }
 
   # Scale heatmaps with larger central layouts so they remain readable.
-  heatmap_step <- max(1, 0.5 * radius / max(length_dist, 1))
+  heatmap_step <- max(1, 0.5 * radius / max(length_dist, 1)) * HeatmapScale
   diag_default <- min(max(abs(cor_spec_env$x), na.rm = TRUE),
                       max(abs(cor_spec_env$y), na.rm = TRUE)) / sqrt(2)
   .quad_reach <- function(df, ori, default_val) {
@@ -994,9 +1009,9 @@ gglink_heatmaps <- function(
       }
     }
     x_type_lab <- if (ori %in% c("top_right","bottom_right")) {
-      x_anchor + heatmap_step * (length_dist - 0.5)
+      x_anchor + heatmap_step * length_dist
     } else {
-      -x_anchor - heatmap_step * (length_dist - 0.5)
+      -x_anchor - heatmap_step * length_dist
     }
     hjust_type <- if (ori %in% c("top_right","bottom_right")) "left" else "right"
 
@@ -1193,7 +1208,7 @@ gglink_heatmaps <- function(
           color = Correlation,
           linetype = line_type,
           linewidth = -log10(Pvalue)),
-      alpha = 0.5
+      alpha = SigLineAlpha
     ) +
     ggplot2::scale_color_gradient(low = SigLineColor[1], high = SigLineColor[2]) +
     ggplot2::scale_linewidth_continuous(range = SigLineWidth) +
@@ -1231,7 +1246,7 @@ gglink_heatmaps <- function(
           color = Correlation,
           linetype = line_type,
           linewidth = -log10(Pvalue)),
-      alpha = 0.5
+      alpha = SigLineAlpha
     ) +
     ggplot2::scale_color_gradient(low = SigLineColor[1], high = SigLineColor[2]) +
     ggplot2::scale_linewidth_continuous(range = SigLineWidth) +
@@ -1265,7 +1280,7 @@ gglink_heatmaps <- function(
                             color = Correlation,
                             linetype = line_type,
                             linewidth = -log10(Pvalue)),
-               alpha = 0.5,
+               alpha = SigLineAlpha,
                curvature = 0.25
     ) +
     ggplot2::scale_color_gradient(low = SigLineColor[1], high = SigLineColor[2]) +

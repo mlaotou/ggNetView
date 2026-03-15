@@ -21,6 +21,8 @@ ggnetview_modularity_heatmaps(
   orientation = c("top_right", "bottom_right", "top_left", "bottom_left"),
   distance = 3,
   r = 6,
+  HeatmapScale = 1,
+  SigLineAlpha = 0.5,
   HeatmapLabelSize = 5,
   HeatmapSigSize = 5,
   HeatmapColorBar = NULL,
@@ -72,9 +74,16 @@ use \code{"sum"} or \code{"mean"}.}
 \item{orientation}{Character vector. Heatmap quadrants:
 \code{"top_right"}, \code{"bottom_right"}, \code{"top_left"}, \code{"bottom_left"}.}
 
-\item{distance}{Numeric. Gap between network and heatmaps.}
+\item{distance}{Numeric. Gap between the scaled network boundary and the
+environmental heatmaps.}
 
-\item{r}{Numeric. Effective radius for scaling network and heatmap placement.}
+\item{r}{Numeric. Effective radius for scaling the central network.}
+
+\item{HeatmapScale}{Numeric (default = 1). Global scale factor for the overall
+heatmap size. Values > 1 enlarge the whole heatmap layout.}
+
+\item{SigLineAlpha}{Numeric (default = 0.5). Transparency for module–heatmap
+link lines. Must be between 0 and 1.}
 
 \item{...}{Additional arguments passed to \code{ggNetView} (e.g. \code{layout},
 \code{label}, \code{add_outer}, \code{fill}, \code{pointsize}).}

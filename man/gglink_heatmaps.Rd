@@ -35,6 +35,8 @@ gglink_heatmaps(
   CorePointFill = "#41b6c4",
   HeatmapTileColor = NA,
   HeatmapTileSize = 0,
+  HeatmapScale = 1,
+  SigLineAlpha = 0.5,
   fontsize = 5,
   orientation = c("top_right", "bottom_right", "top_left", "bottom_left"),
   r = 6,
@@ -168,6 +170,13 @@ Border color for heatmap tiles (passed to `geom_tile(colour=...)`).}
 
 \item{HeatmapTileSize}{Numeric (default = 0)
 Border line width for heatmap tiles (passed to `geom_tile(size=...)`).}
+
+\item{HeatmapScale}{Numeric (default = 1)
+Global scale factor for the overall heatmap size. Values > 1 enlarge the
+whole heatmap layout, while values < 1 shrink it.}
+
+\item{SigLineAlpha}{Numeric (default = 0.5)
+Transparency for species-network to heatmap link lines. Must be between 0 and 1.}
 
 \item{fontsize}{Numeric (default = 5)
 (Deprecated) Use `HeatmapLabelSize` instead.}
