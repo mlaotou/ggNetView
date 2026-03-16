@@ -30,9 +30,7 @@ ggnetview_modularity_heatmaps(
   SigLineWidth = c(0.5, 2),
   SigLineColor = c("#fdbb84", "#d7301f"),
   HeatmapPointSize = 5,
-  CorePointSize = 8.5,
   HeatmapPointFill = "#de77ae",
-  CorePointFill = "#41b6c4",
   HeatmapTileColor = NA,
   HeatmapTileSize = 0,
   ...
@@ -85,8 +83,19 @@ heatmap size. Values > 1 enlarge the whole heatmap layout.}
 \item{SigLineAlpha}{Numeric (default = 0.5). Transparency for module–heatmap
 link lines. Must be between 0 and 1.}
 
-\item{...}{Additional arguments passed to \code{ggNetView} (e.g. \code{layout},
-\code{label}, \code{add_outer}, \code{fill}, \code{pointsize}).}
+\item{SigLineWidth}{Numeric vector of length 2 (default = c(0.5, 2)).
+Min and max line width for module–heatmap links. Line width is mapped from
+\code{-log10(p-value)}: smaller p (more significant) → thicker line.
+E.g. p=0.05→1.3, p=0.01→2, p=0.001→3; values are scaled to this range.}
+
+\item{SigLineColor}{Character vector of length 2. Colors for link gradient
+(low and high correlation).}
+
+\item{...}{Additional arguments passed to layout and network rendering,
+including: \code{layout}, \code{layout.module}, \code{shrink}, \code{jitter},
+\code{add_outer}, \code{add_group_outer}, \code{label} (logical or character:
+module labels in ggNetView style), \code{labelsize}, \code{labelsegmentsize},
+\code{labelsegmentalpha}, \code{fill}, \code{color}, \code{pointsize}.}
 }
 \value{
 A list: \code{[[1]]} ggplot with straight links, \code{[[2]]} ggplot

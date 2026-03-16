@@ -61,7 +61,9 @@ ggNetView(
   anchor_dist = 6,
   nrow = NULL,
   ncol = NULL,
-  seed = 1115
+  seed = 1115,
+  scale_radius = NULL,
+  return_layout = FALSE
 )
 }
 \arguments{
@@ -254,9 +256,19 @@ the ncol of network with layout is "consensus_module_equal_gephi" or "consensus_
 
 \item{seed}{Integer (default = 1115).
 Random seed for reproducibility.}
+
+\item{scale_radius}{Numeric or NULL (default = NULL).
+When non-NULL, scale the layout so the network fits within this radius.
+Used by \code{ggnetview_modularity_heatmaps} for coordinate alignment.}
+
+\item{return_layout}{Logical (default = FALSE).
+When TRUE, return a list with \code{$plot} (ggplot) and \code{$layout_data}
+(graph_ly_final, graph_obj, ggplot_data, module_centroids) for downstream
+use (e.g. adding heatmaps and links).}
 }
 \value{
-A ggplot object representing the network visualization.
+A ggplot object, or when \code{return_layout = TRUE}, a list with
+\code{$plot} and \code{$layout_data}.
 }
 \description{
 Visualize a network with custom layouts

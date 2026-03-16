@@ -865,8 +865,11 @@ gglink_heatmaps <- function(
     list(x = x_out, y = y_out)
   }
 
-  # Scale heatmaps with larger central layouts so they remain readable.
-  heatmap_step <- max(1, 0.5 * radius / max(length_dist, 1)) * HeatmapScale
+  # Heatmap step and anchor are fixed (independent of r). When r increases,
+  # only the network scales; heatmaps stay at the same position and size,
+  # since distance has not changed.
+  r_ref <- 6
+  heatmap_step <- max(1, 0.5 * r_ref / max(length_dist, 1)) * HeatmapScale
   diag_default <- min(max(abs(cor_spec_env$x), na.rm = TRUE),
                       max(abs(cor_spec_env$y), na.rm = TRUE)) / sqrt(2)
   .quad_reach <- function(df, ori, default_val) {
@@ -891,19 +894,19 @@ gglink_heatmaps <- function(
     )
     if (!is.finite(val)) default_val else val
   }
-  quad_anchor <- stats::setNames(
-    vapply(
-      orientation,
-      function(ori) .quad_reach(cor_spec_env, ori, diag_default) + distance,
-      numeric(1)
-    ),
+  # Anchor stays at fixed position (r_ref scale) regardless of r; distance unchanged
+  current_extent <- max(max(abs(cor_spec_env$x), na.rm = TRUE), max(abs(cor_spec_env$y), na.rm = TRUE), 1e-8)
+  quad_reach_raw <- stats::setNames(
+    vapply(orientation, function(ori) .quad_reach(cor_spec_env, ori, diag_default), numeric(1)),
     orientation
   )
+  quad_anchor <- (quad_reach_raw / current_extent) * r_ref + distance
+  fallback_anchor <- (diag_default / current_extent) * r_ref + distance
   side_anchor <- c(
-    right = max(quad_anchor[intersect(c("top_right", "bottom_right"), orientation)], na.rm = TRUE),
-    left = max(quad_anchor[intersect(c("top_left", "bottom_left"), orientation)], na.rm = TRUE),
-    top = max(quad_anchor[intersect(c("top_right", "top_left"), orientation)], na.rm = TRUE),
-    bottom = max(quad_anchor[intersect(c("bottom_right", "bottom_left"), orientation)], na.rm = TRUE)
+    right = max(c(quad_anchor[intersect(c("top_right", "bottom_right"), orientation)], fallback_anchor), na.rm = TRUE),
+    left = max(c(quad_anchor[intersect(c("top_left", "bottom_left"), orientation)], fallback_anchor), na.rm = TRUE),
+    top = max(c(quad_anchor[intersect(c("top_right", "top_left"), orientation)], fallback_anchor), na.rm = TRUE),
+    bottom = max(c(quad_anchor[intersect(c("bottom_right", "bottom_left"), orientation)], fallback_anchor), na.rm = TRUE)
   )
 
   # get targets informations

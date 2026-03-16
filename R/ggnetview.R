@@ -135,9 +135,16 @@
 #' the ncol of network with layout is "consensus_module_equal_gephi" or "consensus_module_gephi"
 #' @param seed Integer (default = 1115).
 #' Random seed for reproducibility.
+#' @param scale_radius Numeric or NULL (default = NULL).
+#' When non-NULL, scale the layout so the network fits within this radius.
+#' Used by \code{ggnetview_modularity_heatmaps} for coordinate alignment.
+#' @param return_layout Logical (default = FALSE).
+#' When TRUE, return a list with \code{$plot} (ggplot) and \code{$layout_data}
+#' (graph_ly_final, graph_obj, ggplot_data, module_centroids) for downstream
+#' use (e.g. adding heatmaps and links).
 #'
-#'
-#' @returns A ggplot object representing the network visualization.
+#' @returns A ggplot object, or when \code{return_layout = TRUE}, a list with
+#' \code{$plot} and \code{$layout_data}.
 #' @export
 #'
 #' @examples NULL
@@ -197,7 +204,9 @@ ggNetView <- function(graph_obj,
                       anchor_dist = 6,
                       nrow = NULL,
                       ncol = NULL,
-                      seed = 1115
+                      seed = 1115,
+                      scale_radius = NULL,
+                      return_layout = FALSE
                       ){
 
   set.seed(seed)
@@ -397,6 +406,22 @@ ggNetView <- function(graph_obj,
   # 只有当我们需要模块的时候，我们才要获取模块的布局
   # 并且只有模块化之后，我们才有必要去remove无模块的节点
   if (group.by != "pie") {
+
+    # Optional: scale layout to fit in radius (for use with ggnetview_modularity_heatmaps)
+    if (!is.null(scale_radius) && is.finite(scale_radius) && scale_radius > 0) {
+      xr_net <- range(ly1_1$graph_ly_final$x, na.rm = TRUE)
+      yr_net <- range(ly1_1$graph_ly_final$y, na.rm = TRUE)
+      scale_net <- max(diff(xr_net), diff(yr_net), 1e-8)
+      cx <- mean(xr_net)
+      cy <- mean(yr_net)
+      ly1_1[["graph_ly_final"]] <- ly1_1[["graph_ly_final"]] %>%
+        dplyr::mutate(
+          x = (x - cx) / scale_net * scale_radius,
+          y = (y - cy) / scale_net * scale_radius
+        )
+      ly1_1[["layout"]] <- dplyr::select(ly1_1[["graph_ly_final"]], x, y)
+      ly1_1[["ggplot_data"]] <- get_location(ly1_1[["graph_ly_final"]], ly1_1[["graph_obj"]])
+    }
 
     # 为了变得更加普适性
 
@@ -1089,6 +1114,23 @@ ggNetView <- function(graph_obj,
       theme_ggnetview()
 
     return(p1_1)
+  }
+
+  if (isTRUE(return_layout) && exists("ly1_1", inherits = FALSE) &&
+      !is.null(ly1_1$graph_ly_final) && "Modularity" %in% colnames(ly1_1$graph_ly_final)) {
+    module_centroids <- ly1_1$graph_ly_final %>%
+      dplyr::filter(as.character(.data$Modularity) != "Others") %>%
+      dplyr::group_by(.data$Modularity) %>%
+      dplyr::summarise(x = mean(.data$x, na.rm = TRUE), y = mean(.data$y, na.rm = TRUE), .groups = "drop") %>%
+      dplyr::mutate(ID = as.character(.data$Modularity)) %>%
+      dplyr::select("ID", "x", "y")
+    layout_data <- list(
+      graph_ly_final = ly1_1$graph_ly_final,
+      graph_obj = ly1_1$graph_obj,
+      ggplot_data = ly1_1$ggplot_data,
+      module_centroids = module_centroids
+    )
+    return(list(plot = p1_1, layout_data = layout_data))
   }
 
   return(p1_1)

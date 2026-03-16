@@ -183,8 +183,17 @@ get_module_abundance <- function(otu_mat,
 #'   heatmap size. Values > 1 enlarge the whole heatmap layout.
 #' @param SigLineAlpha Numeric (default = 0.5). Transparency for module–heatmap
 #'   link lines. Must be between 0 and 1.
-#' @param ... Additional arguments passed to \code{ggNetView} (e.g. \code{layout},
-#'   \code{label}, \code{add_outer}, \code{fill}, \code{pointsize}).
+#' @param SigLineWidth Numeric vector of length 2 (default = c(0.5, 2)).
+#'   Min and max line width for module–heatmap links. Line width is mapped from
+#'   \code{-log10(p-value)}: smaller p (more significant) → thicker line.
+#'   E.g. p=0.05→1.3, p=0.01→2, p=0.001→3; values are scaled to this range.
+#' @param SigLineColor Character vector of length 2. Colors for link gradient
+#'   (low and high correlation).
+#' @param ... Additional arguments passed to layout and network rendering,
+#'   including: \code{layout}, \code{layout.module}, \code{shrink}, \code{jitter},
+#'   \code{add_outer}, \code{add_group_outer}, \code{label} (logical or character:
+#'   module labels in ggNetView style), \code{labelsize}, \code{labelsegmentsize},
+#'   \code{labelsegmentalpha}, \code{fill}, \code{color}, \code{pointsize}.
 #'
 #' @return A list: \code{[[1]]} ggplot with straight links, \code{[[2]]} ggplot
 #'   with curved links, \code{[[3]]} data frame of module-env correlation stats.
@@ -215,9 +224,7 @@ ggnetview_modularity_heatmaps <- function(
     SigLineWidth = c(0.5, 2),
     SigLineColor = c("#fdbb84", "#d7301f"),
     HeatmapPointSize = 5,
-    CorePointSize = 8.5,
     HeatmapPointFill = "#de77ae",
-    CorePointFill = "#41b6c4",
     HeatmapTileColor = NA,
     HeatmapTileSize = 0,
     ...) {
@@ -463,88 +470,52 @@ ggnetview_modularity_heatmaps <- function(
 
   layout.module <- match.arg(layout.module)
   ggnetview_args <- list(...)
-  seed <- if (!is.null(ggnetview_args$seed)) ggnetview_args$seed else 1115
-  set.seed(seed)
 
-  func_name <- paste0("create_layout_", layout)
-  lay_func <- utils::getFromNamespace(func_name, "ggNetView")
-  lay_args <- list(
+  gv_call_args <- list(
     graph_obj = graph_obj,
-    node_add = if (!is.null(ggnetview_args$node_add)) ggnetview_args$node_add else 7,
+    layout = layout,
+    layout.module = layout.module,
     r = 1,
+    scale_radius = r,
+    return_layout = TRUE,
+    node_add = if (!is.null(ggnetview_args$node_add)) ggnetview_args$node_add else 7,
     scale = if (!is.null(ggnetview_args$scale)) ggnetview_args$scale else TRUE,
     anchor_dist = if (!is.null(ggnetview_args$anchor_dist)) ggnetview_args$anchor_dist else 6,
     orientation = if (!is.null(ggnetview_args$orientation)) ggnetview_args$orientation else "up",
-    angle = if (!is.null(ggnetview_args$angle)) ggnetview_args$angle else 0
-  )
-  if (layout %in% c("consensus_module_equal_gephi", "consensus_module_gephi")) {
-    lay_args$nrow <- ggnetview_args$nrow
-    lay_args$ncol <- ggnetview_args$ncol
-  }
-  lay_args <- lay_args[names(lay_args) %in% names(formals(lay_func))]
-  ly1 <- do.call(lay_func, lay_args)
-
-  module_layout_func <- switch(
-    layout.module,
-    random = "module_layout",
-    adjacent = "module_layout3",
-    order = if (func_name == "create_layout_multirings") "module_layout5" else "module_layout4"
-  )
-  if (is.null(module_layout_func)) module_layout_func <- "module_layout"
-  mod_lay <- utils::getFromNamespace(module_layout_func, "ggNetView")
-  mod_args <- list(
-    graph_obj = graph_obj,
-    layout = ly1,
+    angle = if (!is.null(ggnetview_args$angle)) ggnetview_args$angle else 0,
     center = if (!is.null(ggnetview_args$center)) ggnetview_args$center else TRUE,
     shrink = if (!is.null(ggnetview_args$shrink)) ggnetview_args$shrink else 1,
     jitter = if (!is.null(ggnetview_args$jitter)) ggnetview_args$jitter else FALSE,
-    jitter_sd = if (!is.null(ggnetview_args$jitter_sd)) ggnetview_args$jitter_sd else 0.1
+    jitter_sd = if (!is.null(ggnetview_args$jitter_sd)) ggnetview_args$jitter_sd else 0.1,
+    k_nn = if (!is.null(ggnetview_args$k_nn)) ggnetview_args$k_nn else 12,
+    push_others_delta = if (!is.null(ggnetview_args$push_others_delta)) ggnetview_args$push_others_delta else 0,
+    add_outer = if (!is.null(ggnetview_args$add_outer)) ggnetview_args$add_outer else FALSE,
+    fill = ggnetview_args$fill,
+    color = ggnetview_args$color,
+    pointsize = ggnetview_args$pointsize,
+    seed = if (!is.null(ggnetview_args$seed)) ggnetview_args$seed else 1115
   )
-  if (module_layout_func %in% c("module_layout3", "module_layout4", "module_layout5")) {
-    mod_args$k_nn <- if (!is.null(ggnetview_args$k_nn)) ggnetview_args$k_nn else 12
-    mod_args$push_others_delta <- if (!is.null(ggnetview_args$push_others_delta)) ggnetview_args$push_others_delta else 0
+  if (layout %in% c("consensus_module_equal_gephi", "consensus_module_gephi")) {
+    gv_call_args$nrow <- ggnetview_args$nrow
+    gv_call_args$ncol <- ggnetview_args$ncol
   }
-  mod_args <- mod_args[names(mod_args) %in% names(formals(mod_lay))]
-  ly1_1 <- do.call(mod_lay, mod_args)
+  gv_formals <- names(formals(ggNetView))
+  gv_call_args <- gv_call_args[names(gv_call_args) %in% gv_formals]
 
-  graph_ly_final <- ly1_1$graph_ly_final
-  if (is.null(graph_ly_final) || !all(c("x", "y", "Modularity") %in% colnames(graph_ly_final))) {
-    stop("Layout computation did not produce graph_ly_final with x, y, Modularity.", call. = FALSE)
+  gv_out <- do.call(ggNetView, gv_call_args)
+  if (!is.list(gv_out) || !"layout_data" %in% names(gv_out)) {
+    stop("ggNetView did not return layout_data. Ensure layout produces modular structure.", call. = FALSE)
   }
 
-  mod_col <- "Modularity"
-  module_names <- colnames(spec_df)
-  module_centroids <- graph_ly_final %>%
-    dplyr::filter(as.character(.data[[mod_col]]) != "Others") %>%
-    dplyr::group_by(.data[[mod_col]]) %>%
-    dplyr::summarise(x = mean(x, na.rm = TRUE), y = mean(y, na.rm = TRUE), .groups = "drop") %>%
-    dplyr::mutate(ID = as.character(.data[[mod_col]])) %>%
-    dplyr::filter(ID %in% module_names) %>%
-    dplyr::select(ID, x, y)
+  layout_data <- gv_out$layout_data
+  graph_ly_scaled <- layout_data$graph_ly_final
+  ggplot_data <- layout_data$ggplot_data
+  module_centroids <- layout_data$module_centroids %>%
+    dplyr::filter(ID %in% colnames(spec_df))
 
   if (nrow(module_centroids) == 0) {
     stop("No module centroids could be computed. No overlap between modules and spec columns.", call. = FALSE)
   }
-
-  xr_net <- range(graph_ly_final$x, na.rm = TRUE)
-  yr_net <- range(graph_ly_final$y, na.rm = TRUE)
-  scale_net <- max(diff(xr_net), diff(yr_net), 1e-8)
-  cx <- mean(xr_net)
-  cy <- mean(yr_net)
-  net_scale <- (2 * r) * 0.5
-
-  module_centroids <- module_centroids %>%
-    dplyr::mutate(
-      x = (x - cx) / scale_net * net_scale,
-      y = (y - cy) / scale_net * net_scale
-    )
-
-  graph_ly_scaled <- graph_ly_final %>%
-    dplyr::mutate(
-      x = (x - cx) / scale_net * net_scale,
-      y = (y - cy) / scale_net * net_scale
-    )
-  ggplot_data <- get_location(graph_ly_scaled, ly1_1$graph_obj)
 
   net_bounds <- list(
     xmin = min(graph_ly_scaled$x, na.rm = TRUE),
@@ -553,11 +524,11 @@ ggnetview_modularity_heatmaps <- function(
     ymax = max(graph_ly_scaled$y, na.rm = TRUE)
   )
 
-  # Heatmap step is independent of r so that r controls only the network size.
-  # Using a fixed reference radius (6) keeps heatmaps at a consistent scale;
-  # when r increases, the network grows while heatmaps stay fixed, so the network
-  # appears larger relative to the plot.
-  heatmap_step <- max(1, 0.5 * 6 / max(length_dist, 1)) * HeatmapScale
+  # Heatmap step and anchor are fixed (independent of r). When r increases,
+  # only the network scales; heatmaps stay at the same position and size,
+  # since distance has not changed.
+  r_ref <- 6
+  heatmap_step <- max(1, 0.5 * r_ref / max(length_dist, 1)) * HeatmapScale
   diag_default <- min(max(abs(graph_ly_scaled$x), na.rm = TRUE),
                       max(abs(graph_ly_scaled$y), na.rm = TRUE)) / sqrt(2)
   .quad_reach <- function(df, ori, default_val) {
@@ -582,15 +553,13 @@ ggnetview_modularity_heatmaps <- function(
     )
     if (!is.finite(val)) default_val else val
   }
-  quad_anchor <- stats::setNames(
-    vapply(
-      orientation,
-      function(ori) .quad_reach(graph_ly_scaled, ori, diag_default) + distance,
-      numeric(1)
-    ),
+  # Anchor stays at fixed position (r_ref scale) regardless of r; distance unchanged
+  quad_reach_raw <- stats::setNames(
+    vapply(orientation, function(ori) .quad_reach(graph_ly_scaled, ori, diag_default), numeric(1)),
     orientation
   )
-  fallback_anchor <- diag_default + distance
+  quad_anchor <- (quad_reach_raw / r) * r_ref + distance
+  fallback_anchor <- (diag_default / r) * r_ref + distance
   side_anchor <- c(
     right = max(c(quad_anchor[intersect(c("top_right", "bottom_right"), orientation)], fallback_anchor), na.rm = TRUE),
     left = max(c(quad_anchor[intersect(c("top_left", "bottom_left"), orientation)], fallback_anchor), na.rm = TRUE),
@@ -613,7 +582,12 @@ ggnetview_modularity_heatmaps <- function(
     dplyr::left_join(xy_targets, by = c("Type" = "ID")) %>%
     dplyr::mutate(line_type = dplyr::if_else(.data$Pvalue <= 0.05, "solid", "dashed"))
 
-  link_df <- cor_spec_env_location
+  link_df <- cor_spec_env_location %>%
+    dplyr::mutate(
+      # -log10(p): smaller p → larger value → thicker line
+      # p=0.05→1.3, p=0.01→2, p=0.001→3
+      sig_strength = -log10(.data$Pvalue)
+    )
   if (isTRUE(drop_nonsig)) {
     link_df <- link_df %>% dplyr::filter(.data$Pvalue <= 0.05)
   }
@@ -757,33 +731,136 @@ ggnetview_modularity_heatmaps <- function(
       ggplot2::scale_fill_gradient2(
         low = low_pal[idx], mid = "#ffffff", high = high_pal[idx],
         midpoint = 0, name = paste0("Env ", idx),
-        guide = ggplot2::guide_colorbar(order = idx)
+        guide = ggplot2::guide_colorbar(order = idx, direction = "horizontal")
       )
   }
 
-  p0 <- ggplot2::ggplot()
+  p_heatmaps <- ggplot2::ggplot()
   for (i in seq_along(packs)) {
-    if (i > 1) p0 <- p0 + ggnewscale::new_scale_fill()
-    p0 <- .add_quadrant_layers(p0, packs[[i]], idx = i, pal_low, pal_high)
+    if (i > 1) p_heatmaps <- p_heatmaps + ggnewscale::new_scale_fill()
+    p_heatmaps <- .add_quadrant_layers(p_heatmaps, packs[[i]], idx = i, pal_low, pal_high)
   }
 
   node_plot_df <- ggplot_data[[1]]
   edge_plot_df <- ggplot_data[[2]]
-  pointsize <- if (!is.null(ggnetview_args$pointsize)) ggnetview_args$pointsize else c(1, 10)
   fill_scale_net <- if (!is.null(ggnetview_args$fill)) {
     ggplot2::scale_fill_manual(values = ggnetview_args$fill, guide = "none")
   } else {
     scale_fill_ggnetview(unique(node_plot_df$Modularity), guide = "none")
   }
 
-  p0 <- p0 +
+  add_outer <- isTRUE(ggnetview_args$add_outer)
+  add_group_outer <- isTRUE(ggnetview_args$add_group_outer)
+  label_arg <- if ("label" %in% names(ggnetview_args)) ggnetview_args$label else TRUE
+  show_module_label <- isTRUE(label_arg) || (is.character(label_arg) && length(label_arg) == 1 && nchar(trimws(label_arg)) > 0)
+  module_label_prefix <- if (is.character(label_arg) && length(label_arg) == 1) trimws(label_arg) else "Modularity"
+  if (identical(module_label_prefix, "")) module_label_prefix <- "Modularity"
+  labelsize <- if (!is.null(ggnetview_args$labelsize)) as.numeric(ggnetview_args$labelsize) else 10
+  labelsegmentsize <- if (!is.null(ggnetview_args$labelsegmentsize)) as.numeric(ggnetview_args$labelsegmentsize) else 1
+  labelsegmentalpha <- if (!is.null(ggnetview_args$labelsegmentalpha)) as.numeric(ggnetview_args$labelsegmentalpha) else 1
+  mod_col_lab <- if ("modularity3" %in% colnames(graph_ly_scaled)) "modularity3" else "Modularity"
+  lab_df <- NULL
+  if (show_module_label) {
+    xr_lab <- range(graph_ly_scaled$x, na.rm = TRUE)
+    yr_lab <- range(graph_ly_scaled$y, na.rm = TRUE)
+    x_mid_lab <- stats::median(graph_ly_scaled$x)
+    dx_lab <- diff(xr_lab) * 0.12
+    lab_df <- graph_ly_scaled %>%
+      dplyr::distinct(.data[[mod_col_lab]], .keep_all = TRUE) %>%
+      dplyr::filter(.data[[mod_col_lab]] != "Others") %>%
+      dplyr::mutate(side = ifelse(x < x_mid_lab, "left", "right")) %>%
+      dplyr::group_by(side) %>%
+      dplyr::arrange(y, .by_group = TRUE) %>%
+      dplyr::mutate(
+        y_rank = dplyr::row_number(),
+        y_target = scales::rescale(y_rank, to = yr_lab),
+        x_anchor = dplyr::if_else(side == "left", xr_lab[1] - dx_lab, xr_lab[2] + dx_lab),
+        nudge_x = x_anchor - x,
+        nudge_y = y_target - y,
+        hjust = dplyr::if_else(side == "left", 1, 0),
+        .label_text = paste0(module_label_prefix, " ", .data[[mod_col_lab]])
+      ) %>%
+      dplyr::ungroup()
+  }
+  module_label_fun <- function(x) paste0(module_label_prefix, " ", x)
+  q_outer <- if (!is.null(ggnetview_args$q_outer)) as.numeric(ggnetview_args$q_outer) else 0.88
+  expand_outer <- if (!is.null(ggnetview_args$expand_outer)) as.numeric(ggnetview_args$expand_outer) else 1.02
+  outerwidth <- if (!is.null(ggnetview_args$outerwidth)) as.numeric(ggnetview_args$outerwidth) else 1.25
+  outerlinetype <- if (!is.null(ggnetview_args$outerlinetype)) ggnetview_args$outerlinetype else 2
+  outeralpha <- if (!is.null(ggnetview_args$outeralpha)) as.numeric(ggnetview_args$outeralpha) else 0.5
+
+  p0 <- p_heatmaps +
     ggnewscale::new_scale_fill() +
+    ggnewscale::new_scale_color()
+  p0 <- p0 +
     ggplot2::geom_segment(
       data = edge_plot_df,
       ggplot2::aes(x = from_x, y = from_y, xend = to_x, yend = to_y),
       alpha = 0.25,
       colour = "grey70"
-    ) +
+    )
+
+  if (add_group_outer && nrow(node_plot_df) > 0) {
+    group_circle_df <- node_plot_df %>% dplyr::mutate(.group_outer = 1L)
+    circle_n_grp <- max(40, min(300, as.integer(round(8 * sqrt(nrow(group_circle_df))))))
+    fill_grp <- if (!is.null(ggnetview_args$add_group_outer_fill) && length(ggnetview_args$add_group_outer_fill) > 0)
+      ggnetview_args$add_group_outer_fill[1L] else NA
+    alpha_grp <- if (is.na(fill_grp)) 1 else
+      if (!is.null(ggnetview_args$add_group_outer_fill_alpha)) ggnetview_args$add_group_outer_fill_alpha else 0.2
+    p0 <- p0 +
+      ggforce::geom_mark_circle(
+        data = group_circle_df,
+        mapping = ggplot2::aes(x = x, y = y, group = .group_outer),
+        fill = fill_grp,
+        alpha = alpha_grp,
+        color = if (!is.null(ggnetview_args$add_group_outer_color)) ggnetview_args$add_group_outer_color else "grey50",
+        linetype = if (!is.null(ggnetview_args$add_group_outer_linetype)) ggnetview_args$add_group_outer_linetype else 1,
+        linewidth = if (!is.null(ggnetview_args$add_group_outer_linewidth)) ggnetview_args$add_group_outer_linewidth else 0.5,
+        n = circle_n_grp,
+        expand = grid::unit(if (!is.null(ggnetview_args$add_group_outer_expand)) ggnetview_args$add_group_outer_expand else 2, "mm")
+      )
+  }
+
+  if (add_outer) {
+    maskTable <- generateMask_ggnetview(
+      dims = graph_ly_scaled[, c("x", "y")],
+      clusters = graph_ly_scaled$Modularity,
+      q = q_outer,
+      expand = expand_outer
+    )
+    if (nrow(maskTable) > 0L) {
+      maskTable <- maskTable %>%
+        dplyr::mutate(cluster = factor(cluster, levels = levels(graph_ly_scaled$Modularity), ordered = TRUE))
+      mask_classes <- levels(maskTable$cluster)
+      fill_scale_mask <- if (!is.null(ggnetview_args$fill)) {
+        ggplot2::scale_fill_manual(values = ggnetview_args$fill, guide = "none")
+      } else {
+        scale_fill_ggnetview(mask_classes, guide = "none")
+      }
+      color_scale_mask <- if (!is.null(ggnetview_args$color)) {
+        ggplot2::scale_color_manual(values = ggnetview_args$color, guide = "none")
+      } else {
+        scale_color_ggnetview(mask_classes, guide = "none")
+      }
+      p0 <- p0 +
+        ggnewscale::new_scale_fill() +
+        ggnewscale::new_scale_color() +
+        ggplot2::geom_polygon(
+          data = maskTable %>% dplyr::filter(cluster != "Others"),
+          mapping = ggplot2::aes(x = x, y = y, group = cluster, fill = cluster, color = cluster),
+          linewidth = outerwidth,
+          linetype = outerlinetype,
+          alpha = outeralpha,
+          show.legend = FALSE
+        ) +
+        fill_scale_mask +
+        color_scale_mask +
+        ggnewscale::new_scale_fill() +
+        ggnewscale::new_scale_color()
+    }
+  }
+
+  p0 <- p0 +
     ggplot2::geom_point(
       data = node_plot_df,
       ggplot2::aes(x = x, y = y, fill = Modularity),
@@ -798,23 +875,52 @@ ggnetview_modularity_heatmaps <- function(
     ggplot2::geom_segment(
       data = link_df,
       ggplot2::aes(x = x, y = y, xend = x_to, yend = y_to,
-                   color = Correlation, linetype = line_type, linewidth = -log10(pmax(Pvalue, 1e-10))),
+                   color = Correlation, linetype = line_type, linewidth = sig_strength),
       alpha = SigLineAlpha
     ) +
-    ggplot2::scale_color_gradient(low = SigLineColor[1], high = SigLineColor[2]) +
-    ggplot2::scale_linewidth_continuous(range = SigLineWidth) +
+    ggplot2::scale_color_gradient(
+      low = SigLineColor[1], high = SigLineColor[2],
+      guide = ggplot2::guide_colorbar(direction = "horizontal")
+    ) +
+    ggplot2::scale_linewidth_continuous(
+      range = SigLineWidth, name = "-log10(Pvalue)",
+      guide = ggplot2::guide_legend(nrow = 1)  # horizontal row at top
+    ) +
     ggplot2::scale_linetype_identity() +
     ggplot2::geom_point(data = diag_all, ggplot2::aes(x = x_diag, y = y_diag),
                         shape = 21, fill = HeatmapPointFill, size = HeatmapPointSize) +
-    ggplot2::geom_point(data = module_centroids, ggplot2::aes(x = x, y = y),
-                        shape = 21, fill = CorePointFill, size = CorePointSize) +
-    ggplot2::geom_text(data = module_centroids, ggplot2::aes(x = x, y = y, label = ID), size = 5) +
+    {       if (show_module_label && !is.null(lab_df) && nrow(lab_df) > 0) {
+        lab_classes <- sort(unique(lab_df$Modularity))
+        color_scale_lab <- if (!is.null(ggnetview_args$color)) ggplot2::scale_color_manual(values = ggnetview_args$color, labels = module_label_fun) else scale_color_ggnetview(lab_classes, labels = module_label_fun)
+        list(
+          ggnewscale::new_scale_color(),
+          ggrepel::geom_text_repel(
+            data = lab_df,
+            mapping = ggplot2::aes(x = x, y = y, label = .label_text, color = Modularity),
+            size = labelsize,
+            nudge_x = lab_df$nudge_x,
+            nudge_y = lab_df$nudge_y,
+            hjust = lab_df$hjust,
+            min.segment.length = 0,
+            segment.size = labelsegmentsize,
+            segment.alpha = labelsegmentalpha,
+            max.overlaps = Inf,
+            box.padding = 0.15,
+            point.padding = 0.15,
+            force = 0.05,
+            show.legend = FALSE
+          ),
+          color_scale_lab
+        )
+      } else list() } +
     ggplot2::coord_cartesian(clip = "off") +
     ggplot2::theme_void() +
     ggplot2::theme(
       plot.margin = ggplot2::margin(10, 10, 10, 10),
       aspect.ratio = 1,
-      legend.position = "top"
+      legend.position = "top",
+      legend.box = "horizontal",
+      legend.box.just = "left"
     )
 
   p2 <- p0 +
@@ -822,24 +928,53 @@ ggnetview_modularity_heatmaps <- function(
     ggplot2::geom_curve(
       data = link_df,
       ggplot2::aes(x = x, y = y, xend = x_to, yend = y_to,
-                   color = Correlation, linetype = line_type, linewidth = -log10(pmax(Pvalue, 1e-10))),
+                   color = Correlation, linetype = line_type, linewidth = sig_strength),
       alpha = SigLineAlpha,
       curvature = 0.25
     ) +
-    ggplot2::scale_color_gradient(low = SigLineColor[1], high = SigLineColor[2]) +
-    ggplot2::scale_linewidth_continuous(range = SigLineWidth) +
+    ggplot2::scale_color_gradient(
+      low = SigLineColor[1], high = SigLineColor[2],
+      guide = ggplot2::guide_colorbar(direction = "horizontal")
+    ) +
+    ggplot2::scale_linewidth_continuous(
+      range = SigLineWidth, name = "-log10(Pvalue)",
+      guide = ggplot2::guide_legend(nrow = 1)  # horizontal row at top
+    ) +
     ggplot2::scale_linetype_identity() +
     ggplot2::geom_point(data = diag_all, ggplot2::aes(x = x_diag, y = y_diag),
                         shape = 21, fill = HeatmapPointFill, size = HeatmapPointSize) +
-    ggplot2::geom_point(data = module_centroids, ggplot2::aes(x = x, y = y),
-                        shape = 21, fill = CorePointFill, size = CorePointSize) +
-    ggplot2::geom_text(data = module_centroids, ggplot2::aes(x = x, y = y, label = ID), size = 5) +
+    {       if (show_module_label && !is.null(lab_df) && nrow(lab_df) > 0) {
+        lab_classes <- sort(unique(lab_df$Modularity))
+        color_scale_lab <- if (!is.null(ggnetview_args$color)) ggplot2::scale_color_manual(values = ggnetview_args$color, labels = module_label_fun) else scale_color_ggnetview(lab_classes, labels = module_label_fun)
+        list(
+          ggnewscale::new_scale_color(),
+          ggrepel::geom_text_repel(
+            data = lab_df,
+            mapping = ggplot2::aes(x = x, y = y, label = .label_text, color = Modularity),
+            size = labelsize,
+            nudge_x = lab_df$nudge_x,
+            nudge_y = lab_df$nudge_y,
+            hjust = lab_df$hjust,
+            min.segment.length = 0,
+            segment.size = labelsegmentsize,
+            segment.alpha = labelsegmentalpha,
+            max.overlaps = Inf,
+            box.padding = 0.15,
+            point.padding = 0.15,
+            force = 0.05,
+            show.legend = FALSE
+          ),
+          color_scale_lab
+        )
+      } else list() } +
     ggplot2::coord_cartesian(clip = "off") +
     ggplot2::theme_void() +
     ggplot2::theme(
       plot.margin = ggplot2::margin(10, 10, 10, 10),
       aspect.ratio = 1,
-      legend.position = "top"
+      legend.position = "top",
+      legend.box = "horizontal",
+      legend.box.just = "left"
     )
 
   list(p1, p2, cor_spec_env_list_out)
