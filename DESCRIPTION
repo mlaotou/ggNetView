@@ -32,7 +32,6 @@ Imports:
     multtest,
     progressr,
     psych,
-    pulsar,
     purrr,
     qgraph,
     readr,

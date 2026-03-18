@@ -37,49 +37,45 @@ sparseiCov_local <- function(data, method, npn = FALSE, verbose = FALSE, cov.out
   )
 }
 
-check_pulsar_params_local <- function(fun, args = list()) {
+check_stars_params_local <- function(args = list()) {
   if (!inherits(args, "list") || (length(args) > 0 && is.null(names(args))) || any("" %in% names(args))) {
-    stop("pulsar.params must be a named list")
+    stop("stars.params must be a named list")
   }
-  if (length(args) == 0) {
-    return(TRUE)
-  }
-  fun <- match.fun(fun)
-  forms <- formals(fun)
-  nargs <- c("data", "fun", "fargs", "criterion")
-  extrargs <- intersect(names(args), nargs)
-  if (length(extrargs) > 0) {
-    stop(sprintf("disallowed arguments to 'pulsar.params': %s", paste(extrargs, collapse = ", ")))
-  }
-  allforms <- setdiff(names(forms), nargs)
-  extrargs <- setdiff(names(args), allforms)
-  if (length(extrargs) > 0) {
-    stop(sprintf("unrecognized arguments to 'pulsar.params': %s", paste(extrargs, collapse = ", ")))
+  allowed <- c("rep.num", "stars.thresh", "stars.subsample.ratio", "thresh")
+  if (length(args) > 0) {
+    extrargs <- setdiff(names(args), allowed)
+    if (length(extrargs) > 0) {
+      stop(sprintf("unrecognized arguments to 'stars.params': %s", paste(extrargs, collapse = ", ")))
+    }
   }
   TRUE
 }
 
-get_opt_index_local <- function(est) {
-  est$select$stars$opt.index
+get_opt_index_local <- function(fit) {
+  if (!is.null(fit$select) && !is.null(fit$select$stars$opt.index)) {
+    fit$select$stars$opt.index
+  } else {
+    length(fit$est$path)
+  }
 }
 
-get_refit_local <- function(est) {
-  Matrix::drop0(est$refit$stars)
+get_refit_local <- function(fit) {
+  Matrix::drop0(fit$refit$stars)
 }
 
-get_opt_cov_local <- function(est) {
-  idx <- get_opt_index_local(est)
-  Matrix::drop0(est$est$cov[[idx]])
+get_opt_cov_local <- function(fit) {
+  idx <- get_opt_index_local(fit)
+  Matrix::drop0(fit$est$cov[[idx]])
 }
 
-get_opt_icov_local <- function(est) {
-  idx <- get_opt_index_local(est)
-  Matrix::drop0(est$est$icov[[idx]])
+get_opt_icov_local <- function(fit) {
+  idx <- get_opt_index_local(fit)
+  Matrix::drop0(fit$est$icov[[idx]])
 }
 
-get_opt_beta_local <- function(est) {
-  idx <- get_opt_index_local(est)
-  Matrix::drop0(est$est$beta[[idx]])
+get_opt_beta_local <- function(fit) {
+  idx <- get_opt_index_local(fit)
+  Matrix::drop0(fit$est$beta[[idx]])
 }
 
 symBeta_local <- function(beta, mode = "maxabs") {
@@ -124,6 +120,7 @@ spieceasi_fit <- function(
   verbose = TRUE,
   pulsar.select = TRUE,
   pulsar.params = list(),
+  stars.params = list(),
   lambda.log = TRUE,
   ...
 ) {
@@ -137,11 +134,7 @@ spieceasi_fit <- function(
 
   if (method %in% c("glasso", "mb")) {
     X <- spieceasi_norm(data)
-    estFun <- "sparseiCov_local"
     args$method <- method
-    if (is.null(args[["lambda.max"]])) {
-      args$lambda.max <- pulsar::getMaxCov(cor(X))
-    }
   } else {
     stop("standalone script currently supports only method = 'glasso' or 'mb'")
   }
@@ -153,60 +146,63 @@ spieceasi_fit <- function(
     if (is.null(args[["nlambda"]])) {
       args$nlambda <- 20
     }
-    args$lambda <- pulsar::getLamPath(
-      args$lambda.max,
-      args$lambda.max * args$lambda.min.ratio,
-      args$nlambda,
-      log = lambda.log
-    )
-    args$lambda.min.ratio <- NULL
-    args$nlambda <- NULL
-    args$lambda.max <- NULL
   }
 
-  if (!is.null(pulsar.params[["data"]])) {
-    stop("supply data directly to spieceasi_fit, not pulsar.params")
+  stars.params <- c(stars.params, pulsar.params)
+
+  if (!is.null(stars.params[["data"]])) {
+    stop("supply data directly to spieceasi_fit, not stars.params")
   }
-  if (!is.null(pulsar.params[["criterion"]])) {
-    stop("supply sel.criterion directly to spieceasi_fit, not pulsar.params")
+  if (!is.null(stars.params[["criterion"]])) {
+    stop("supply sel.criterion directly to spieceasi_fit, not stars.params")
   }
 
   if (isTRUE(pulsar.select)) {
-    check_pulsar_params_local(pulsar::pulsar, pulsar.params)
-    pulsar.params$criterion <- switch(
-      sel.criterion,
-      stars = "stars",
-      bstars = "stars",
-      stop("unknown selection criterion")
-    )
-    if (sel.criterion == "bstars") {
-      pulsar.params$lb.stars <- TRUE
-      pulsar.params$ub.stars <- TRUE
+    if (sel.criterion != "stars" && sel.criterion != "bstars") {
+      stop("only sel.criterion = 'stars' or 'bstars' supported; use pulsar.select = FALSE for other methods")
     }
-    if (is.null(pulsar.params[["thresh"]])) {
-      pulsar.params$thresh <- 0.05
-    }
+    check_stars_params_local(stars.params)
+    stars.thresh <- if (!is.null(stars.params[["stars.thresh"]])) stars.params[["stars.thresh"]] else if (!is.null(stars.params[["thresh"]])) stars.params[["thresh"]] else 0.05
+    rep.num <- if (!is.null(stars.params[["rep.num"]])) as.integer(stars.params[["rep.num"]]) else 50L
+    stars.subsample.ratio <- stars.params[["stars.subsample.ratio"]]
 
     if (verbose) {
-      message("Applying data transformations and selecting model with pulsar...")
+      message("Applying data transformations and selecting model with StARS (huge)...")
     }
     est <- do.call(
-      pulsar::pulsar,
-      c(list(data = X, fun = match.fun(estFun), fargs = args), pulsar.params)
+      huge::huge,
+      c(list(x = X, verbose = verbose, cov.output = TRUE), args)
     )
-    fit <- suppressWarnings(pulsar::refit(est))
-    fit$select <- est
+    select_args <- list(
+      est = est,
+      criterion = "stars",
+      stars.thresh = stars.thresh,
+      rep.num = rep.num,
+      verbose = verbose
+    )
+    if (!is.null(stars.subsample.ratio)) {
+      select_args$stars.subsample.ratio <- stars.subsample.ratio
+    }
+    select_obj <- do.call(huge::huge.select, select_args)
+    fit <- list(
+      est = select_obj,
+      refit = list(stars = select_obj$refit),
+      select = list(stars = list(opt.index = select_obj$opt.index, merge = select_obj$merge)),
+      lambda = select_obj$lambda
+    )
+    class(fit) <- "standalone_spieceasi_fit"
   } else {
-    est <- do.call(match.fun(estFun), c(list(data = X), args))
+    est <- do.call(sparseiCov_local, c(list(data = X), args))
     fit <- list(
       est = est,
       refit = list(stars = est$path[[length(est$path)]]),
-      lambda = args$lambda
+      select = NULL,
+      lambda = est$lambda
     )
     class(fit) <- "standalone_spieceasi_fit"
   }
 
-  fit$lambda <- args$lambda
+  fit$lambda <- fit$est$lambda
   fit
 }
 

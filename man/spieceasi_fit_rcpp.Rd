@@ -11,6 +11,7 @@ spieceasi_fit_rcpp(
   verbose = TRUE,
   pulsar.select = TRUE,
   pulsar.params = list(),
+  stars.params = list(),
   lambda.log = TRUE,
   ...
 )

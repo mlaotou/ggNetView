@@ -21,14 +21,14 @@ spieceasi_matrix_rcpp(
 "correlation", "precision", "beta", "stability".}
 
 \item{...}{Passed to \code{spieceasi_fit_rcpp} (e.g. \code{pulsar.select},
-\code{pulsar.params}, \code{verbose}).}
+\code{pulsar.params} or \code{stars.params}, \code{verbose}).}
 }
 \value{
 Matrix as requested by \code{output}.
 }
 \description{
 Fast C++-accelerated SPIEC-EASI. Uses Rcpp for CLR transformation;
-\code{huge} and \code{pulsar} remain unchanged. Input: samples x taxa matrix.
+Uses \code{huge} for estimation and \code{huge.select} for StARS model selection. Input: samples x taxa matrix.
 }
 \examples{
 \dontrun{
