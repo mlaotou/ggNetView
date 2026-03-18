@@ -15,6 +15,8 @@ get_network_topology_parallel(
   cor.method = c("pearson", "kendall", "spearman"),
   proc = c("Bonferroni", "Holm", "Hochberg", "SidakSS", "SidakSD", "BH", "BY", "ABH",
     "TSBH"),
+  SpiecEasi.method = c("mb", "glasso"),
+  sparcc_R = 20,
   bootstrap = 100,
   parallel = FALSE,
   n_workers = NULL,
@@ -60,6 +62,10 @@ Options include:
 "Bonferroni", "Holm", "Hochberg",
 "SidakSS", "SidakSD","BH",
 "BY", "ABH", and "TSBH".}
+
+\item{sparcc_R}{Integer.
+Number of bootstrap/permutation replicates for SparCC p-values (when \code{method = "SPARCC"}).
+Default 20.}
 
 \item{bootstrap}{Numeric  (default = 100).
 Number of bootstrap iterations for stability analysis}

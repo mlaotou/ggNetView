@@ -9,7 +9,7 @@ sparcc_pvalue_rcpp(
   iter = 20,
   inner_iter = 10,
   th = 0.1,
-  R = 100,
+  R = 20,
   ncpus = 1
 )
 }
@@ -25,7 +25,7 @@ Default 10.}
 \item{th}{Numeric. Threshold for excluding highly correlated pairs.
 Default 0.1.}
 
-\item{R}{Integer. Number of bootstrap/permutation replicates. Default 100.}
+\item{R}{Integer. Number of bootstrap/permutation replicates. Default 20.}
 
 \item{ncpus}{Integer. Number of CPUs for parallel boot. Default 1.}
 }
@@ -40,6 +40,6 @@ Output: taxa x taxa p-value matrix.
 }
 \examples{
 \dontrun{
-p_mat <- sparcc_pvalue_rcpp(asv_mat, R = 100, ncpus = 4)
+p_mat <- sparcc_pvalue_rcpp(asv_mat, R = 20, ncpus = 4)
 }
 }

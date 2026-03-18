@@ -4,7 +4,7 @@
 \alias{sparcc_matrix_rcpp}
 \title{SparCC correlation matrix (Rcpp implementation)}
 \usage{
-sparcc_matrix_rcpp(data, iter = 20, inner_iter = 10, th = 0.1)
+sparcc_matrix_rcpp(data, iter = 20, inner_iter = 10, th = 0.1, nthreads = 0L)
 }
 \arguments{
 \item{data}{Numeric matrix. Rows = samples, columns = taxa (ASVs/OTUs).}
@@ -17,6 +17,9 @@ Default 10.}
 
 \item{th}{Numeric. Threshold for excluding highly correlated pairs.
 Default 0.1.}
+
+\item{nthreads}{Integer. Number of OpenMP threads for parallel \code{sparccinner}
+(0 = use default). Only effective when OpenMP is available.}
 }
 \value{
 Numeric matrix of taxa x taxa correlations (median across iterations).
@@ -30,5 +33,7 @@ Output: taxa x taxa correlation matrix.
 \dontrun{
 # data: samples x taxa count matrix
 cor_mat <- sparcc_matrix_rcpp(asv_mat, iter = 20, inner_iter = 10, th = 0.1)
+# With 4 threads (when OpenMP available)
+cor_mat <- sparcc_matrix_rcpp(asv_mat, iter = 20, nthreads = 4)
 }
 }

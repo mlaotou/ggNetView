@@ -15,6 +15,8 @@ get_sample_subgraph_topology_parallel(
   cor.method = c("pearson", "kendall", "spearman"),
   proc = c("Bonferroni", "Holm", "Hochberg", "SidakSS", "SidakSD", "BH", "BY", "ABH",
     "TSBH"),
+  SpiecEasi.method = c("mb", "glasso"),
+  sparcc_R = 20,
   bootstrap = 100,
   parallel = FALSE,
   n_workers = NULL,
@@ -39,6 +41,8 @@ columns are samples.}
 \item{cor.method}{Character. Passed to \code{get_network_topology()}.}
 
 \item{proc}{Character. Passed to \code{get_network_topology()}.}
+
+\item{sparcc_R}{Integer. Passed to \code{get_network_topology()} for SparCC p-values. Default 20.}
 
 \item{bootstrap}{Numeric (default = 100). Passed to
 \code{get_network_topology()}.}

@@ -17,6 +17,7 @@ ggNetView_multi(
     "TSBH"),
   module.method = c("Fast_greedy", "Walktrap", "Edge_betweenness", "Spinglass"),
   SpiecEasi.method = c("mb", "glasso"),
+  sparcc_R = 20,
   node_annotation = NULL,
   top_modules = 15,
   layout = NULL,
@@ -125,6 +126,10 @@ Options include "Fast_greedy", "Walktrap", "Edge_betweenness", and "Spinglass".}
 
 \item{SpiecEasi.method}{Character.
 Method used in \code{SpiecEasi} network inference; options include "mb" and "glasso".}
+
+\item{sparcc_R}{Integer.
+Number of bootstrap/permutation replicates for SparCC p-values (when \code{method = "SPARCC"}).
+Default 20.}
 
 \item{node_annotation}{Data frame.
 Optional node annotation table, containing metadata such as taxonomy or functional categories.}
