@@ -376,7 +376,7 @@ ggNetView <- function(graph_obj,
     }
   }
 
-  if (layout.module == "order" & func_name != "create_layout_rings") {
+  if (layout.module == "order" & func_name != "create_layout_multirings") {
     ly1_1 <- module_layout4(graph_obj,
                             layout = ly1,
                             center = center,
@@ -1016,37 +1016,6 @@ ggNetView <- function(graph_obj,
   }
 
   # specific layout dendrogram
-  if (func_name == "create_layout_rings") {
-    fill_default_rings <- c('#8dd3c7','#ffffb3','#bebada','#fb8072','#80b1d3',
-                            '#fdb462','#b3de69','#fccde5','#cab2d6','#bc80bd',
-                            '#ccebc5','#ffed6f','#a6cee3','#b2df8a', '#fb9a99',
-                            '#bdbdbd',
-                            '#a6cee3','#1f78b4','#b2df8a','#33a02c','#fb9a99',
-                            '#e31a1c','#fdbf6f','#ff7f00','#cab2d6','#6a3d9a',
-                            '#ffff99','#b15928')
-    fill_scale_rings <- if (is.null(fill)) {
-      ggplot2::scale_fill_manual(values = fill_default_rings, name = "Group")
-    } else {
-      ggplot2::scale_fill_manual(values = fill)
-    }
-    p1_1 <- ggraph::ggraph(ly1)  +
-      ggraph::geom_edge_link(alpha = linealpha, colour = linecolor) +
-      ggraph::geom_node_point(ggplot2::aes(fill = group, size = Degree), shape = 21, alpha = pointalpha) +
-      ggraph::geom_node_text(
-        ggplot2::aes(x = 1.1 * x,
-            y = 1.1 * y,
-            label = name,
-            angle = -((-ggraph::node_angle(x, y) + 90) %% 180) + 90),
-        size = nodelabsize, hjust = 'outward'
-      ) +
-      ggplot2::scale_shape_manual(values = 20:25) +
-      fill_scale_rings +
-      ggraph::scale_edge_width(range = c(0.1, 1)) +
-      ggplot2::coord_equal(clip = "off") +
-      theme_ggnetview()
-
-  }
-
   if (layout == "dendrogram") {
     color_default_dendro <- c('#66c2a5','#fc8d62','#a6d854','#e78ac3')
     color_scale_dendro <- if (is.null(color)) {

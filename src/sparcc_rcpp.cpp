@@ -1,6 +1,10 @@
 // SparCC implementation in RcppArmadillo
 
 #include <RcppArmadillo.h>
+#include <vector>
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 using namespace Rcpp;
 using namespace arma;
@@ -166,23 +170,33 @@ arma::mat sparccinner_rcpp(const arma::mat& data, int inner_iter, double th) {
 }
 
 // [[Rcpp::export]]
-arma::mat sparcc_matrix_cpp(const arma::mat& data, int iter, int inner_iter, double th) {
-  int n = data.n_rows;
+arma::mat sparcc_matrix_cpp(const arma::mat& data, int iter, int inner_iter, double th, int nthreads = 0) {
   int p = data.n_cols;
   arma::cube cors(p, p, iter);
 
+  // Phase 1: Pre-generate all Dirichlet samples (sequential, uses R RNG)
+  std::vector<arma::mat> data_norm_list(iter);
   for (int i = 0; i < iter; i++) {
     arma::mat data_norm = norm_diric_row(data, 1);
-    data_norm = data_norm.t();  // taxa x samples for av
-    cors.slice(i) = sparccinner_rcpp(data_norm, inner_iter, th);
+    data_norm_list[i] = data_norm.t();  // taxa x samples for av
   }
 
+  // Phase 2: Run sparccinner (parallel when OpenMP available; no RNG used)
+#ifdef _OPENMP
+  if (nthreads > 0) omp_set_num_threads(nthreads);
+#pragma omp parallel for schedule(dynamic)
+#endif
+  for (int i = 0; i < iter; i++) {
+    cors.slice(i) = sparccinner_rcpp(data_norm_list[i], inner_iter, th);
+  }
+
+  // Phase 3: Optimized median (reuse vector to avoid per-cell allocation)
   arma::mat corMed(p, p);
+  arma::vec tube_vals(iter);
   for (int i = 0; i < p; i++) {
     for (int j = 0; j < p; j++) {
-      arma::vec col(iter);
-      for (int k = 0; k < iter; k++) col(k) = cors(i, j, k);
-      corMed(i, j) = arma::median(col);
+      for (int k = 0; k < iter; k++) tube_vals(k) = cors(i, j, k);
+      corMed(i, j) = arma::median(tube_vals);
     }
   }
   return corMed;

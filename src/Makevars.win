@@ -1,0 +1,4 @@
+# OpenMP support for SparCC parallelization (when available on Windows)
+# Note: Standard Rtools may not include OpenMP; code falls back to sequential
+PKG_CXXFLAGS = $(SHLIB_OPENMP_CXXFLAGS)
+PKG_LIBS = $(SHLIB_OPENMP_CXXFLAGS)

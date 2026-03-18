@@ -1,0 +1,4 @@
+# OpenMP support for SparCC parallelization (when available)
+# Uses R's SHLIB_OPENMP_CXXFLAGS; empty on systems without OpenMP
+PKG_CXXFLAGS = $(SHLIB_OPENMP_CXXFLAGS)
+PKG_LIBS = $(SHLIB_OPENMP_CXXFLAGS)

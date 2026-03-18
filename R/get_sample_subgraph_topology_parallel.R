@@ -15,6 +15,7 @@
 #' @param method Character. Passed to \code{get_network_topology()}.
 #' @param cor.method Character. Passed to \code{get_network_topology()}.
 #' @param proc Character. Passed to \code{get_network_topology()}.
+#' @param sparcc_R Integer. Passed to \code{get_network_topology()} for SparCC p-values. Default 20.
 #' @param bootstrap Numeric (default = 100). Passed to
 #'   \code{get_network_topology()}.
 #' @param parallel Logical (default = FALSE). Whether to enable parallel
@@ -42,6 +43,8 @@ get_sample_subgraph_topology_parallel <- function(graph_obj,
                                                   method = c("WGCNA", "SpiecEasi", "SPARCC", "cor"),
                                                   cor.method = c("pearson", "kendall", "spearman"),
                                                   proc = c("Bonferroni", "Holm", "Hochberg", "SidakSS", "SidakSD","BH", "BY","ABH","TSBH"),
+                                                  SpiecEasi.method = c("mb", "glasso"),
+                                                  sparcc_R = 20,
                                                   bootstrap = 100,
                                                   parallel = FALSE,
                                                   n_workers = NULL,
@@ -135,6 +138,8 @@ get_sample_subgraph_topology_parallel <- function(graph_obj,
         method = method,
         cor.method = cor.method,
         proc = proc,
+        SpiecEasi.method = SpiecEasi.method,
+        sparcc_R = sparcc_R,
         bootstrap = bootstrap
       ),
       error = function(e) e

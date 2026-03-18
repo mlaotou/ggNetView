@@ -34,6 +34,9 @@
 #' Options include "Fast_greedy", "Walktrap", "Edge_betweenness", and "Spinglass".
 #' @param SpiecEasi.method Character.
 #' Method used in \code{SpiecEasi} network inference; options include "mb" and "glasso".
+#' @param sparcc_R Integer.
+#' Number of bootstrap/permutation replicates for SparCC p-values (when \code{method = "SPARCC"}).
+#' Default 20.
 #' @param node_annotation Data frame.
 #' Optional node annotation table, containing metadata such as taxonomy or functional categories.
 #' @param top_modules Integer.
@@ -57,6 +60,7 @@ build_graph_from_mat <- function(mat,
                                  proc = c("Bonferroni", "Holm", "Hochberg", "SidakSS", "SidakSD","BH", "BY","ABH","TSBH"),
                                  module.method = c("Fast_greedy", "Walktrap", "Edge_betweenness", "Spinglass"),
                                  SpiecEasi.method = c("mb", "glasso"),
+                                 sparcc_R = 20,
                                  node_annotation = NULL,
                                  top_modules = 15,
                                  seed = 1115){
@@ -108,7 +112,10 @@ build_graph_from_mat <- function(mat,
     stop("`seed` must be a single numeric.", call. = FALSE)
   }
   seed <- as.integer(seed)
-
+  sparcc_R <- as.integer(sparcc_R)[1L]
+  if (is.na(sparcc_R) || sparcc_R < 1L) {
+    stop("`sparcc_R` must be a positive integer.", call. = FALSE)
+  }
 
   if (!is.null(node_annotation)) {
     if (!is.data.frame(node_annotation)) {
@@ -120,6 +127,7 @@ build_graph_from_mat <- function(mat,
   }
 
   # argument check
+  method <- match.arg(method)
   transfrom.method <-  match.arg(transfrom.method)
   cor.method <- match.arg(cor.method)
   proc <- match.arg(proc)
@@ -170,45 +178,30 @@ build_graph_from_mat <- function(mat,
     g <- igraph::graph_from_adjacency_matrix(occor.r, weighted = TRUE, mode = 'undirected')
   }
 
-  # SpiecEasi
+  # SpiecEasi (spieceasi_matrix_rcpp: no p-value, filter by r.threshold only)
   if (method == "SpiecEasi") {
-    # SpiecEasi for correlation
-    SpiecEasi_obj <- SpiecEasi::spiec.easi(as.matrix(t(mat)),
-                                           method = SpiecEasi.method,
-                                           lambda.min.ratio=1e-2,
-                                           nlambda=20,
-                                           pulsar.params=list(rep.num=50)
-                                           )
-
-    # return adjacency matrix
-    am <- SpiecEasi::getRefit(SpiecEasi_obj)
-
+    # mat: ASV x samples -> t(mat): samples x taxa for spieceasi_matrix_rcpp
+    am <- spieceasi_matrix_rcpp(as.matrix(t(mat)), method = SpiecEasi.method, output = "adjacency",
+                                lambda.min.ratio = 1e-2, nlambda = 20, pulsar.params = list(rep.num = 50))
     rownames(am) <- rownames(mat)
     colnames(am) <- rownames(mat)
-
-    # Create igraph objects
+    am <- am * (abs(am) >= r.threshold)
+    am[is.na(am)] <- 0
+    diag(am) <- 0
     g <- igraph::graph_from_adjacency_matrix(am, weighted = TRUE, mode = 'undirected')
   }
 
-  # SparCC
-  if (method == "SparCC") {
-    # Sparcc for correlation
-    SparCC_obj <- SpiecEasi::sparcc(as.matrix(t(mat)))
-
-    # SparCC_graph <- abs(SparCC_obj$Cor) >= r.threshold
-
-    occor.r <- SparCC_obj$Cor
-
-    occor.r[abs(occor.r) < r.threshold] = 0
-
+  # SparCC (sparcc_matrix_rcpp: filter by r.threshold and p.threshold)
+  if (method == "SPARCC") {
+    # mat: ASV x samples -> t(mat): samples x taxa for sparcc_matrix_rcpp
+    occor.r <- sparcc_matrix_rcpp(as.matrix(t(mat)))
+    p_mat <- sparcc_pvalue_rcpp(as.matrix(t(mat)), R = sparcc_R)
     diag(occor.r) <- 0
-
+    occor.r[abs(occor.r) < r.threshold | is.na(p_mat) | p_mat > p.threshold] <- 0
+    occor.r[is.na(occor.r)] <- 0
     rownames(occor.r) <- rownames(mat)
     colnames(occor.r) <- rownames(mat)
-
-    occor.r <- Matrix::Matrix(occor.r, sparse=TRUE)
-
-    # Create igraph objects
+    occor.r <- Matrix::Matrix(occor.r, sparse = TRUE)
     g <- igraph::graph_from_adjacency_matrix(occor.r, weighted = TRUE, mode = 'undirected')
   }
 

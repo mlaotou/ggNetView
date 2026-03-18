@@ -13,6 +13,8 @@
 #'   Default 10.
 #' @param th Numeric. Threshold for excluding highly correlated pairs.
 #'   Default 0.1.
+#' @param nthreads Integer. Number of OpenMP threads for parallel \code{sparccinner}
+#'   (0 = use default). Only effective when OpenMP is available.
 #'
 #' @return Numeric matrix of taxa x taxa correlations (median across iterations).
 #' @export
@@ -21,8 +23,10 @@
 #' \dontrun{
 #' # data: samples x taxa count matrix
 #' cor_mat <- sparcc_matrix_rcpp(asv_mat, iter = 20, inner_iter = 10, th = 0.1)
+#' # With 4 threads (when OpenMP available)
+#' cor_mat <- sparcc_matrix_rcpp(asv_mat, iter = 20, nthreads = 4)
 #' }
-sparcc_matrix_rcpp <- function(data, iter = 20, inner_iter = 10, th = 0.1) {
+sparcc_matrix_rcpp <- function(data, iter = 20, inner_iter = 10, th = 0.1, nthreads = 0L) {
   if (!is.matrix(data)) {
     data <- as.matrix(data)
   }
@@ -41,8 +45,12 @@ sparcc_matrix_rcpp <- function(data, iter = 20, inner_iter = 10, th = 0.1) {
   if (is.na(th) || th < 0) {
     stop("th must be a non-negative numeric", call. = FALSE)
   }
+  nthreads <- as.integer(nthreads)[1L]
+  if (is.na(nthreads) || nthreads < 0) {
+    stop("nthreads must be a non-negative integer", call. = FALSE)
+  }
 
-  out <- sparcc_matrix_cpp(data, iter, inner_iter, th)
+  out <- sparcc_matrix_cpp(data, iter, inner_iter, th, nthreads)
   storage.mode(out) <- "double"
   dimnames(out) <- list(colnames(data), colnames(data))
   out
@@ -62,7 +70,7 @@ sparcc_matrix_rcpp <- function(data, iter = 20, inner_iter = 10, th = 0.1) {
 #'   Default 10.
 #' @param th Numeric. Threshold for excluding highly correlated pairs.
 #'   Default 0.1.
-#' @param R Integer. Number of bootstrap/permutation replicates. Default 100.
+#' @param R Integer. Number of bootstrap/permutation replicates. Default 20.
 #' @param ncpus Integer. Number of CPUs for parallel boot. Default 1.
 #'
 #' @return Numeric matrix of taxa x taxa p-values. Diagonal = 0.
@@ -71,9 +79,9 @@ sparcc_matrix_rcpp <- function(data, iter = 20, inner_iter = 10, th = 0.1) {
 #'
 #' @examples
 #' \dontrun{
-#' p_mat <- sparcc_pvalue_rcpp(asv_mat, R = 100, ncpus = 4)
+#' p_mat <- sparcc_pvalue_rcpp(asv_mat, R = 20, ncpus = 4)
 #' }
-sparcc_pvalue_rcpp <- function(data, iter = 20, inner_iter = 10, th = 0.1, R = 100, ncpus = 1) {
+sparcc_pvalue_rcpp <- function(data, iter = 20, inner_iter = 10, th = 0.1, R = 20, ncpus = 1) {
   if (!requireNamespace("boot", quietly = TRUE)) {
     stop("package 'boot' is required for SparCC p-values", call. = FALSE)
   }

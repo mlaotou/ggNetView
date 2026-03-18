@@ -11,4 +11,6 @@ VirtualPerturbation <- function(mat,
                                 top_modules = 15,
                                 seed = 1115){
 
+  method <- match.arg(method)
+
 }

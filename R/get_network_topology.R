@@ -34,6 +34,9 @@
 #' "Bonferroni", "Holm", "Hochberg", "
 #' SidakSS", "SidakSD","BH",
 #' "BY", "ABH", and "TSBH".
+#' @param sparcc_R Integer.
+#' Number of bootstrap/permutation replicates for SparCC p-values (when \code{method = "SPARCC"}).
+#' Default 20.
 #' @param bootstrap Numeric  (default = 100).
 #' Number of bootstrap iterations for stability analysis
 #'
@@ -49,6 +52,8 @@ get_network_topology <- function(graph_obj,
                                  method = c("WGCNA", "SpiecEasi", "SPARCC", "cor"),
                                  cor.method = c("pearson", "kendall", "spearman"),
                                  proc = c("Bonferroni", "Holm", "Hochberg", "SidakSS", "SidakSD","BH", "BY","ABH","TSBH"),
+                                 SpiecEasi.method = c("mb", "glasso"),
+                                 sparcc_R = 20,
                                  bootstrap = 100){
 
 
@@ -56,9 +61,15 @@ get_network_topology <- function(graph_obj,
   ig <- tidygraph::as.igraph(graph_obj)
 
   # argument check
+  method <- match.arg(method)
   # transfrom.method <-  match.arg(transfrom.method)
   # cor.method <- match.arg(cor.method)
   # proc <- match.arg(proc)
+  SpiecEasi.method <- match.arg(SpiecEasi.method)
+  sparcc_R <- as.integer(sparcc_R)[1L]
+  if (is.na(sparcc_R) || sparcc_R < 1L) {
+    stop("`sparcc_R` must be a positive integer.", call. = FALSE)
+  }
 
   if (is.null(mat)) {
     graph_obj = graph_obj
@@ -121,60 +132,33 @@ get_network_topology <- function(graph_obj,
 
     }
 
-    # SpiecEasi
+    # SpiecEasi (spieceasi_matrix_rcpp: no p-value, filter by r.threshold only)
     if (method == "SpiecEasi") {
       sp.ra <- colMeans(t(mat))
-      # SpiecEasi for correlation
-      SpiecEasi_obj <- SpiecEasi::spiec.easi(as.matrix(t(mat)),
-                                             method = SpiecEasi.method,
-                                             lambda.min.ratio=1e-2,
-                                             nlambda=20,
-                                             pulsar.params=list(rep.num=50)
-      )
-
-      # return adjacency matrix
-      am <- SpiecEasi::getRefit(SpiecEasi_obj)
-
+      am <- spieceasi_matrix_rcpp(as.matrix(t(mat)), method = SpiecEasi.method, output = "adjacency",
+                                  lambda.min.ratio = 1e-2, nlambda = 20, pulsar.params = list(rep.num = 50))
       rownames(am) <- rownames(mat)
       colnames(am) <- rownames(mat)
-
-      am2 <- am*(abs(am) >= r.threshold)
-
+      am2 <- am * (abs(am) >= r.threshold)
       am2[is.na(am2)] <- 0
       diag(am2) <- 0
-      sum(abs(am2) > 0) / 2
-      sum(colSums(abs(am2)) > 0)
-
-      network.raw <- am2[colSums(abs(am2)) > 0,colSums(abs(am2)) > 0]
-      sp.ra2<-sp.ra[colSums(abs(am2)) > 0]
-      sum(row.names(network.raw) == names(sp.ra2))
-
+      network.raw <- am2[colSums(abs(am2)) > 0, colSums(abs(am2)) > 0]
+      sp.ra2 <- sp.ra[colSums(abs(am2)) > 0]
     }
 
-    # SparCC
-    if (method == "SparCC") {
+    # SparCC (sparcc_matrix_rcpp: filter by r.threshold and p.threshold)
+    if (method == "SPARCC") {
       sp.ra <- colMeans(t(mat))
-      # Sparcc for correlation
-      SparCC_obj <- SpiecEasi::sparcc(as.matrix(t(mat)))
-
-      SparCC_graph <- abs(SparCC_obj$Cor) >= r.threshold
-
-      diag(SparCC_graph) <- 0
-
-      rownames(SparCC_graph) <- rownames(mat)
-      colnames(SparCC_graph) <- rownames(mat)
-
-      SparCC_graph <- Matrix::Matrix(SparCC_graph, sparse=TRUE)
-
-      SparCC_graph2 <- SparCC_graph
-
-      SparCC_graph2[is.na(SparCC_graph2)] <- 0
-      diag(SparCC_graph2) <- 0
-      sum(abs(SparCC_graph2) > 0) / 2
-      sum(colSums(abs(SparCC_graph2)) > 0)
-
-      network.raw <- SparCC_graph2[colSums(abs(SparCC_graph2)) > 0,colSums(abs(SparCC_graph2)) > 0]
-      sp.ra2<-sp.ra[colSums(abs(SparCC_graph2)) > 0]
+      occor.r <- sparcc_matrix_rcpp(as.matrix(t(mat)))
+      p_mat <- sparcc_pvalue_rcpp(as.matrix(t(mat)), R = sparcc_R)
+      diag(occor.r) <- 0
+      occor.r[abs(occor.r) < r.threshold | is.na(p_mat) | p_mat > p.threshold] <- 0
+      occor.r[is.na(occor.r)] <- 0
+      rownames(occor.r) <- rownames(mat)
+      colnames(occor.r) <- rownames(mat)
+      SparCC_graph2 <- Matrix::Matrix(occor.r, sparse = TRUE)
+      network.raw <- SparCC_graph2[colSums(abs(SparCC_graph2)) > 0, colSums(abs(SparCC_graph2)) > 0]
+      sp.ra2 <- sp.ra[colSums(abs(SparCC_graph2)) > 0]
     }
 
     # cor

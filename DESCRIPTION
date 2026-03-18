@@ -37,7 +37,6 @@ Imports:
     qgraph,
     readr,
     scales,
-    SpiecEasi,
     stats,
     tibble,
     tidygraph,

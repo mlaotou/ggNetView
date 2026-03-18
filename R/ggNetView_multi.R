@@ -36,6 +36,9 @@
 #' Options include "Fast_greedy", "Walktrap", "Edge_betweenness", and "Spinglass".
 #' @param SpiecEasi.method Character.
 #' Method used in \code{SpiecEasi} network inference; options include "mb" and "glasso".
+#' @param sparcc_R Integer.
+#' Number of bootstrap/permutation replicates for SparCC p-values (when \code{method = "SPARCC"}).
+#' Default 20.
 #' @param node_annotation Data frame.
 #' Optional node annotation table, containing metadata such as taxonomy or functional categories.
 #' @param top_modules Integer.
@@ -178,6 +181,7 @@ ggNetView_multi <- function(mat,
                                      "TSBH"),
                             module.method = c("Fast_greedy", "Walktrap", "Edge_betweenness", "Spinglass"),
                             SpiecEasi.method = c("mb", "glasso"),
+                            sparcc_R = 20,
                             node_annotation = NULL,
                             top_modules = 15,
                             layout = NULL,
@@ -240,6 +244,7 @@ ggNetView_multi <- function(mat,
                             ncol = NULL
                             ){
 
+  method <- match.arg(method)
   p_list <- list()
 
   for (g in unique(group_info$Group)) {
@@ -267,6 +272,7 @@ ggNetView_multi <- function(mat,
       proc = proc,
       module.method = module.method,
       SpiecEasi.method = SpiecEasi.method,
+      sparcc_R = sparcc_R,
       node_annotation = node_annotation,
       top_modules = top_modules,
       seed = seed

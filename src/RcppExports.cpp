@@ -12,8 +12,8 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
 // sparcc_matrix_cpp
-arma::mat sparcc_matrix_cpp(const arma::mat& data, int iter, int inner_iter, double th);
-RcppExport SEXP _ggNetView_sparcc_matrix_cpp(SEXP dataSEXP, SEXP iterSEXP, SEXP inner_iterSEXP, SEXP thSEXP) {
+arma::mat sparcc_matrix_cpp(const arma::mat& data, int iter, int inner_iter, double th, int nthreads);
+RcppExport SEXP _ggNetView_sparcc_matrix_cpp(SEXP dataSEXP, SEXP iterSEXP, SEXP inner_iterSEXP, SEXP thSEXP, SEXP nthreadsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -21,7 +21,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type iter(iterSEXP);
     Rcpp::traits::input_parameter< int >::type inner_iter(inner_iterSEXP);
     Rcpp::traits::input_parameter< double >::type th(thSEXP);
-    rcpp_result_gen = Rcpp::wrap(sparcc_matrix_cpp(data, iter, inner_iter, th));
+    Rcpp::traits::input_parameter< int >::type nthreads(nthreadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(sparcc_matrix_cpp(data, iter, inner_iter, th, nthreads));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -39,7 +40,7 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_ggNetView_sparcc_matrix_cpp", (DL_FUNC) &_ggNetView_sparcc_matrix_cpp, 4},
+    {"_ggNetView_sparcc_matrix_cpp", (DL_FUNC) &_ggNetView_sparcc_matrix_cpp, 5},
     {"_ggNetView_spieceasi_norm_cpp", (DL_FUNC) &_ggNetView_spieceasi_norm_cpp, 2},
     {NULL, NULL, 0}
 };

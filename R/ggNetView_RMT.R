@@ -93,6 +93,8 @@ ggNetView_RMT <- function(
   }
 
 
+  method <- match.arg(method)
+  SpiecEasi.method <- match.arg(SpiecEasi.method)
   unfold.method <- match.arg(unfold.method)
   transfrom.method <-  match.arg(transfrom.method)
   cor.method <- match.arg(cor.method)
@@ -122,36 +124,21 @@ ggNetView_RMT <- function(
     mat <- occor.r
   }
 
-  # SpiecEasi
+  # SpiecEasi (spieceasi_matrix_rcpp: no p-value, r.threshold applied in RMT scan)
   if (method == "SpiecEasi") {
-    # SpiecEasi for correlation
-    SpiecEasi_obj <- SpiecEasi::spiec.easi(as.matrix(t(mat)),
-                                           method = SpiecEasi.method,
-                                           lambda.min.ratio=1e-2,
-                                           nlambda=20,
-                                           pulsar.params=list(rep.num=50)
-    )
-
-    # return adjacency matrix
-    am <- SpiecEasi::getRefit(SpiecEasi_obj)
-
+    am <- spieceasi_matrix_rcpp(as.matrix(t(mat)), method = SpiecEasi.method, output = "adjacency",
+                                lambda.min.ratio = 1e-2, nlambda = 20, pulsar.params = list(rep.num = 50))
     rownames(am) <- rownames(mat)
     colnames(am) <- rownames(mat)
-
     mat <- am
   }
 
-  # SparCC
-  if (method == "SparCC") {
-    # Sparcc for correlation
-    SparCC_obj <- SpiecEasi::sparcc(as.matrix(t(mat)))
-
-    rownames(SparCC_graph) <- rownames(mat)
-    colnames(SparCC_graph) <- rownames(mat)
-
-    SparCC_graph <- Matrix::Matrix(SparCC_graph, sparse=TRUE)
-
-    mat <- SparCC_graph
+  # SparCC (sparcc_matrix_rcpp: correlation matrix for RMT scan)
+  if (method == "SPARCC") {
+    SparCC_cor <- sparcc_matrix_rcpp(as.matrix(t(mat)))
+    rownames(SparCC_cor) <- rownames(mat)
+    colnames(SparCC_cor) <- rownames(mat)
+    mat <- Matrix::Matrix(SparCC_cor, sparse = TRUE)
   }
 
   # cor
@@ -312,7 +299,8 @@ ggNetView_RMT <- function(
   }
 
   effective_mat <- function(A, tol = 0) {
-    dg <- diag(A); diag(A) <- 0
+    dg <- diag(A)
+    diag(A) <- 0
     keep_row <- rowSums(abs(A) > tol) > 0
     keep_col <- colSums(abs(A) > tol) > 0
     idx <- which(keep_row & keep_col)

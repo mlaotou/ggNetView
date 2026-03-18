@@ -44,6 +44,9 @@
 #' Options include "Fast_greedy", "Walktrap", "Edge_betweenness", and "Spinglass".
 #' @param SpiecEasi.method Character.
 #' Method used in \code{SpiecEasi} network inference; options include "mb" and "glasso".
+#' @param sparcc_R Integer.
+#' Number of bootstrap/permutation replicates for SparCC p-values (when \code{method = "SPARCC"}).
+#' Default 20.
 #' @param node_annotation Data frame.
 #' Optional node annotation table, containing metadata such as taxonomy or functional categories.
 #' @param top_modules Integer.
@@ -282,6 +285,7 @@ ggNetView_multi_link <- function(mat = NULL,
                                  proc = c("Bonferroni", "Holm", "Hochberg", "SidakSS", "SidakSD", "BH", "BY", "ABH", "TSBH"),
                                  module.method = c("Fast_greedy", "Walktrap", "Edge_betweenness", "Spinglass"),
                                  SpiecEasi.method = c("mb", "glasso"),
+                                 sparcc_R = 20,
                                  node_annotation = NULL,
                                  top_modules = 15,
                                  layout = NULL,
@@ -355,6 +359,7 @@ ggNetView_multi_link <- function(mat = NULL,
                                  add_group_outer_linewidth = 0.5,
                                  seed = 1115
 ){
+  method <- match.arg(method)
   # 参数
 
   color_v <- c('#1f78b4', '#e7298a', '#41ab5d', '#807dba',
@@ -627,6 +632,7 @@ ggNetView_multi_link <- function(mat = NULL,
         proc = proc,
         module.method = module.method,
         SpiecEasi.method = SpiecEasi.method,
+        sparcc_R = sparcc_R,
         node_annotation = node_annotation,
         top_modules = top_modules,
         seed = seed
@@ -784,6 +790,8 @@ ggNetView_multi_link <- function(mat = NULL,
           method = method,
           cor.method = cor.method,
           proc = proc,
+          SpiecEasi.method = SpiecEasi.method,
+          sparcc_R = sparcc_R,
           seed = seed
         ),
         error = function(e) {
@@ -802,6 +810,8 @@ ggNetView_multi_link <- function(mat = NULL,
           method = method,
           cor.method = cor.method,
           proc = proc,
+          SpiecEasi.method = SpiecEasi.method,
+          sparcc_R = sparcc_R,
           seed = seed
         ),
         error = function(e) {
