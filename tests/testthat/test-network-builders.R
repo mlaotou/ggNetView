@@ -56,3 +56,60 @@ test_that("sparcc_matrix_rcpp returns a symmetric matrix with dimnames", {
   expect_identical(rownames(cor_mat), colnames(data))
   expect_identical(colnames(cor_mat), colnames(data))
 })
+
+test_that("get_network_topology works with default transform argument candidates", {
+  mat <- matrix(sample(1:10, 24, replace = TRUE), nrow = 4)
+  rownames(mat) <- paste0("A", seq_len(nrow(mat)))
+  colnames(mat) <- paste0("S", seq_len(ncol(mat)))
+
+  graph_obj <- build_graph_from_mat(
+    mat = mat,
+    method = "cor",
+    cor.method = "pearson",
+    r.threshold = 0,
+    p.threshold = 1,
+    seed = 1
+  )
+
+  out <- get_network_topology(
+    graph_obj = graph_obj,
+    mat = mat,
+    method = "cor",
+    cor.method = "pearson",
+    r.threshold = 0,
+    p.threshold = 1,
+    bootstrap = 2
+  )
+
+  expect_true(is.list(out))
+  expect_true(all(c("topology", "Robustness") %in% names(out)))
+})
+
+test_that("get_network_topology_parallel works when parallel is FALSE", {
+  mat <- matrix(sample(1:10, 24, replace = TRUE), nrow = 4)
+  rownames(mat) <- paste0("A", seq_len(nrow(mat)))
+  colnames(mat) <- paste0("S", seq_len(ncol(mat)))
+
+  graph_obj <- build_graph_from_mat(
+    mat = mat,
+    method = "cor",
+    cor.method = "pearson",
+    r.threshold = 0,
+    p.threshold = 1,
+    seed = 1
+  )
+
+  out <- get_network_topology_parallel(
+    graph_obj = graph_obj,
+    mat = mat,
+    method = "cor",
+    cor.method = "pearson",
+    r.threshold = 0,
+    p.threshold = 1,
+    parallel = FALSE,
+    bootstrap = 2
+  )
+
+  expect_true(is.list(out))
+  expect_true(all(c("topology", "Robustness") %in% names(out)))
+})

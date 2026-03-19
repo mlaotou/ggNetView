@@ -62,7 +62,7 @@ build_graph_from_multi_mat <- function(mat1,
     as.data.frame() %>%
     tibble::rownames_to_column(var = "from") %>%
     tidyr::pivot_longer(cols = -from, names_to = "to", values_to = "Pvalue") %>%
-    dplyr::mutate(signif = case_when(
+    dplyr::mutate(signif = dplyr::case_when(
       Pvalue > 0.05 ~ "",
       Pvalue > 0.01 & Pvalue < 0.05 ~ "*",
       Pvalue < 0.01 & Pvalue > 0.001 ~ "**",
@@ -85,11 +85,11 @@ build_graph_from_multi_mat <- function(mat1,
     dplyr::rename(to_group = group) %>%
     dplyr::filter(from_group != to_group) %>%
     purrr::set_names(c("from", "to", "Correlation", "Pvalue", "Signif", "from_group", "to_group")) %>%
-    dplyr::mutate(Correlated = case_when(
+    dplyr::mutate(Correlated = dplyr::case_when(
       Correlation > 0 ~ "Positive",
       Correlation < 0 ~ "Negative"
     )) %>%
-    dplyr::mutate(Signif2 = case_when(
+    dplyr::mutate(Signif2 = dplyr::case_when(
       Pvalue > 0.05 ~ "P > 0.05",
       Pvalue > 0.01 & Pvalue < 0.05 ~ "0.01 < P < 0.05",
       Pvalue < 0.01 & Pvalue > 0.001 ~ "0.001 < P < 0.01",
@@ -118,6 +118,7 @@ build_graph_from_multi_mat <- function(mat1,
   igraph::E(g)$corr_direction <- ifelse(igraph::E(g)$correlation > 0, "Positive", "Negative")
 
   # 模块化
+  module.method <- match.arg(module.method)
   membership_vec <- switch(
     module.method,
     Fast_greedy = igraph::membership(igraph::cluster_fast_greedy(g)),

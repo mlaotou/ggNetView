@@ -69,18 +69,15 @@ get_network_topology_parallel <- function(graph_obj,
 
   set.seed(seed)
 
-  progressr::handlers("txtprogressbar")
-  progressr::handlers(global = TRUE)
-
   # self network topology attributes
   # create igraph object
   ig <- tidygraph::as.igraph(graph_obj)
 
   # argument check
   method <- match.arg(method)
-  # transfrom.method <-  match.arg(transfrom.method)
-  # cor.method <- match.arg(cor.method)
-  # proc <- match.arg(proc)
+  transfrom.method <-  match.arg(transfrom.method)
+  cor.method <- match.arg(cor.method)
+  proc <- match.arg(proc)
   SpiecEasi.method <- match.arg(SpiecEasi.method)
   sparcc_R <- as.integer(sparcc_R)[1L]
   if (is.na(sparcc_R) || sparcc_R < 1L) {
@@ -470,8 +467,6 @@ get_network_topology_parallel <- function(graph_obj,
 
   # single thread
   if (isFALSE(parallel)) {
-
-    future::plan(future::sequential)
 
     # random topology
     random_topology <- list()

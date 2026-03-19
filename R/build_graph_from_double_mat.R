@@ -42,7 +42,7 @@ build_graph_from_double_mat <- function(mat1,
     as.data.frame() %>%
     tibble::rownames_to_column(var = "from") %>%
     tidyr::pivot_longer(cols = -from, names_to = "to", values_to = "Pvalue") %>%
-    dplyr::mutate(signif = case_when(
+    dplyr::mutate(signif = dplyr::case_when(
       Pvalue > 0.05 ~ "",
       Pvalue > 0.01 & Pvalue < 0.05 ~ "*",
       Pvalue < 0.01 & Pvalue > 0.001 ~ "**",
@@ -52,11 +52,11 @@ build_graph_from_double_mat <- function(mat1,
   cor_out <- cor_out_odata_r %>%
     dplyr::left_join(cor_out_odata_p, by = c("from", "to")) %>%
     purrr::set_names(c("from", "to", "Correlation", "Pvalue", "Signif")) %>%
-    dplyr::mutate(Correlated = case_when(
+    dplyr::mutate(Correlated = dplyr::case_when(
       Correlation > 0 ~ "Positive",
       Correlation < 0 ~ "Negative"
     )) %>%
-    dplyr::mutate(Signif2 = case_when(
+    dplyr::mutate(Signif2 = dplyr::case_when(
       Pvalue > 0.05 ~ "P > 0.05",
       Pvalue > 0.01 & Pvalue < 0.05 ~ "0.01 < P < 0.05",
       Pvalue < 0.01 & Pvalue > 0.001 ~ "0.001 < P < 0.01",
@@ -134,4 +134,3 @@ build_graph_from_double_mat <- function(mat1,
 
   return(graph_obj)
 }
-

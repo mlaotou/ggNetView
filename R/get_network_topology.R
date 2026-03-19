@@ -62,9 +62,9 @@ get_network_topology <- function(graph_obj,
 
   # argument check
   method <- match.arg(method)
-  # transfrom.method <-  match.arg(transfrom.method)
-  # cor.method <- match.arg(cor.method)
-  # proc <- match.arg(proc)
+  transfrom.method <-  match.arg(transfrom.method)
+  cor.method <- match.arg(cor.method)
+  proc <- match.arg(proc)
   SpiecEasi.method <- match.arg(SpiecEasi.method)
   sparcc_R <- as.integer(sparcc_R)[1L]
   if (is.na(sparcc_R) || sparcc_R < 1L) {

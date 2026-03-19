@@ -21,3 +21,22 @@ test_that("rrarefy_relative uses a single rarefaction result for normalization",
   expect_true(all(is.finite(transformed)))
   expect_true(all(transformed >= 0))
 })
+
+test_that("log transforms fail fast for invalid values", {
+  mat <- matrix(c(-2, 1, 3, 4), nrow = 2)
+
+  expect_error(
+    ggNetView:::apply_transform_method(mat, "log2"),
+    "greater than -1"
+  )
+
+  expect_error(
+    ggNetView:::apply_transform_method(mat, "log10"),
+    "greater than -1"
+  )
+
+  expect_error(
+    ggNetView:::apply_transform_method(mat, "ln"),
+    "greater than -1"
+  )
+})

@@ -33,7 +33,7 @@ cor_test2 <- function(Environment, Experiment){
 
   cor_out_stat <- cor_out_r %>%
     dplyr::left_join(cor_out_p, by = c("Sample", "Experiment")) %>%
-    dplyr::mutate(p_value = case_when(
+    dplyr::mutate(p_value = dplyr::case_when(
       Pvalue > 0.05 ~ "P > 0.05",
       Pvalue > 0.01 & Pvalue < 0.05 ~ "0.01 < P < 0.05",
       Pvalue < 0.01 & Pvalue > 0.001 ~ "0.001 < P < 0.01",
@@ -74,7 +74,7 @@ cor_test2 <- function(Environment, Experiment){
                   ID2 = as.numeric(ID),
                   Type2 = as.numeric(Type)) %>%
     stats::na.omit() %>%
-    dplyr::mutate(p_value = case_when(
+    dplyr::mutate(p_value = dplyr::case_when(
       Pvalue > 0.05 ~ "",
       Pvalue > 0.01 & Pvalue < 0.05 ~ "*",
       Pvalue < 0.01 & Pvalue > 0.001 ~ "**",
