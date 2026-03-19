@@ -25,7 +25,7 @@ Version: 1.4.30
 
 
   Type citation('ggNetView') for how to cite this package.
-  Run browseVignettes('ggNetView') for documentation.
+  See the pkgdown site for documentation.
                         "
   )
 }

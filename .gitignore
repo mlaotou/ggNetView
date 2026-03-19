@@ -5,5 +5,12 @@
 .httr-oauth
 .DS_Store
 .quarto
+src/*.o
+src/*.so
+*.tar.gz
+*.Rcheck
+..Rcheck
+.RDataTmp
+.RDataTmp1
 # docs
 docs

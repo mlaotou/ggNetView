@@ -146,17 +146,7 @@ build_graph_from_mat <- function(mat,
     tibble::column_to_rownames(var = "ID")
 
   # data transfrom
-  mat <- switch (
-    transfrom.method,
-    none = mat,
-    scale = t(scale(t(mat), scale = T, center = T)),
-    center = t(scale(t(mat), scale = F, center = T)),
-    log2 = log2(mat + 1),
-    log10 = log10(mat + 1),
-    ln = log(mat + 1),
-    rrarefy = t(vegan::rrarefy(t(mat), min(colSums(mat)))),
-    rrarefy_relative = t(vegan::rrarefy(t(mat), min(colSums(mat)))) / colSums(t(vegan::rrarefy(t(mat), min(colSums(mat)))))
-  )
+  mat <- apply_transform_method(mat, transfrom.method)
 
   # calculate correlation
 
