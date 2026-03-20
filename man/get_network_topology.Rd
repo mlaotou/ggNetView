@@ -5,8 +5,10 @@
 \title{Create network topology}
 \usage{
 get_network_topology(
-  graph_obj,
+  graph_obj = NULL,
+  graph_obj_list = NULL,
   mat = NULL,
+  graph_mat_list = NULL,
   transfrom.method = c("none", "scale", "center", "log2", "log10", "ln", "rrarefy",
     "rrarefy_relative"),
   r.threshold = 0.7,
@@ -23,8 +25,15 @@ get_network_topology(
 \item{graph_obj}{An graph object from build_graph_from_mat or build_graph_from_df.
 The network object to be visualized.}
 
+\item{graph_obj_list}{A list of graph objects. Optional alternative to
+\code{graph_obj}. Each element is analyzed separately.}
+
 \item{mat}{Numeric Matrix (default = NULL)
 The matrix to build graph_obj}
+
+\item{graph_mat_list}{A list of matrices corresponding to
+\code{graph_obj_list}. Optional. Each element is paired with the graph
+object at the same position and used for topology analysis separately.}
 
 \item{transfrom.method}{Character.
 Data transformation methods applied before correlation analysis.
@@ -66,7 +75,9 @@ Default 20.}
 Number of bootstrap iterations for stability analysis}
 }
 \value{
-data frame of network topolog
+A list containing topology output and robustness output for a single
+  network. When \code{graph_obj_list} is provided, returns a named list of
+  such results.
 }
 \description{
 Generates a data frame containing network topology information from either a

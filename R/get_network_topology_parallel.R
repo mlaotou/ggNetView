@@ -5,8 +5,13 @@
 #'
 #' @param graph_obj An graph object from build_graph_from_mat or build_graph_from_df.
 #'   The network object to be visualized.
+#' @param graph_obj_list A list of graph objects. Optional alternative to
+#'   \code{graph_obj}. Each element is analyzed separately.
 #' @param mat Numeric Matrix (default = NULL)
 #' The matrix to build graph_obj
+#' @param graph_mat_list A list of matrices corresponding to
+#'   \code{graph_obj_list}. Optional. Each element is paired with the graph
+#'   object at the same position and used for topology analysis separately.
 #' @param transfrom.method Character.
 #'Data transformation methods applied before correlation analysis.
 #' Options include:
@@ -45,12 +50,16 @@
 #' @param seed Integer (default = 1115).
 #' Random seed for reproducibility.
 #'
-#' @returns data frame of network topolog
+#' @returns A list containing topology output and robustness output for a single
+#'   network. When \code{graph_obj_list} is provided, returns a named list of
+#'   such results.
 #' @export
 #'
 #' @examples NULL
-get_network_topology_parallel <- function(graph_obj,
+get_network_topology_parallel <- function(graph_obj = NULL,
+                                          graph_obj_list = NULL,
                                           mat = NULL,
+                                          graph_mat_list = NULL,
                                           transfrom.method = c("none", "scale", "center", "log2", "log10", "ln", "rrarefy", "rrarefy_relative"),
                                           r.threshold = 0.7,
                                           p.threshold = 0.05,
@@ -65,6 +74,61 @@ get_network_topology_parallel <- function(graph_obj,
                                           seed = 1115
                                           ){
 
+  if (!is.null(graph_obj_list) || !is.null(graph_mat_list)) {
+    if (!is.null(graph_obj)) {
+      stop("Please provide either `graph_obj` or `graph_obj_list`, not both.", call. = FALSE)
+    }
+    if (is.null(graph_obj_list)) {
+      stop("`graph_obj_list` must be provided when using list input mode.", call. = FALSE)
+    }
+    if (!is.list(graph_obj_list)) {
+      stop("`graph_obj_list` must be a list.", call. = FALSE)
+    }
+    if (length(graph_obj_list) == 0) {
+      stop("`graph_obj_list` must contain at least one graph object.", call. = FALSE)
+    }
+    if (!is.null(graph_mat_list)) {
+      if (!is.list(graph_mat_list)) {
+        stop("`graph_mat_list` must be a list.", call. = FALSE)
+      }
+      if (length(graph_mat_list) != length(graph_obj_list)) {
+        stop("`graph_obj_list` and `graph_mat_list` must have the same length.", call. = FALSE)
+      }
+    }
+
+    result_names <- names(graph_obj_list)
+    if (is.null(result_names) && !is.null(graph_mat_list)) {
+      result_names <- names(graph_mat_list)
+    }
+    if (is.null(result_names)) {
+      result_names <- paste0("network_", seq_along(graph_obj_list))
+    }
+
+    out <- lapply(seq_along(graph_obj_list), function(i) {
+      get_network_topology_parallel(
+        graph_obj = graph_obj_list[[i]],
+        mat = if (is.null(graph_mat_list)) NULL else graph_mat_list[[i]],
+        transfrom.method = transfrom.method,
+        r.threshold = r.threshold,
+        p.threshold = p.threshold,
+        method = method,
+        cor.method = cor.method,
+        proc = proc,
+        SpiecEasi.method = SpiecEasi.method,
+        sparcc_R = sparcc_R,
+        bootstrap = bootstrap,
+        parallel = parallel,
+        n_workers = n_workers,
+        seed = seed + i - 1L
+      )
+    })
+    names(out) <- result_names
+    return(out)
+  }
+
+  if (is.null(graph_obj)) {
+    stop("`graph_obj` must be provided unless `graph_obj_list` is used.", call. = FALSE)
+  }
 
   set.seed(seed)
 
