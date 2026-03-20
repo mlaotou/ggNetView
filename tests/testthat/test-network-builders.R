@@ -44,6 +44,48 @@ test_that("build_graph_from_mat rejects duplicated sample names", {
   )
 })
 
+test_that("build_graph_from_mat supports Hmisc correlation analysis", {
+  mat <- rbind(
+    A = c(1, 2, 3, 4, 5, 6, 7, 8),
+    B = c(2, 3, 4, 5, 6, 7, 8, 9),
+    C = c(8, 7, 6, 5, 4, 3, 2, 1),
+    D = c(3, 4, 5, 6, 7, 8, 9, 10)
+  )
+
+  colnames(mat) <- paste0("S", seq_len(ncol(mat)))
+
+  graph_obj <- build_graph_from_mat(
+    mat = mat,
+    method = "Hmisc",
+    cor.method = "spearman",
+    r.threshold = 0.5,
+    p.threshold = 1,
+    top_modules = 4,
+    seed = 1
+  )
+
+  expect_s3_class(graph_obj, "tbl_graph")
+  expect_gt(igraph::gorder(graph_obj), 0)
+  expect_gt(igraph::gsize(graph_obj), 0)
+
+  edge_df <- graph_obj %>%
+    tidygraph::activate(edges) %>%
+    tidygraph::as_tibble()
+
+  expect_true(all(edge_df$weight > 0))
+})
+
+test_that("build_graph_from_mat rejects kendall for Hmisc", {
+  mat <- matrix(seq_len(24), nrow = 4)
+  rownames(mat) <- paste0("A", seq_len(nrow(mat)))
+  colnames(mat) <- paste0("S", seq_len(ncol(mat)))
+
+  expect_error(
+    build_graph_from_mat(mat, method = "Hmisc", cor.method = "kendall"),
+    "only supports"
+  )
+})
+
 test_that("sparcc_matrix_rcpp returns a symmetric matrix with dimnames", {
   set.seed(1)
   data <- matrix(sample(1:10, 24, replace = TRUE), nrow = 6)

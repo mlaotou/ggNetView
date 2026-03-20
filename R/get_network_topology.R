@@ -31,9 +31,8 @@
 #' @param proc Character.
 #' Correlation p-value adjustment methods.
 #' Options include:
-#' "Bonferroni", "Holm", "Hochberg", "
-#' SidakSS", "SidakSD","BH",
-#' "BY", "ABH", and "TSBH".
+#' "holm", "hochberg", "hommel", "bonferroni",
+#' "BH", "BY", "fdr", and "none".
 #' @param sparcc_R Integer.
 #' Number of bootstrap/permutation replicates for SparCC p-values (when \code{method = "SPARCC"}).
 #' Default 20.
@@ -51,7 +50,7 @@ get_network_topology <- function(graph_obj,
                                  p.threshold = 0.05,
                                  method = c("WGCNA", "SpiecEasi", "SPARCC", "cor"),
                                  cor.method = c("pearson", "kendall", "spearman"),
-                                 proc = c("Bonferroni", "Holm", "Hochberg", "SidakSS", "SidakSD","BH", "BY","ABH","TSBH"),
+                                 proc = c("holm", "hochberg", "hommel", "bonferroni", "BH", "BY", "fdr", "none"),
                                  SpiecEasi.method = c("mb", "glasso"),
                                  sparcc_R = 20,
                                  bootstrap = 100){
@@ -69,6 +68,15 @@ get_network_topology <- function(graph_obj,
   sparcc_R <- as.integer(sparcc_R)[1L]
   if (is.na(sparcc_R) || sparcc_R < 1L) {
     stop("`sparcc_R` must be a positive integer.", call. = FALSE)
+  }
+
+  adjust_p_matrix <- function(p_mat, proc_method) {
+    matrix(
+      stats::p.adjust(unlist(p_mat), method = proc_method),
+      nrow = nrow(p_mat),
+      ncol = ncol(p_mat),
+      dimnames = dimnames(p_mat)
+    )
   }
 
   if (is.null(mat)) {
@@ -107,9 +115,7 @@ get_network_topology <- function(graph_obj,
 
       # WGCNA for correlation
       occor <- WGCNA::corAndPvalue(t(mat), method = cor.method)
-      mtadj <- multtest::mt.rawp2adjp(unlist(occor$p),proc=proc)
-      adpcor <- mtadj$adjp[order(mtadj$index),2]
-      occor.p <- matrix(adpcor, dim(t(mat))[2])
+      occor.p <- adjust_p_matrix(occor$p, proc)
 
       # R and pvalue
       occor.r <- occor$cor
@@ -156,9 +162,7 @@ get_network_topology <- function(graph_obj,
       sp.ra <- colMeans(t(mat))
       # Cor for correlation
       occor <- psych::corr.test(t(mat), method = cor.method)
-      mtadj <- multtest::mt.rawp2adjp(unlist(occor$p),proc=proc)
-      adpcor <- mtadj$adjp[order(mtadj$index),2]
-      occor.p <- matrix(adpcor, dim(t(mat))[2])
+      occor.p <- adjust_p_matrix(occor$p, proc)
 
       # R and pvalue
       occor.r <- occor$r

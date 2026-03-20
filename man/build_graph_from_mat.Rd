@@ -10,10 +10,9 @@ build_graph_from_mat(
     "rrarefy_relative"),
   r.threshold = 0.7,
   p.threshold = 0.05,
-  method = c("WGCNA", "SpiecEasi", "SPARCC", "cor"),
+  method = c("WGCNA", "SpiecEasi", "SPARCC", "cor", "Hmisc"),
   cor.method = c("pearson", "kendall", "spearman"),
-  proc = c("Bonferroni", "Holm", "Hochberg", "SidakSS", "SidakSD", "BH", "BY", "ABH",
-    "TSBH"),
+  proc = c("holm", "hochberg", "hommel", "bonferroni", "BH", "BY", "fdr", "none"),
   module.method = c("Fast_greedy", "Walktrap", "Edge_betweenness", "Spinglass"),
   SpiecEasi.method = c("mb", "glasso"),
   sparcc_R = 20,
@@ -46,7 +45,7 @@ Significance threshold for correlations; edges are kept only if p < p.threshold.
 
 \item{method}{Character.
 Relationship analysis methods.
-Options include: "WGCNA", "SpiecEasi", "SPARCC" and "cor".}
+Options include: "WGCNA", "SpiecEasi", "SPARCC", "cor", and "Hmisc".}
 
 \item{cor.method}{Character.
 Correlation analysis method.
@@ -55,9 +54,8 @@ Options include "pearson", "kendall", and "spearman".}
 \item{proc}{Character.
 Correlation p-value adjustment methods.
 Options include:
-"Bonferroni", "Holm", "Hochberg", "
-SidakSS", "SidakSD","BH",
-"BY", "ABH", and "TSBH".}
+"holm", "hochberg", "hommel", "bonferroni",
+"BH", "BY", "fdr", and "none".}
 
 \item{module.method}{Character.
 Network community detection (module identification) method.

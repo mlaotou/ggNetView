@@ -19,16 +19,15 @@
 #' Significance threshold for correlations; edges are kept only if p < p.threshold.
 #' @param method Character.
 #' Relationship analysis methods.
-#' Options include: "WGCNA", "SpiecEasi", "SPARCC" and "cor".
+#' Options include: "WGCNA", "SpiecEasi", "SPARCC", "cor", and "Hmisc".
 #' @param cor.method Character.
 #' Correlation analysis method.
 #' Options include "pearson", "kendall", and "spearman".
 #' @param proc Character.
 #' Correlation p-value adjustment methods.
 #' Options include:
-#' "Bonferroni", "Holm", "Hochberg", "
-#' SidakSS", "SidakSD","BH",
-#' "BY", "ABH", and "TSBH".
+#' "holm", "hochberg", "hommel", "bonferroni",
+#' "BH", "BY", "fdr", and "none".
 #' @param module.method Character.
 #' Network community detection (module identification) method.
 #' Options include "Fast_greedy", "Walktrap", "Edge_betweenness", and "Spinglass".
@@ -55,9 +54,9 @@ build_graph_from_mat <- function(mat,
                                  transfrom.method = c("none", "scale", "center", "log2", "log10", "ln", "rrarefy", "rrarefy_relative"),
                                  r.threshold = 0.7,
                                  p.threshold = 0.05,
-                                 method = c("WGCNA", "SpiecEasi", "SPARCC", "cor"),
+                                 method = c("WGCNA", "SpiecEasi", "SPARCC", "cor", "Hmisc"),
                                  cor.method = c("pearson", "kendall", "spearman"),
-                                 proc = c("Bonferroni", "Holm", "Hochberg", "SidakSS", "SidakSD","BH", "BY","ABH","TSBH"),
+                                 proc = c("holm", "hochberg", "hommel", "bonferroni", "BH", "BY", "fdr", "none"),
                                  module.method = c("Fast_greedy", "Walktrap", "Edge_betweenness", "Spinglass"),
                                  SpiecEasi.method = c("mb", "glasso"),
                                  sparcc_R = 20,
@@ -87,21 +86,6 @@ build_graph_from_mat <- function(mat,
   if (anyDuplicated(colnames(mat))) {
     dup <- unique(colnames(mat)[duplicated(colnames(mat))])
     stop(sprintf("`mat` must contain only colname. The duplicated colname: %s", paste(dup, collapse = ", ")), call. = FALSE)
-  }
-
-
-
-  allowed_proc <- c("Bonferroni","Holm","Hochberg","SidakSS","SidakSD","BH","BY","ABH","TSBH")
-  if (is.null(proc) || length(proc) < 1L) {
-    stop("`proc` provides at least one multi-correlation methods.", call. = FALSE)
-  }
-
-  if (!all(proc %in% allowed_proc)) {
-    bad <- proc[!proc %in% allowed_proc]
-    stop(sprintf("`proc` contains unsupported method: %s, Supported: %s",
-                 paste(bad, collapse = ", "),
-                 paste(allowed_proc, collapse = ", ")),
-         call. = FALSE)
   }
 
   if (length(top_modules) != 1L || !is.numeric(top_modules) || top_modules < 1) {
@@ -149,14 +133,20 @@ build_graph_from_mat <- function(mat,
   mat <- apply_transform_method(mat, transfrom.method)
 
   # calculate correlation
+  adjust_p_matrix <- function(p_mat, proc_method) {
+    matrix(
+      stats::p.adjust(unlist(p_mat), method = proc_method),
+      nrow = nrow(p_mat),
+      ncol = ncol(p_mat),
+      dimnames = dimnames(p_mat)
+    )
+  }
 
   # WGCNA
   if (method == "WGCNA") {
     # WGCNA for correlation
     occor <- WGCNA::corAndPvalue(t(mat), method = cor.method)
-    mtadj <- multtest::mt.rawp2adjp(unlist(occor$p),proc=proc)
-    adpcor <- mtadj$adjp[order(mtadj$index),2]
-    occor.p <- matrix(adpcor, dim(t(mat))[2])
+    occor.p <- adjust_p_matrix(occor$p, proc)
 
     # R and pvalue
     occor.r <- occor$cor
@@ -199,9 +189,7 @@ build_graph_from_mat <- function(mat,
   if (method == "cor") {
     # WGCNA for correlation
     occor <- psych::corr.test(t(mat), method = cor.method)
-    mtadj <- multtest::mt.rawp2adjp(unlist(occor$p),proc=proc)
-    adpcor <- mtadj$adjp[order(mtadj$index),2]
-    occor.p <- matrix(adpcor, dim(t(mat))[2])
+    occor.p <- adjust_p_matrix(occor$p, proc)
 
     # R and pvalue
     occor.r <- occor$r
@@ -211,6 +199,35 @@ build_graph_from_mat <- function(mat,
 
     # create igraph object
     g <- igraph::graph_from_adjacency_matrix(occor.r, weighted = TRUE, mode = 'undirected')
+  }
+
+  # Hmisc::rcorr
+  if (method == "Hmisc") {
+    if (identical(cor.method, "kendall")) {
+      stop("`method = 'Hmisc'` uses `Hmisc::rcorr()` and only supports `cor.method = 'pearson'` or `cor.method = 'spearman'`.", call. = FALSE)
+    }
+
+    rcorr_type <- switch(
+      cor.method,
+      pearson = "pearson",
+      spearman = "spearman"
+    )
+
+    occor <- Hmisc::rcorr(t(mat), type = rcorr_type)
+    occor.r <- occor$r
+    occor.r[abs(occor.r) < r.threshold] <- 0
+
+    occor.p <- adjust_p_matrix(occor$P, proc)
+    occor.p[occor.p >= p.threshold] <- -1
+    occor.p[occor.p < p.threshold & occor.p >= 0] <- 1
+    occor.p[occor.p == -1] <- 0
+    occor.p[is.na(occor.p)] <- 0
+
+    z <- occor.r * occor.p
+    z[is.na(z)] <- 0
+    diag(z) <- 0
+
+    g <- igraph::graph_from_adjacency_matrix(z, weighted = TRUE, mode = "undirected")
   }
 
   # remove self correlation
