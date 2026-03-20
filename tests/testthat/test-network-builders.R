@@ -44,6 +44,25 @@ test_that("build_graph_from_mat rejects duplicated sample names", {
   )
 })
 
+test_that("build_graph_from_igraph reuses existing module information", {
+  g <- igraph::make_ring(6)
+  igraph::V(g)$name <- paste0("N", seq_len(igraph::gorder(g)))
+  igraph::V(g)$Modularity <- c("M1", "M1", "M1", "M2", "M2", "M2")
+
+  graph_obj <- build_graph_from_igraph(
+    igraph = g,
+    top_modules = 3,
+    seed = 1
+  )
+
+  node_df <- graph_obj %>%
+    tidygraph::activate(nodes) %>%
+    tidygraph::as_tibble()
+
+  expect_true(all(as.character(node_df$Modularity) %in% c("M1", "M2")))
+  expect_setequal(unique(as.character(node_df$Modularity)), c("M1", "M2"))
+})
+
 test_that("build_graph_from_mat supports Hmisc correlation analysis", {
   mat <- rbind(
     A = c(1, 2, 3, 4, 5, 6, 7, 8),
