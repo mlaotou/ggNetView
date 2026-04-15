@@ -1,15 +1,19 @@
 Type: Package
 Package: ggNetView
-Title: An R Package for Reproducible and Deterministic Network Analysis and Visualization
-Version: 1.4.31
-Authors@R: 
+Title: Reproducible and Deterministic Network Analysis and Visualization
+Version: 0.1.0
+Authors@R: c(
     person("Yue", "Liu", , "yueliu@iae.ac.cn", role = c("aut", "cre"),
-           comment = c(ORCID = "0000-0002-6180-8068"))
-Author: Yue Liu [aut, cre] (<https://orcid.org/0000-0002-6180-8068>)
-Maintainer: Yue Liu <yueliu@iae.ac.cn>
-Description: ggNetView is an R package for network analysis and visualization.
-     It provides flexible and publication-ready tools for exploring complex biological and ecological networks.
-License: GPL (>= 3) + file LICENSE
+           comment = c(ORCID = "0000-0002-6180-8068")),
+    person("Chao", "Wang", , "cwang@iae.ac.cn", role = "aut"))
+Description: Provides a unified, reproducible framework for analyzing and
+    visualizing complex biological, ecological, and microbial association
+    networks. Includes tools for building correlation and co-occurrence
+    networks (e.g., 'WGCNA', 'SpiecEasi', 'SparCC'), computing topological
+    metrics, performing module-level analyses, and rendering deterministic
+    layouts based on 'ggraph' and 'ggplot2'. The package emphasizes
+    reproducibility, modularity, and publication-quality figures.
+License: GPL (>= 3)
 Depends: 
     R (>= 4.2)
 LinkingTo: 
@@ -18,6 +22,7 @@ LinkingTo:
 Imports:
     boot,
     dplyr,
+    FNN,
     future,
     future.apply,
     ggforce,
@@ -25,13 +30,14 @@ Imports:
     ggplot2,
     ggraph,
     ggrepel,
-    grDevices,
     Hmisc,
     huge,
     igraph,
     magrittr,
     MASS,
     Matrix,
+    methods,
+    patchwork,
     progressr,
     psych,
     purrr,
@@ -39,9 +45,12 @@ Imports:
     Rcpp,
     readr,
     scales,
+    scatterpie,
     stats,
+    stringr,
     tibble,
     tidygraph,
+    tidyr,
     utils,
     vegan,
     VGAM,

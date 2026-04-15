@@ -106,18 +106,18 @@ build_graph_from_multi_mat <- function(mat1,
     directed = directed
   )
 
-  # 删除自相关
+
   g <- igraph::simplify(g)
 
-  # 删除孤立节点
+
   g <- igraph::delete_vertices(g, which(igraph::degree(g) == 0))
 
-  ## 设置网络的weight，为计算模块性做准备
+
   igraph::E(g)$correlation <- igraph::E(g)$weight
   igraph::E(g)$weight <- abs(igraph::E(g)$weight)
   igraph::E(g)$corr_direction <- ifelse(igraph::E(g)$correlation > 0, "Positive", "Negative")
 
-  # 模块化
+
   module.method <- match.arg(module.method)
   membership_vec <- switch(
     module.method,
@@ -144,7 +144,7 @@ build_graph_from_multi_mat <- function(mat1,
 
   igraph::V(g)$modularity2 <- ifelse(igraph::V(g)$modularity2 %in% modularity_top_15, igraph::V(g)$modularity2, "Others")
 
-  # 构建ggraph对象
+
   graph_obj <- tidygraph::as_tbl_graph(g) %>%
     tidygraph::mutate(modularity = factor(modularity),
                       modularity2 = factor(modularity2),

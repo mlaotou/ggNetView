@@ -439,8 +439,6 @@ Line width of the group outer circle.}
 
 \item{seed}{Integer (default = 1115).
 Random seed for reproducibility.}
-
-\item{pointstroke}{Integer  (default = 0.3).}
 }
 \value{
 A list containing plot, module-overlap info, link info, group graphs,

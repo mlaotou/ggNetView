@@ -15,6 +15,8 @@
 #' @param method Character. Passed to \code{get_network_topology()}.
 #' @param cor.method Character. Passed to \code{get_network_topology()}.
 #' @param proc Character. Passed to \code{get_network_topology()}.
+#' @param SpiecEasi.method Character. Passed to \code{get_network_topology()};
+#'   one of \code{"mb"} or \code{"glasso"} for SpiecEasi inverse-covariance.
 #' @param sparcc_R Integer. Passed to \code{get_network_topology()} for SparCC p-values. Default 20.
 #' @param bootstrap Numeric (default = 100). Passed to
 #'   \code{get_network_topology()}.

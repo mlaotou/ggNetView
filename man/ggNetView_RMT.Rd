@@ -28,8 +28,9 @@ ggNetView_RMT(
 }
 \arguments{
 \item{mat}{Numeric matrix.
-A numeric matrix with samples in colums and variables in rows
-#' @param transfrom.method Character.
+A numeric matrix with samples in colums and variables in rows}
+
+\item{transfrom.method}{Character.
 Data transformation methods applied before correlation analysis.
 Options include:
 "none" (raw data),

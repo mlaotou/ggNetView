@@ -38,6 +38,9 @@ columns are samples.}
 
 \item{proc}{Character. Passed to \code{get_network_topology()}.}
 
+\item{SpiecEasi.method}{Character. Passed to \code{get_network_topology()};
+one of \code{"mb"} or \code{"glasso"} for SpiecEasi inverse-covariance.}
+
 \item{sparcc_R}{Integer. Passed to \code{get_network_topology()} for SparCC p-values. Default 20.}
 
 \item{bootstrap}{Numeric (default = 100). Passed to

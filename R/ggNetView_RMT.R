@@ -2,7 +2,7 @@
 #'
 #' @param mat   Numeric matrix.
 #' A numeric matrix with samples in colums and variables in rows
-#' #' @param transfrom.method Character.
+#' @param transfrom.method Character.
 #'Data transformation methods applied before correlation analysis.
 #' Options include:
 #' "none" (raw data),

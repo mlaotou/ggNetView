@@ -1,4 +1,4 @@
-#' Visualize multi-orientation environmental–species correlation heatmaps2
+#' Visualize multi-orientation environmental-species correlation heatmaps2
 #'
 #' @param Environment character or data.frame
 #' File path or data frame of environment data.

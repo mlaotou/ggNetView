@@ -1,4 +1,4 @@
-#' Visualize multi-orientation environmental–species correlation heatmaps
+#' Visualize multi-orientation environmental-species correlation heatmaps
 #'
 #' @param env Data Frame
 #' A data frame or matrix containing environmental variables.
@@ -41,14 +41,14 @@
 #' @param drop_nonsig Logical
 #' if `TRUE`, non-significant correlations are dropped from the final visualization.
 #' @param comparisons Logical (default = TRUE).
-#' Whether to perform species–environment correlation or Mantel analysis.
-#' If \code{FALSE}, no spec–env links are computed or drawn.
+#' Whether to perform species-environment correlation or Mantel analysis.
+#' If \code{FALSE}, no spec-env links are computed or drawn.
 #' @param comparisons_groups List or NULL (default = NULL).
 #' When \code{comparisons = TRUE}, constrains which (env_block, spec_block) pairs are analyzed.
 #' Each element must be a length-2 character vector: \code{c(env_block_name, spec_block_name)},
 #' e.g. \code{list(c("Env01", "Spec01"), c("Env02", "Spec01"))}.
 #' Block names must match \code{names(env_select)} and \code{names(spec_select)}.
-#' If \code{NULL}, all env–spec block pairs are analyzed (default).
+#' If \code{NULL}, all env-spec block pairs are analyzed (default).
 #' @param shape Intrger
 #' Integer or numeric specifying the shape of species nodes in the plot (passed to `geom_point()`).
 #' @param distance Numeric
@@ -83,20 +83,20 @@
 #' - If a list of length equal to the number of quadrants, each element should be
 #'   either `c(low, high)` or `list(low=..., high=...)` for that quadrant (in order).
 #' - example `HeatmapColorBar = list(
-#'  c("#2166ac", "#b2182b"),  # 第1个象限 low/high
-#'  c("#1b7837", "#762a83"),  # 第2个
-#'  c("#4393c3", "#d6604d"),  # 第3个
-#'  c("#92c5de", "#f4a582")   # 第4个
+
+
+
+
 #'  )`
 #' @param HeatmapLabelOrient Numeric (default = 0)
 #' Rotation angle (in degrees) for heatmap axis labels (ID/Type).
 #' Use this to avoid overlap of the top/bottom labels; e.g. 45 or 90.
 #'
 #' @param SigLineWidth Numeric vector of length 2 (default = c(0.5, 2))
-#' Controls the minimum and maximum line width for species–environment links,
+#' Controls the minimum and maximum line width for species-environment links,
 #' scaled by significance (p-value). Smaller p leads to thicker lines.
 #' @param SigLineColor Character vector (length 2, default = c("#fdbb84", "#d7301f"))
-#' Colors used for the species–environment link color gradient, corresponding to
+#' Colors used for the species-environment link color gradient, corresponding to
 #' low and high correlation values respectively.
 #' @param HeatmapPointSize Numeric (default = 5)
 #' Point size for the heatmap diagonal nodes.
@@ -122,7 +122,7 @@
 #' @returns A list of length 3:
 #' - [[1]]: ggplot object with straight link segments.
 #' - [[2]]: ggplot object with curved link segments.
-#' - [[3]]: data.frame of full species–environment correlation statistics
+#' - [[3]]: data.frame of full species-environment correlation statistics
 #'          (unfiltered, not affected by `drop_nonsig`), with columns
 #'          \code{ID}, \code{Type}, \code{Correlation}, \code{Pvalue}, \code{spec_block},
 #'          \code{env_block}, and \code{method} (e.g. \code{"correlation"} or \code{"mantel"}).
@@ -262,14 +262,14 @@ gglink_heatmaps <- function(
     stop("`SigLineAlpha` must be a single numeric value between 0 and 1.")
   }
   # if env_select = NULL & spec_select = NULL
-  # 说明是最简单的方式 1个点，1个矩阵
 
-  # 如果env_select 含有多个，则出现不同位置的热图
 
-  # 如果 spec_select 出现多个，则出现不同位置的点，这里建议使用环状布局
+
+
+
 
   ####----split data----####
-  # 1 个点， 然后4个环境数据
+
   # spec_select = list(Spec01 = 1:15)
   #
   # # different env
@@ -289,7 +289,7 @@ gglink_heatmaps <- function(
   env_list <- purrr::map(env_select, ~ env[, .x, drop = FALSE])
   spec_list <- purrr::map(spec_select, ~ spec[, .x, drop = FALSE])
 
-  # 这里需要统计一下
+
   k_vec  <- purrr::map_int(env_list, function(x) ncol(x))
   k_ref  <- max(k_vec)
 
@@ -305,23 +305,23 @@ gglink_heatmaps <- function(
 
   length_dist <- max(k_vec)
 
-  # 真实不够的，我们需要使用gap去补充
+
   k_gap <- length_dist - k_vec
 
-  # 然后分别对env_list的元素，自身内部做相关性分析
+
   # purrr::map(env_list, function(x){
   #   cor_out_self <- psych::corr.test(x)
   # })
 
-  ####----环境因子自身的相关性----####
+
   env_cor_self_list <- list()
 
-  # 分别进行分析
+
   for (i in seq_along(orientation)) {
     # top_right
     if (orientation[i] == "top_right") {
-      # 这个是右上角的
-      # 单独一个做相关性
+
+
       cor_out_self <- psych::corr.test(env_list[[i]], use = cor.use, method = cor.method)
 
       # correlation
@@ -371,10 +371,10 @@ gglink_heatmaps <- function(
 
     # bottom_right
     if (orientation[i] == "bottom_right") {
-      # 单独一个做相关性
+
       cor_out_self <- psych::corr.test(env_list[[i]], use = cor.use, method = cor.method)
 
-      # 右下角的
+
       # correlation
       cor_self_r <- cor_out_self$r %>% as.data.frame()
       cor_self_r[upper.tri(cor_self_r)] <- NA
@@ -421,7 +421,7 @@ gglink_heatmaps <- function(
 
     # top_left
     if (orientation[i] == "top_left") {
-      # 单独一个做相关性
+
       cor_out_self <- psych::corr.test(env_list[[i]], use = cor.use, method = cor.method)
 
       # correlation
@@ -472,7 +472,7 @@ gglink_heatmaps <- function(
 
     # bottom_left
     if (orientation[i] == "bottom_left") {
-      # 单独一个做相关性
+
       cor_out_self <- psych::corr.test(env_list[[i]], use = cor.use, method = cor.method)
 
       # correlation
@@ -532,7 +532,7 @@ gglink_heatmaps <- function(
   names(k_gap) <- orientation
 
 
-  ####----核心物种与环境因子之间的关系----####
+
 
   spec_block_names <- names(spec_list)
   if (is.null(spec_block_names)) spec_block_names <- paste0("Spec", seq_along(spec_list))
@@ -910,7 +910,7 @@ gglink_heatmaps <- function(
   )
 
   # get targets informations
-  # 针对每一个 orientation 设置 x_to y_to
+
   .make_targets <- function(df, ori, k_gap, length_dist, side_anchor, heatmap_step){
     df_diag <- df %>%
       dplyr::mutate(
@@ -964,7 +964,7 @@ gglink_heatmaps <- function(
     x_anchor <- if (ori %in% c("top_right", "bottom_right")) side_anchor[["right"]] else side_anchor[["left"]]
     y_anchor <- if (ori %in% c("top_right", "top_left")) side_anchor[["top"]] else side_anchor[["bottom"]]
 
-    # tile 坐标（四象限通用规则）
+
     x_tile <- if (ori %in% c("top_right","bottom_right")) {
       x_anchor + heatmap_step * (k_gap[[ori]] + df$ID2 - 1)
     } else {
@@ -978,7 +978,7 @@ gglink_heatmaps <- function(
 
     tile <- df %>% dplyr::mutate(x_tile = x_tile, y_tile = y_tile, orientation = ori)
 
-    # 对角点（你原来用于标注主对角）
+
     diag_df <- df %>% dplyr::filter(ID == Type)
     diag_xy <- .diag_xy(
       id_idx = diag_df$ID2,
@@ -993,9 +993,9 @@ gglink_heatmaps <- function(
     y_diag <- diag_xy$y
     diag    <- diag_df %>% dplyr::transmute(ID, x_diag, y_diag, orientation = ori)
 
-    # 轴标签位置
-    # HeatmapLabelOrient == 0: 保持原来的相对位置
-    # HeatmapLabelOrient != 0: 使用全局的顶部/底部边界，再外移 1 个单位，保证上下各象限对齐
+
+
+
     if (HeatmapLabelOrient == 0 || is.null(y_top_all) || is.null(y_bottom_all)) {
       y_id_lab <- if (ori %in% c("top_right","top_left")) {
         y_anchor + heatmap_step * length_dist
@@ -1004,10 +1004,10 @@ gglink_heatmaps <- function(
       }
     } else {
       if (ori %in% c("top_right","top_left")) {
-        # 顶部两个象限：在全局热图最上边界基础上再向上挪动 1 个单位
+
         y_id_lab <- y_top_all + heatmap_step
       } else {
-        # 底部两个象限：在全局热图最下边界基础上再向下挪动 1 个单位
+
         y_id_lab <- y_bottom_all - heatmap_step
       }
     }
@@ -1058,16 +1058,16 @@ gglink_heatmaps <- function(
     id_lab   <- pack$id_lab
     type_lab <- pack$type_lab
 
-    # 根据象限为水平 ID 标签设置对齐方式
+
     ori_lab <- unique(id_lab$orientation)[1]
     hjust_id <- dplyr::case_when(
-      ori_lab %in% c("top_right", "top_left")       ~ 0,  # 左上/右上：左对齐
-      ori_lab %in% c("bottom_right", "bottom_left") ~ 1,  # 左下/右下：右对齐
+      ori_lab %in% c("top_right", "top_left")       ~ 0,
+      ori_lab %in% c("bottom_right", "bottom_left") ~ 1,
       TRUE ~ 0.5
     )
     vjust_id <- dplyr::case_when(
-      ori_lab %in% c("top_right", "top_left")       ~ -0.25, # 左上/右上：向上偏移
-      ori_lab %in% c("bottom_right", "bottom_left") ~  0.25, # 左下/右下：向下偏移
+      ori_lab %in% c("top_right", "top_left")       ~ -0.25,
+      ori_lab %in% c("bottom_right", "bottom_left") ~  0.25,
       TRUE ~ 0.5
     )
 
@@ -1138,7 +1138,7 @@ gglink_heatmaps <- function(
     stop("`heatmap_colorbar` must be NULL, a list(low=..., high=...), or a per-quadrant list.")
   }
 
-  # 先计算所有象限中 tile 的全局顶部/底部边界，便于对齐标签
+
   .compute_y_range <- function(df, ori, k_gap, length_dist, side_anchor, heatmap_step){
     df <- df %>% dplyr::mutate(ID = as.character(ID), Type = as.character(Type))
     y_anchor <- if (ori %in% c("top_right", "top_left")) side_anchor[["top"]] else side_anchor[["bottom"]]
@@ -1169,7 +1169,7 @@ gglink_heatmaps <- function(
     dplyr::pull(.data$ymin) %>%
     min(na.rm = TRUE)
 
-  # 先为每个方位算好偏移后的数据包
+
   packs <- purrr::imap(
     env_cor_self_list[orientation],
     ~ .offset_env(.x, .y, k_gap, length_dist, side_anchor, heatmap_step,
@@ -1178,7 +1178,7 @@ gglink_heatmaps <- function(
                   y_bottom_all = y_bottom_all)
   )
 
-  # 汇总所有象限中热图对角线上的点，用于在连线之后再次绘制，避免被遮挡
+
   diag_all <- purrr::map_dfr(packs, "diag")
 
   p0 <- ggplot2::ggplot()
@@ -1202,7 +1202,7 @@ gglink_heatmaps <- function(
   }
 
   p0
-  # 统一叠加连线 & 中圈节点
+
   p1 <- p0 +
     ggnewscale::new_scale_color() +
     ggplot2::geom_segment(
@@ -1216,7 +1216,7 @@ gglink_heatmaps <- function(
     ggplot2::scale_color_gradient(low = SigLineColor[1], high = SigLineColor[2]) +
     ggplot2::scale_linewidth_continuous(range = SigLineWidth) +
     ggplot2::scale_linetype_identity() +
-    # 再次覆盖绘制热图对角点，保证在线段上方
+
     ggplot2::geom_point(
       data = diag_all,
       ggplot2::aes(x = x_diag, y = y_diag),

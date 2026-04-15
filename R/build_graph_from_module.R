@@ -29,24 +29,24 @@ build_graph_from_module <- function(df,
   # node_annotation = ppi_module$annotation
   # directed = F
 
-  # 构建igraph对象
+
   g <- igraph::graph_from_data_frame(
     d = df,
     vertices = node_annotation,
     directed = directed
   )
 
-  # 删除自相关
+
   g <- igraph::simplify(g)
 
-  # 删除孤立节点
+
   g <- igraph::delete_vertices(g, which(igraph::degree(g)==0))
 
-  ## 设置网络的weight，为计算模块性做准备
+
   igraph::E(g)$correlation <- igraph::E(g)$weight
   igraph::E(g)$weight <- abs(igraph::E(g)$weight)
 
-  # 模块化 是自身提供的
+
 
   # igraph::V(g)$modularity  <- membership_vec
   igraph::V(g)$modularity2 <- as.character(igraph::V(g)$Modularity)
@@ -69,7 +69,7 @@ build_graph_from_module <- function(df,
 
   igraph::V(g)$modularity2 <- ifelse(igraph::V(g)$modularity2 %in% modularity_top_15, igraph::V(g)$modularity2, "Others")
 
-  # 构建ggraph对象
+
   graph_obj <- tidygraph::as_tbl_graph(g) %>%
     tidygraph::mutate(Modularity = factor(Modularity, levels = factor_levels, ordered = T),
                       modularity2 = factor(modularity2, levels = factor_levels, ordered = T),

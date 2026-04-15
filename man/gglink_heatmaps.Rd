@@ -2,7 +2,7 @@
 % Please edit documentation in R/gglink_heatmaps.R
 \name{gglink_heatmaps}
 \alias{gglink_heatmaps}
-\title{Visualize multi-orientation environmental–species correlation heatmaps}
+\title{Visualize multi-orientation environmental-species correlation heatmaps}
 \usage{
 gglink_heatmaps(
   env,
@@ -104,15 +104,15 @@ Alternative hypothesis for Mantel test. One of `"two.sided"`, `"less"`, or `"gre
 if `TRUE`, non-significant correlations are dropped from the final visualization.}
 
 \item{comparisons}{Logical (default = TRUE).
-Whether to perform species–environment correlation or Mantel analysis.
-If \code{FALSE}, no spec–env links are computed or drawn.}
+Whether to perform species-environment correlation or Mantel analysis.
+If \code{FALSE}, no spec-env links are computed or drawn.}
 
 \item{comparisons_groups}{List or NULL (default = NULL).
 When \code{comparisons = TRUE}, constrains which (env_block, spec_block) pairs are analyzed.
 Each element must be a length-2 character vector: \code{c(env_block_name, spec_block_name)},
 e.g. \code{list(c("Env01", "Spec01"), c("Env02", "Spec01"))}.
 Block names must match \code{names(env_select)} and \code{names(spec_select)}.
-If \code{NULL}, all env–spec block pairs are analyzed (default).}
+If \code{NULL}, all env-spec block pairs are analyzed (default).}
 
 \item{shape}{Intrger
 Integer or numeric specifying the shape of species nodes in the plot (passed to `geom_point()`).}
@@ -135,10 +135,6 @@ Controls the colorbar palettes used by each heatmap quadrant.
 - If a list of length equal to the number of quadrants, each element should be
   either `c(low, high)` or `list(low=..., high=...)` for that quadrant (in order).
 - example `HeatmapColorBar = list(
- c("#2166ac", "#b2182b"),  # 第1个象限 low/high
- c("#1b7837", "#762a83"),  # 第2个
- c("#4393c3", "#d6604d"),  # 第3个
- c("#92c5de", "#f4a582")   # 第4个
  )`}
 
 \item{HeatmapLabelOrient}{Numeric (default = 0)
@@ -146,11 +142,11 @@ Rotation angle (in degrees) for heatmap axis labels (ID/Type).
 Use this to avoid overlap of the top/bottom labels; e.g. 45 or 90.}
 
 \item{SigLineWidth}{Numeric vector of length 2 (default = c(0.5, 2))
-Controls the minimum and maximum line width for species–environment links,
+Controls the minimum and maximum line width for species-environment links,
 scaled by significance (p-value). Smaller p leads to thicker lines.}
 
 \item{SigLineColor}{Character vector (length 2, default = c("#fdbb84", "#d7301f"))
-Colors used for the species–environment link color gradient, corresponding to
+Colors used for the species-environment link color gradient, corresponding to
 low and high correlation values respectively.}
 
 \item{HeatmapPointSize}{Numeric (default = 5)
@@ -209,13 +205,13 @@ Number of columns for \code{group_layout = "row"}, \code{"column"}, or \code{"sn
 A list of length 3:
 - [[1]]: ggplot object with straight link segments.
 - [[2]]: ggplot object with curved link segments.
-- [[3]]: data.frame of full species–environment correlation statistics
+- [[3]]: data.frame of full species-environment correlation statistics
          (unfiltered, not affected by `drop_nonsig`), with columns
          \code{ID}, \code{Type}, \code{Correlation}, \code{Pvalue}, \code{spec_block},
          \code{env_block}, and \code{method} (e.g. \code{"correlation"} or \code{"mantel"}).
 }
 \description{
-Visualize multi-orientation environmental–species correlation heatmaps
+Visualize multi-orientation environmental-species correlation heatmaps
 }
 \examples{
 NULL

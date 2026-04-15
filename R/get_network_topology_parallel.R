@@ -38,6 +38,9 @@
 #' Options include:
 #' "holm", "hochberg", "hommel", "bonferroni",
 #' "BH", "BY", "fdr", and "none".
+#' @param SpiecEasi.method Character. Inverse-covariance estimation method
+#'   passed to SpiecEasi when \code{method = "SpiecEasi"}.
+#'   One of \code{"mb"} (Meinshausen-Buehlmann, default) or \code{"glasso"}.
 #' @param sparcc_R Integer.
 #' Number of bootstrap/permutation replicates for SparCC p-values (when \code{method = "SPARCC"}).
 #' Default 20.
@@ -549,7 +552,7 @@ get_network_topology_parallel <- function(graph_obj = NULL,
                                            m = igraph::ecount(ig),
                                            directed = F,
                                            loops = F)
-        # 获取属性
+
         random_topology[[i]] <- .get_topology(ig = random_graph) %>%
           dplyr::mutate(Robustness_weight = NA,
                         Robustness_unweight = NA,
@@ -596,7 +599,7 @@ get_network_topology_parallel <- function(graph_obj = NULL,
                                            directed = F,
                                            loops = F)
 
-        # 获取属性
+
         r_topology <- .get_topology(ig = random_graph) %>%
           dplyr::mutate(Robustness_weight = NA,
                         Robustness_unweight = NA,

@@ -67,6 +67,10 @@ Options include:
 "holm", "hochberg", "hommel", "bonferroni",
 "BH", "BY", "fdr", and "none".}
 
+\item{SpiecEasi.method}{Character. Inverse-covariance estimation method
+passed to SpiecEasi when \code{method = "SpiecEasi"}.
+One of \code{"mb"} (Meinshausen-Buehlmann, default) or \code{"glasso"}.}
+
 \item{sparcc_R}{Integer.
 Number of bootstrap/permutation replicates for SparCC p-values (when \code{method = "SPARCC"}).
 Default 20.}

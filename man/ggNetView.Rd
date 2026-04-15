@@ -100,6 +100,7 @@ Number of nearest neighbors used to build the local adjacency graph.}
 Radial offset applied to the "Others" module to slightly}
 
 \item{layout.module}{Character  (default = "random")
+- random : modules are distributed more randomly and independently.
 - adjacent : modules are positioned close to each other, minimizing inter-module gaps.
 - order : modules are distributed by order, applicable to `Bipartite, Tripartite, Quadripartite, Multipartite, Pentapartite Layout`}
 

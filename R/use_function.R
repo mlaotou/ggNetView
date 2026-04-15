@@ -91,7 +91,7 @@ create_layout2 <- function(graph, stat_out, hub_names = NULL, hub_n = NULL, r = 
     tidygraph::activate(nodes) %>%
     tidygraph::as_tibble()
 
-  # 如果未指定 hub，默认使用所有节点；否则按度数取前 hub_n
+
   if (is.null(hub_names)) {
     if (is.null(hub_n)) {
       hub_names <- nodes$node
@@ -112,20 +112,20 @@ create_layout2 <- function(graph, stat_out, hub_names = NULL, hub_n = NULL, r = 
   # non hub
   non_hub_names <- nodes$node[!nodes$node %in% hub_names]
 
-  # 设置外圈的点
+
   n_points <- length(non_hub_names)
   radius <- r
   center_x <- -12
   center_y <- 4
 
-  # 计算每一个点的角度
+
   angles <- seq(0, 2*pi, length.out = n_points + 1)[-(n_points+1)]
 
-  # 计算坐标
+
   x <- center_x + radius * cos(angles)
   y <- center_y + radius * sin(angles)
 
-  # 创建数据框
+
 
   circle_df <- data.frame(
     id = 1:n_points,
@@ -139,7 +139,7 @@ create_layout2 <- function(graph, stat_out, hub_names = NULL, hub_n = NULL, r = 
     purrr::set_names(c("x", "y"))
 
 
-  # 自定一个布局
+
   layout_manual <- ggraph::create_layout(graph, layout = "circle")
 
   layout_manual_2 <- rbind(layout_manual[1:n_points,] %>%

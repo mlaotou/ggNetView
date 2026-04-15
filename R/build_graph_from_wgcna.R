@@ -24,7 +24,7 @@ build_graph_from_wgcna <- function(wgcna_tom,
 
   set.seed(seed)
 
-  # 构建igraph对象
+
   g <- igraph::graph_from_data_frame(
     d = wgcna_tom,
     vertices = module,
@@ -43,7 +43,7 @@ build_graph_from_wgcna <- function(wgcna_tom,
       ) %>%
       tidygraph::arrange(Modularity, desc(Degree))
   }else{
-    # 构建ggraph对象
+
     graph_obj <- tidygraph::as_tbl_graph(wgcna_tom) %>%
       tidygraph::left_join(module, by = c("name" = "ID")) %>%
       tidygraph::mutate(modularity = factor(Module),

@@ -25,7 +25,7 @@ create_layout_circular_modules_equal_petal_layout <- function(
   module_list <- node_df %>% dplyr::group_split(Modularity, .keep = TRUE)
   n_vec <- purrr::map_int(module_list, nrow)
   n_mod <- length(n_vec)
-  if (n_mod < 1) stop("Circular modules layout 需要至少 1 个模块（来自列 Modularity）。")
+  if (n_mod < 1) stop("Circular modules layout requires at least 1 module (from column `Modularity`).")
 
   angles <- pi / 2 - 2 * pi * (0:(n_mod - 1)) / n_mod
   anchors <- lapply(angles, function(a) c(anchor_dist * cos(a), anchor_dist * sin(a)))

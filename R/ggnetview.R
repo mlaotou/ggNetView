@@ -23,7 +23,7 @@
 #' @param push_others_delta Numeric (default = 0).
 #' Radial offset applied to the "Others" module to slightly
 #' @param layout.module Character  (default = "random")
-#‘ - random : modules are distributed more randomly and independently.
+#' - random : modules are distributed more randomly and independently.
 #' - adjacent : modules are positioned close to each other, minimizing inter-module gaps.
 #' - order : modules are distributed by order, applicable to `Bipartite, Tripartite, Quadripartite, Multipartite, Pentapartite Layout`
 #' @param shape Integer  (default = 21).
@@ -321,7 +321,7 @@ ggNetView <- function(graph_obj,
 
 
   # get ly1_1
-  # 圆形布局 添加模块化 获取模块
+
   if (layout.module == "random") {
     ly1_1 <- module_layout(graph_obj,
                            layout = ly1,
@@ -359,7 +359,7 @@ ggNetView <- function(graph_obj,
       }
 
       err_msg <- conditionMessage(ly_try)
-      is_slot_error <- grepl("连续 slot|consecutive slots", err_msg, ignore.case = TRUE)
+      is_slot_error <- grepl("consecutive slots", err_msg, ignore.case = TRUE)
       if (!is_slot_error || k_nn_try >= k_nn_cap) {
         stop(ly_try)
       }
@@ -403,8 +403,8 @@ ggNetView <- function(graph_obj,
   }
 
   # Normal layout
-  # 只有当我们需要模块的时候，我们才要获取模块的布局
-  # 并且只有模块化之后，我们才有必要去remove无模块的节点
+
+
   if (group.by != "pie") {
 
     # Optional: scale layout to fit in radius (for use with ggnetview_modularity_heatmaps)
@@ -423,7 +423,7 @@ ggNetView <- function(graph_obj,
       ly1_1[["ggplot_data"]] <- get_location(ly1_1[["graph_ly_final"]], ly1_1[["graph_obj"]])
     }
 
-    # 为了变得更加普适性
+
 
     module_number <- ly1_1$graph_ly_final$Modularity %>% as.character() %>% unique() %>% length()
 
@@ -462,6 +462,9 @@ ggNetView <- function(graph_obj,
                                              ly1_1[["graph_obj"]])
     }
 
+    xr <- NULL; yr <- NULL; x_mid <- NULL
+    dx <- NULL; pad <- NULL; lab_df <- NULL
+
     .build_label_location <- function(){
       # compute label location
       xr <<- range(ly1_1[["layout"]]$x)
@@ -479,10 +482,10 @@ ggNetView <- function(graph_obj,
         dplyr::arrange(y, .by_group = TRUE) %>%
         dplyr::mutate(
           y_rank   = dplyr::row_number(),
-          y_target = scales::rescale(y_rank, to = yr),                    # 把 rank 均匀映射到全局 y 范围
+          y_target = scales::rescale(y_rank, to = yr),
           x_anchor = dplyr::if_else(side == "left", xr[1] - dx, xr[2] + dx),
-          nudge_x  = x_anchor - x,                                # 横向把标签推到两侧锚点
-          nudge_y  = y_target - y,                                # 纵向把标签均匀拉开
+          nudge_x  = x_anchor - x,
+          nudge_y  = y_target - y,
           hjust    = dplyr::if_else(side == "left", 1, 0)
         ) %>%
         dplyr::ungroup()
@@ -509,7 +512,7 @@ ggNetView <- function(graph_obj,
     # base plot
     p1_1 <- ggplot2::ggplot()
 
-    # 整个网络最外层圆圈：可选添加
+
     if (isTRUE(add_group_outer) && nrow(ly1_1[["ggplot_data"]][[1]]) > 0) {
       group_circle_df <- ly1_1[["ggplot_data"]][[1]] %>%
         dplyr::mutate(.group_outer = 1L)
@@ -1063,7 +1066,7 @@ ggNetView <- function(graph_obj,
     col_index_end = which(colnames(ly) == ".ggraph.orig_index")
     col_index = colnames(ly)[(col_index_start+1) : (col_index_end -1)]
 
-    # 然后开始可视化
+
     fill_default_pie <- c('#66c2a5','#fc8d62','#a6d854','#e78ac3')
     fill_scale_pie <- if (is.null(fill)) {
       ggplot2::scale_fill_manual(values = fill_default_pie)

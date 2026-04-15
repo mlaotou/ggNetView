@@ -1,6 +1,12 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
+^LICENSE$
 ^LICENSE\.md$
+^cran-comments\.md$
+^README\.html$
+^\.omc$
+^cleanup$
+^ggNetView\.Rcheck$
 ^README\.Rmd$
 ^_pkgdown\.yml$
 ^docs$

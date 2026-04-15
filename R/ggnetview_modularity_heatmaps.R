@@ -174,6 +174,9 @@ get_module_abundance <- function(otu_mat,
 #' @param mantel.method2 Correlation for Mantel test.
 #' @param drop_nonsig Logical. Drop non-significant links from plot.
 #' @param layout Character. Layout for ggNetView (e.g. \code{"gephi"}, \code{"square"}).
+#' @param layout.module Character. Module ordering strategy passed through to
+#'   the underlying ggNetView call. One of \code{"random"} (default),
+#'   \code{"adjacent"} or \code{"order"}.
 #' @param orientation Character vector. Heatmap quadrants:
 #'   \code{"top_right"}, \code{"bottom_right"}, \code{"top_left"}, \code{"bottom_left"}.
 #' @param distance Numeric. Gap between the scaled network boundary and the
@@ -181,12 +184,29 @@ get_module_abundance <- function(otu_mat,
 #' @param r Numeric. Effective radius for scaling the central network.
 #' @param HeatmapScale Numeric (default = 1). Global scale factor for the overall
 #'   heatmap size. Values > 1 enlarge the whole heatmap layout.
-#' @param SigLineAlpha Numeric (default = 0.5). Transparency for module–heatmap
+#' @param HeatmapLabelSize Numeric (default = 5). Text size for the heatmap
+#'   row/column labels.
+#' @param HeatmapSigSize Numeric (default = 5). Text size for the significance
+#'   marks rendered on the heatmap tiles.
+#' @param HeatmapColorBar A list of length-2 character vectors giving
+#'   (low, high) hex colours, one per heatmap quadrant. \code{NULL} (default)
+#'   uses the package colour palette.
+#' @param HeatmapLabelOrient Numeric (default = 0). Rotation in degrees applied
+#'   to the heatmap labels.
+#' @param HeatmapPointSize Numeric (default = 5). Point size for the central
+#'   module anchor used to attach the heatmap.
+#' @param HeatmapPointFill Character (default = \code{"#de77ae"}). Fill colour
+#'   for the central module anchor point.
+#' @param HeatmapTileColor Border colour for the heatmap tiles. Default
+#'   \code{NA} (no border).
+#' @param HeatmapTileSize Numeric (default = 0). Border size for the heatmap
+#'   tiles.
+#' @param SigLineAlpha Numeric (default = 0.5). Transparency for module-heatmap
 #'   link lines. Must be between 0 and 1.
 #' @param SigLineWidth Numeric vector of length 2 (default = c(0.5, 2)).
-#'   Min and max line width for module–heatmap links. Line width is mapped from
-#'   \code{-log10(p-value)}: smaller p (more significant) → thicker line.
-#'   E.g. p=0.05→1.3, p=0.01→2, p=0.001→3; values are scaled to this range.
+#'   Min and max line width for module-heatmap links. Line width is mapped from
+#'   \code{-log10(p-value)}: smaller p (more significant) -> thicker line.
+#'   E.g. p=0.05->1.3, p=0.01->2, p=0.001->3; values are scaled to this range.
 #' @param SigLineColor Character vector of length 2. Colors for link gradient
 #'   (low and high correlation).
 #' @param ... Additional arguments passed to layout and network rendering,
@@ -584,8 +604,8 @@ ggnetview_modularity_heatmaps <- function(
 
   link_df <- cor_spec_env_location %>%
     dplyr::mutate(
-      # -log10(p): smaller p → larger value → thicker line
-      # p=0.05→1.3, p=0.01→2, p=0.001→3
+      # -log10(p): smaller p -> larger value -> thicker line
+      # p=0.05->1.3, p=0.01->2, p=0.001->3
       sig_strength = -log10(.data$Pvalue)
     )
   if (isTRUE(drop_nonsig)) {

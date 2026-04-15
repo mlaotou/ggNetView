@@ -74,7 +74,6 @@
 #' - random : modules are distributed more randomly and independently.
 #' - adjacent : modules are positioned close to each other, minimizing inter-module gaps.
 #' - order : modules are distributed by order, applicable to `Bipartite, Tripartite, Quadripartite, Multipartite, Pentapartite Layout`
-#' @param pointstroke Integer  (default = 0.3).
 #' @param group.by Character (default = "Modularity").
 #' Change group for nodes
 #' @param fill.by Character (default = "Modularity").
@@ -359,7 +358,7 @@ ggNetView_multi_link <- function(mat = NULL,
                                  seed = 1115
 ){
   method <- match.arg(method)
-  # 参数
+
 
   color_v <- c('#1f78b4', '#e7298a', '#41ab5d', '#807dba',
                '#fb9a99', '#4eb3d3', '#bc80bd', '#e31a1c',
@@ -410,7 +409,7 @@ ggNetView_multi_link <- function(mat = NULL,
     if (!is.data.frame(group_info) || !all(c("Sample", "Group") %in% colnames(group_info))) {
       stop("`group_info` must be a data.frame containing columns `Sample` and `Group`.")
     }
-    # 若 Sample 或 Group 含下划线，会干扰后续 sep = "_" 的解析，统一替换为中划线
+
     has_underscore <- any(grepl("_", group_info$Sample, fixed = TRUE)) ||
       any(grepl("_", group_info$Group, fixed = TRUE))
     if (has_underscore) {
@@ -668,7 +667,7 @@ ggNetView_multi_link <- function(mat = NULL,
       }
     }
 
-    # 添加布局
+
     # find layout function
     func_name <- paste0("create_layout_", layout)
 
@@ -691,7 +690,7 @@ ggNetView_multi_link <- function(mat = NULL,
     ly1 <- do.call(lay_func, lay_args)
 
     # get ly1_1
-    # 圆形布局 添加模块化 获取模块
+
     if (layout.module == "random") {
       ly1_1 <- module_layout(graph,
                              layout = ly1,
@@ -729,7 +728,7 @@ ggNetView_multi_link <- function(mat = NULL,
         }
 
         err_msg <- conditionMessage(ly_try)
-        is_slot_error <- grepl("连续 slot|consecutive slots", err_msg, ignore.case = TRUE)
+        is_slot_error <- grepl("consecutive slots", err_msg, ignore.case = TRUE)
         if (!is_slot_error || k_nn_try >= k_nn_cap) {
           stop(ly_try)
         }
@@ -822,7 +821,7 @@ ggNetView_multi_link <- function(mat = NULL,
   }
 
   graph_list_length <- length(graph_list)
-  # 获取比较的分组
+
   if (!isTRUE(comparisons)) {
     compare_matrix <- matrix(character(0), nrow = 2, ncol = 0)
   } else if (graph_list_length >= 2) {
@@ -917,7 +916,7 @@ ggNetView_multi_link <- function(mat = NULL,
   #   anchor_dist = anchor_dist * 30
   # }
 
-  # 寻找点：根据 group_layout 计算各组锚点坐标
+
   n_grp <- graph_list_length
   if (group_layout == "circle") {
     angles <- pi/2 - 2 * pi * (0:(n_grp - 1)) / n_grp
@@ -925,7 +924,7 @@ ggNetView_multi_link <- function(mat = NULL,
       c(anchor_dist * cos(a), anchor_dist * sin(a))
     })
   } else if (group_layout == "row") {
-    # 水平/网格：使用 nrow、ncol，按行填充（从左到右、从上到下），居中
+
     nr <- if (!is.null(nrow)) as.integer(nrow) else 1L
     nc <- if (!is.null(ncol)) as.integer(ncol) else n_grp
     if (is.null(nrow) && !is.null(ncol)) nr <- max(1L, as.integer(ceiling(n_grp / nc)))
@@ -941,7 +940,7 @@ ggNetView_multi_link <- function(mat = NULL,
       c(x, y)
     })
   } else if (group_layout == "column") {
-    # 垂直/网格：使用 nrow、ncol，按列填充（从上到下、从左到右），居中
+
     nr <- if (!is.null(nrow)) as.integer(nrow) else n_grp
     nc <- if (!is.null(ncol)) as.integer(ncol) else 1L
     if (is.null(nrow) && !is.null(ncol)) nr <- max(1L, as.integer(ceiling(n_grp / nc)))
@@ -957,7 +956,7 @@ ggNetView_multi_link <- function(mat = NULL,
       c(x, y)
     })
   } else if (group_layout == "snake") {
-    # 蛇形布局：按行填充，奇数行从左到右，偶数行从右到左，交替排布
+
     nr <- if (!is.null(nrow)) as.integer(nrow) else 1L
     nc <- if (!is.null(ncol)) as.integer(ncol) else n_grp
     if (is.null(nrow) && !is.null(ncol)) nr <- max(1L, as.integer(ceiling(n_grp / nc)))
@@ -973,7 +972,7 @@ ggNetView_multi_link <- function(mat = NULL,
       c(x, y)
     })
   } else if (group_layout %in% c("snake_vertical", "snake_vertical_sin", "snake_vertical_cos", "snake_vertical_neg_sin", "snake_vertical_neg_cos")) {
-    # 平滑曲线布局：沿 sin/cos 曲线排布，使用 sine_period 控制波长
+
     t_vals <- 2 * pi * (0:(n_grp - 1)) / sine_period
     x_centered <- (0:(n_grp - 1) - (n_grp - 1) / 2) * anchor_dist
     layout_curve <- if (group_layout == "snake_vertical_sin") "snake_vertical" else group_layout
@@ -986,8 +985,8 @@ ggNetView_multi_link <- function(mat = NULL,
     y_vals <- anchor_dist * y_fun(t_vals)
     anchors <- lapply(seq_len(n_grp), function(i) c(x_centered[i], y_vals[i]))
   } else if (group_layout %in% c("sin", "cos", "-sin", "-cos")) {
-    # 正弦/余弦顶点布局：1 在中线，2 起在波峰/波谷交替，不回到中线
-    # sin: 1 水平，2 上、3 下、4 上、5 下…；cos: 1 峰、2 谷、3 峰…；-sin/-cos 同理
+
+
     x_centered <- (0:(n_grp - 1) - (n_grp - 1) / 2) * anchor_dist
     y_vals <- switch(group_layout,
       sin = c(0, anchor_dist * rep(c(1, -1), length.out = n_grp - 1)),
@@ -997,8 +996,8 @@ ggNetView_multi_link <- function(mat = NULL,
     )
     anchors <- lapply(seq_len(n_grp), function(i) c(x_centered[i], y_vals[i]))
   } else if (group_layout == "center_pairs") {
-    # 布局：A1 A2 A3 A4 A5 (上) / O (中) / B1 B2 B3 B4 B5 (下)
-    # O 居中 (0,0)，A/B 对 x 从左到右：1,2,3,4,5；y：A=1，B=-1
+
+
     anchors <- vector("list", n_grp)
     anchors[[1]] <- c(0, 0)
     if (n_grp >= 2) {
@@ -1020,11 +1019,11 @@ ggNetView_multi_link <- function(mat = NULL,
       }
     }
   } else if (group_layout %in% c("square", "diamond", "triangle", "triangle_down")) {
-    # 多边形布局：类似 circle，在圆周上均匀分布，起始角度因形状而异
-    # square: 四角 (左上、右上、右下、左下)，base = 3π/4
-    # diamond: 上、右、下、左，base = π/2
-    # triangle: 正三角 (上、左下、右下)，base = π/2
-    # triangle_down: 倒三角 (下、左上、右上)，base = -π/2
+
+
+
+
+
     base_angle <- switch(group_layout,
       square        = 3 * pi / 4,
       diamond       = pi / 2,
@@ -1044,9 +1043,9 @@ ggNetView_multi_link <- function(mat = NULL,
     purrr::set_names(c("x", "y"))
 
 
-  # 是否是等齐的, 同时进行位置调整
+
   if (isTRUE(scale_groups)) {
-    # 如果需要做标准化的话, 把坐标都要归一化一下
+
     for (i in seq_along(names(graph_info))) {
       graph_info[[i]]$ggplot_node_df <- graph_info[[i]]$ggplot_node_df %>%
         dplyr::mutate(Group = names(graph_info)[i]) %>%
@@ -1159,7 +1158,7 @@ ggNetView_multi_link <- function(mat = NULL,
 
 
   # plot data
-  # 那么可以直接进行可视化了
+
   # raw data to plot data
 
   p <- ggplot()
@@ -1354,7 +1353,7 @@ ggNetView_multi_link <- function(mat = NULL,
     }
   }
 
-  # 解析跨组连线颜色：NULL 用默认调色板；单值全用；命名向量按 "GroupA|GroupB"；未命名按索引
+
   resolve_link_color <- function(color_vec, default_palette, pair_key, pair_idx) {
     if (is.null(color_vec) || length(color_vec) == 0L) {
       return(default_palette[((pair_idx - 1L) %% length(default_palette)) + 1L])
@@ -1363,7 +1362,7 @@ ggNetView_multi_link <- function(mat = NULL,
     if (!is.null(names(color_vec)) && pair_key %in% names(color_vec)) return(color_vec[pair_key])
     return(color_vec[((pair_idx - 1L) %% length(color_vec)) + 1L])
   }
-  # 解析跨组连线样式（linewidth/alpha/linetype）：单值全用；命名向量按 pair_key；未命名按索引
+
   resolve_link_style <- function(val, pair_key, pair_idx) {
     if (is.null(val) || length(val) == 0L) return(NULL)
     if (length(val) == 1L) return(val[1L])
@@ -1629,15 +1628,15 @@ ggNetView_multi_link <- function(mat = NULL,
     }
   }
 
-  # 我们先添加点和线 (inner edges, nodes, module outer)
+
   for (index in seq_along(names(graph_info))) {
     edge_df <- graph_info[[index]]$ggplot_edge_df
 
-    # 分组外圈：在每个分组外围绘制圆圈边界（模仿 geom_mark_circle，考虑点大小）
+
     if (isTRUE(add_group_outer) && nrow(graph_info[[index]]$ggplot_node_df) > 0) {
       gname <- names(graph_info)[index]
       color_vec <- if (is.null(add_group_outer_color) || length(add_group_outer_color) == 0L) "grey50" else add_group_outer_color
-      # 解析颜色：单值全用；命名向量按组名；未命名按索引（可循环）
+
       color_grp <- if (length(color_vec) == 1L) {
         color_vec
       } else if (!is.null(names(color_vec)) && gname %in% names(color_vec)) {
@@ -1645,7 +1644,7 @@ ggNetView_multi_link <- function(mat = NULL,
       } else {
         color_vec[((index - 1L) %% length(color_vec)) + 1L]
       }
-      # 解析填充：NULL 不填充；否则同颜色逻辑
+
       fill_grp <- if (is.null(add_group_outer_fill) || length(add_group_outer_fill) == 0L) {
         NA
       } else if (length(add_group_outer_fill) == 1L) {

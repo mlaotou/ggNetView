@@ -12,7 +12,7 @@ create_layout_cross_quadripartite_equal_gephi_layout <- function(
                        up = 0, right = -pi/2, down = pi, left = pi/2)
   theta_shift <- base_angle + angle
 
-  # ---- 十字交叉四个锚点（先按“up”构型放置，再统一旋转）----
+
   anchors <- list(
     c( 0,  anchor_dist),  # up
     c( 0, -anchor_dist),  # down
@@ -20,7 +20,7 @@ create_layout_cross_quadripartite_equal_gephi_layout <- function(
     c( anchor_dist,  0)   # right
   )
 
-  # ---- 获取节点与模块（保留原始节点顺序，便于最后对齐）----
+
   node_df <- graph_obj %>%
     tidygraph::activate(nodes) %>%
     tidygraph::as_tibble() %>%
@@ -31,16 +31,16 @@ create_layout_cross_quadripartite_equal_gephi_layout <- function(
   n_vec <- purrr::map_int(module_list, nrow)
 
   if (length(n_vec) < 4) {
-    stop("Cross quadripartite 布局需要至少 4 个模块（来自列 Modularity）。")
+    stop("Cross quadripartite layout requires at least 4 modules (from column `Modularity`).")
   }
   if (length(n_vec) > 4) {
-    message("检测到超过 4 个模块，仅使用前 4 个模块进行十字交叉布局。")
+    message("More than 4 modules detected; only the top 4 modules are used for the cross quadripartite layout.")
     module_list <- module_list[1:4]
     n_vec <- n_vec[1:4]
     mod_levels <- mod_levels[1:4]
   }
 
-  # ---- 同心圆分层（每圈节点数序列）----
+
   circle_layout <- function(n, node_add){
     counts <- 1
     total  <- 1
@@ -59,11 +59,11 @@ create_layout_cross_quadripartite_equal_gephi_layout <- function(
     counts
   }
 
-  # 每个模块需要的圈数（用于统一“最大半径”标尺）
+
   n_circle_vec <- purrr::map_int(n_vec, ~ length(circle_layout(.x, node_add)))
   n_circle_max <- max(n_circle_vec)
 
-  # ---- 用最大模块定标：最大模块圈间距为 r，其余模块填充到同一外半径 ----
+
   R_max <- (n_circle_max - 1) * r
 
   n_vec_node <- purrr::map(n_vec, ~{
@@ -73,7 +73,7 @@ create_layout_cross_quadripartite_equal_gephi_layout <- function(
     )
   })
 
-  # ---- 以锚点为圆心生成同心圆坐标（含交错 offset）----
+
   concentric_from_anchor <- function(cx, cy, info_df, r_step){
     ly <- data.frame(x = cx, y = cy)
     offset <- 0
@@ -94,7 +94,7 @@ create_layout_cross_quadripartite_equal_gephi_layout <- function(
     ly
   }
 
-  # ---- 四模块逐一生成：每个模块最外圈半径都等于 R_max ----
+
   ly_list <- vector("list", 4)
   for (i in 1:4) {
     cx <- anchors[[i]][1]
@@ -123,7 +123,7 @@ create_layout_cross_quadripartite_equal_gephi_layout <- function(
 
   ly <- dplyr::bind_rows(ly_list)
 
-  # ---- 统一旋转（绕原点）----
+
   if (theta_shift != 0) {
     Rm <- matrix(c(cos(theta_shift), -sin(theta_shift),
                    sin(theta_shift),  cos(theta_shift)), nrow = 2)
@@ -131,7 +131,7 @@ create_layout_cross_quadripartite_equal_gephi_layout <- function(
     ly[, c("x","y")] <- t(Rm %*% t(xy))
   }
 
-  # ---- scale（可选）：把整体缩放到 [-1, 1] ----
+
   if (isTRUE(scale)) {
     rescale01 <- function(v) {
       rng <- range(v, na.rm = TRUE)
@@ -142,7 +142,7 @@ create_layout_cross_quadripartite_equal_gephi_layout <- function(
     ly$y <- rescale01(ly$y) * 2 - 1
   }
 
-  # ---- 恢复为原始节点顺序（只返回坐标与 group）----
+
   ly <- ly %>%
     dplyr::arrange(.node_index__) %>%
     dplyr::select(x, y, group)

@@ -69,6 +69,10 @@ use \code{"sum"} or \code{"mean"}.}
 
 \item{layout}{Character. Layout for ggNetView (e.g. \code{"gephi"}, \code{"square"}).}
 
+\item{layout.module}{Character. Module ordering strategy passed through to
+the underlying ggNetView call. One of \code{"random"} (default),
+\code{"adjacent"} or \code{"order"}.}
+
 \item{orientation}{Character vector. Heatmap quadrants:
 \code{"top_right"}, \code{"bottom_right"}, \code{"top_left"}, \code{"bottom_left"}.}
 
@@ -80,16 +84,41 @@ environmental heatmaps.}
 \item{HeatmapScale}{Numeric (default = 1). Global scale factor for the overall
 heatmap size. Values > 1 enlarge the whole heatmap layout.}
 
-\item{SigLineAlpha}{Numeric (default = 0.5). Transparency for module–heatmap
+\item{SigLineAlpha}{Numeric (default = 0.5). Transparency for module-heatmap
 link lines. Must be between 0 and 1.}
 
+\item{HeatmapLabelSize}{Numeric (default = 5). Text size for the heatmap
+row/column labels.}
+
+\item{HeatmapSigSize}{Numeric (default = 5). Text size for the significance
+marks rendered on the heatmap tiles.}
+
+\item{HeatmapColorBar}{A list of length-2 character vectors giving
+(low, high) hex colours, one per heatmap quadrant. \code{NULL} (default)
+uses the package colour palette.}
+
+\item{HeatmapLabelOrient}{Numeric (default = 0). Rotation in degrees applied
+to the heatmap labels.}
+
 \item{SigLineWidth}{Numeric vector of length 2 (default = c(0.5, 2)).
-Min and max line width for module–heatmap links. Line width is mapped from
-\code{-log10(p-value)}: smaller p (more significant) → thicker line.
-E.g. p=0.05→1.3, p=0.01→2, p=0.001→3; values are scaled to this range.}
+Min and max line width for module-heatmap links. Line width is mapped from
+\code{-log10(p-value)}: smaller p (more significant) -> thicker line.
+E.g. p=0.05->1.3, p=0.01->2, p=0.001->3; values are scaled to this range.}
 
 \item{SigLineColor}{Character vector of length 2. Colors for link gradient
 (low and high correlation).}
+
+\item{HeatmapPointSize}{Numeric (default = 5). Point size for the central
+module anchor used to attach the heatmap.}
+
+\item{HeatmapPointFill}{Character (default = \code{"#de77ae"}). Fill colour
+for the central module anchor point.}
+
+\item{HeatmapTileColor}{Border colour for the heatmap tiles. Default
+\code{NA} (no border).}
+
+\item{HeatmapTileSize}{Numeric (default = 0). Border size for the heatmap
+tiles.}
 
 \item{...}{Additional arguments passed to layout and network rendering,
 including: \code{layout}, \code{layout.module}, \code{shrink}, \code{jitter},

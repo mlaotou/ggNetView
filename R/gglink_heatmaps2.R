@@ -40,14 +40,14 @@ gglink_heatmaps2 <- function(
 
   radius = r
   # if env_select = NULL & spec_select = NULL
-  # 说明是最简单的方式 1个点，1个矩阵
 
-  # 如果env_select 含有多个，则出现不同位置的热图
 
-  # 如果 spec_select 出现多个，则出现不同位置的点，这里建议使用环状布局
+
+
+
 
   ####----split data----####
-  # 1 个点， 然后4个环境数据
+
   spec_select = list(Spec01 = 1:8)
 
   # different env
@@ -67,29 +67,29 @@ gglink_heatmaps2 <- function(
   env_list <- purrr::map(env_select, ~ Envdf_4st[, .x, drop = FALSE])
   spec_list <- purrr::map(spec_select, ~ Spedf[, .x, drop = FALSE])
 
-  # 这里需要统计一下
+
   k_vec  <- purrr::map_int(env_list, ncol)
   k_ref  <- max(k_vec)
 
   length_dist <- max(k_vec)  + 0.5 * radius
 
-  # 真实不够的，我们需要使用gap去补充
+
   k_gap <- length_dist - k_vec
 
-  # 然后分别对env_list的元素，自身内部做相关性分析
+
   # purrr::map(env_list, function(x){
   #   cor_out_self <- psych::corr.test(x)
   # })
 
-  ####----环境因子自身的相关性----####
+
   env_cor_self_list <- list()
 
-  # 分别进行分析
+
   for (i in seq_along(orientation)) {
     # top_right
     if (orientation[i] == "top_right") {
-      # 这个是右上角的
-      # 单独一个做相关性
+
+
       cor_out_self <- psych::corr.test(env_list[[i]], use = cor.use, method = cor.method)
 
       # correlation
@@ -154,10 +154,10 @@ gglink_heatmaps2 <- function(
 
     # bottom_right
     if (orientation[i] == "bottom_right") {
-      # 单独一个做相关性
+
       cor_out_self <- psych::corr.test(env_list[[i]], use = cor.use, method = cor.method)
 
-      # 右下角的
+
       # correlation
       cor_self_r <- cor_out_self$r %>% as.data.frame()
       cor_self_r[upper.tri(cor_self_r)] <- NA
@@ -204,7 +204,7 @@ gglink_heatmaps2 <- function(
 
     # top_left
     if (orientation[i] == "top_left") {
-      # 单独一个做相关性
+
       cor_out_self <- psych::corr.test(env_list[[i]], use = cor.use, method = cor.method)
 
       # correlation
@@ -255,7 +255,7 @@ gglink_heatmaps2 <- function(
 
     # bottom_left
     if (orientation[i] == "bottom_left") {
-      # 单独一个做相关性
+
       cor_out_self <- psych::corr.test(env_list[[i]], use = cor.use, method = cor.method)
 
       # correlation
@@ -307,7 +307,7 @@ gglink_heatmaps2 <- function(
 
   env_cor_self_list
 
-  ####----核心物种与环境因子之间的关系----####
+
   # if (method == "mantel") {
   #   mantal_spec_env <- vegan::mantel(vegan::vegdist(env_list[[1]]),
   #                                    vegan::vegdist(spec_list[[1]]))
@@ -356,19 +356,19 @@ gglink_heatmaps2 <- function(
 
   cor_spec_env_list_out
 
-  # 查看一下里面有多少个变量, 然后将其均等分
+
   n_points <- cor_spec_env_list_out$ID %>% unique() %>% length()
 
-  # 计算每一个点的角度
+
   angles <- seq(0, 2*pi, length.out = n_points + 1)[-(n_points+1)]
   center_x <- 0
   center_y <- 0
 
-  # 计算坐标
+
   x <- center_x + radius * cos(angles)
   y <- center_y + radius * sin(angles)
 
-  # 中间点的物理位置
+
   cor_spec_env <- data.frame(
     ID = cor_spec_env_list_out$ID %>% unique() %>% sort(),
     x = x,
@@ -410,7 +410,7 @@ gglink_heatmaps2 <- function(
     by = c("Type" = "ID"))
 
 
-  # # test 右上
+
   ggplot(data = env_cor_self_list[[1]]) +
     geom_tile(aes(x = ID2 + 2, y = Type2 + 2, fill = Correlation)) +
     geom_text(aes(x = ID2 + 2, y = 15 + 2, label = ID)) +
@@ -419,7 +419,7 @@ gglink_heatmaps2 <- function(
     theme_bw()
 
 
-  # # test 右上 new add gap
+
   k_vec
   k_gap
   length_dist
@@ -433,7 +433,7 @@ gglink_heatmaps2 <- function(
 
 
   #
-  # # test 右下
+
   # ggplot(data = env_cor_self_list[[2]]) +
   #   geom_tile(aes(x = ID2 + 2, y = Type2 - 17, fill = Correlation)) +
   #   geom_text(aes(x = ID2 + 2, y = 0 - 17, label = ID)) +
@@ -442,7 +442,7 @@ gglink_heatmaps2 <- function(
   #   theme_bw()
 
 
-  # # test 右下 new add gap
+
   k_vec
   k_gap
   length_dist
@@ -454,7 +454,7 @@ gglink_heatmaps2 <- function(
     coord_cartesian(clip = "off") +
     theme_bw()
 
-  # 左上和左下
+
   ggplot() +
     geom_tile(data = env_cor_self_list[[1]], aes(x = ID2 + k_gap[1], y = Type2 + k_gap[1], fill = Correlation)) +
     geom_text(data = env_cor_self_list[[1]], aes(x = ID2 + k_gap[1], y = length_dist + 1, label = ID)) +
@@ -465,13 +465,13 @@ gglink_heatmaps2 <- function(
     coord_fixed(clip = "off") +
     theme_bw()
 
-  # 经过测试，没问题
+
 
 
 
 
   #
-  # # test 左上
+
   # ggplot(data = env_cor_self_list[[3]]) +
   #   geom_tile(aes(x = ID2 - 17, y = Type2 + 2, fill = Correlation)) +
   #   geom_text(aes(x = ID2- 17, y = 15 + 2, label = ID)) +
@@ -480,7 +480,7 @@ gglink_heatmaps2 <- function(
   #   theme_bw()
 
 
-  # test 左上 new add gap
+
   k_vec
   k_gap
   length_dist
@@ -494,7 +494,7 @@ gglink_heatmaps2 <- function(
 
 
   #
-  # # test 左下
+
   # ggplot(data = env_cor_self_list[[4]]) +
   #   geom_tile(aes(x = ID2 - 17, y = Type2 - 17, fill = Correlation)) +
   #   geom_text(aes(x = ID2 - 17, y = 0 - 17, label = ID)) +
@@ -502,7 +502,7 @@ gglink_heatmaps2 <- function(
   #   coord_cartesian(clip = "off") +
   #   theme_bw()
 
-  # test 左下 new add gap
+
   k_vec
   k_gap
   length_dist
@@ -515,7 +515,7 @@ gglink_heatmaps2 <- function(
       theme_bw()
 
 
-  # 左上和左下 测试可以
+
   ggplot() +
     geom_tile(data = env_cor_self_list[[1]], aes(x = ID2 + k_gap[1], y = Type2 + k_gap[1], fill = Correlation)) +
     geom_text(data = env_cor_self_list[[1]], aes(x = ID2 + k_gap[1], y = length_dist + 1, label = ID)) +
@@ -538,9 +538,9 @@ gglink_heatmaps2 <- function(
     )
     # theme_bw()
 
-  # 然后继续可视化
+
   ggplot() +
-    # env 1 右上
+
     geom_tile(data = env_cor_self_list[[1]], mapping = aes(x = ID2 + k_gap[1], y = Type2 + k_gap[1], fill = Correlation)) +
     geom_text(data = env_cor_self_list[[1]], mapping = aes(x = ID2 + k_gap[1], y = Type2 + k_gap[1], label = p_signif), size = 5) +
     geom_text(data = env_cor_self_list[[1]] %>% dplyr::distinct(ID, .keep_all = T), mapping = aes(x = ID2 + k_gap[1], y = length_dist + 1, label = ID)) +
@@ -552,7 +552,7 @@ gglink_heatmaps2 <- function(
                size = 4) +
     scale_fill_gradient2(low = "#4d9221", mid = "#ffffff", high = "#c51b7d", midpoint = 0, name = paste("Env", 1),
                          guide = guide_colorbar(order = 1)) +
-    # env 2 右下
+
     ggnewscale::new_scale_fill() +
     geom_tile(data = env_cor_self_list[[2]], mapping = aes(x = ID2 + k_gap[2], y = Type2 - length_dist, fill = Correlation)) +
     geom_text(data = env_cor_self_list[[2]], mapping = aes(x = ID2 + k_gap[2], y = Type2 - length_dist, label = p_signif), size = 5) +
@@ -565,7 +565,7 @@ gglink_heatmaps2 <- function(
                size = 4) +
     scale_fill_gradient2(low = "#8073ac", mid = "#ffffff", high = "#e08214", midpoint = 0, name = paste("Env", 2),
                          guide = guide_colorbar(order = 2)) +
-    # env 3 左上
+
     ggnewscale::new_scale_fill() +
     geom_tile(data = env_cor_self_list[[3]], mapping = aes(x = ID2 - length_dist, y = Type2 + k_gap[3], fill = Correlation)) +
     geom_text(data = env_cor_self_list[[3]], mapping = aes(x = ID2 - length_dist, y = Type2 + k_gap[3], label = p_signif), size = 5) +
@@ -578,7 +578,7 @@ gglink_heatmaps2 <- function(
                size = 4) +
     scale_fill_gradient2(low = "#4393c3", mid = "#ffffff", high = "#d6604d", midpoint = 0, name = paste("Env", 3),
                          guide = guide_colorbar(order = 3)) +
-    # env 4 左下
+
     ggnewscale::new_scale_fill() +
     geom_tile(data = env_cor_self_list[[4]], mapping = aes(x = ID2 - length_dist, y = Type2 - length_dist, fill = Correlation)) +
     geom_text(data = env_cor_self_list[[4]], mapping = aes(x = ID2 - length_dist, y = Type2 - length_dist, label = p_signif), size = 5) +
@@ -621,7 +621,7 @@ gglink_heatmaps2 <- function(
 
   ####----Plot----####
   p1 <- ggplot() +
-    # env 1 右上
+
     geom_tile(data = env_cor_self_list[[1]], mapping = aes(x = ID2 + k_gap[1], y = Type2 + k_gap[1], fill = Correlation)) +
     geom_text(data = env_cor_self_list[[1]], mapping = aes(x = ID2 + k_gap[1], y = Type2 + k_gap[1], label = p_signif), size = 5) +
     geom_text(data = env_cor_self_list[[1]] %>% dplyr::distinct(ID, .keep_all = T), mapping = aes(x = ID2 + k_gap[1], y = length_dist + 1, label = ID)) +
@@ -633,7 +633,7 @@ gglink_heatmaps2 <- function(
                size = 4) +
     scale_fill_gradient2(low = "#4d9221", mid = "#ffffff", high = "#c51b7d", midpoint = 0, name = paste("Env", 1),
                          guide = guide_colorbar(order = 1)) +
-    # env 2 右下
+
     ggnewscale::new_scale_fill() +
     geom_tile(data = env_cor_self_list[[2]], mapping = aes(x = ID2 + k_gap[2], y = Type2 - length_dist, fill = Correlation)) +
     geom_text(data = env_cor_self_list[[2]], mapping = aes(x = ID2 + k_gap[2], y = Type2 - length_dist, label = p_signif), size = 5) +
@@ -646,7 +646,7 @@ gglink_heatmaps2 <- function(
                size = 4) +
     scale_fill_gradient2(low = "#8073ac", mid = "#ffffff", high = "#e08214", midpoint = 0, name = paste("Env", 2),
                          guide = guide_colorbar(order = 2)) +
-    # env 3 左上
+
     ggnewscale::new_scale_fill() +
     geom_tile(data = env_cor_self_list[[3]], mapping = aes(x = ID2 - length_dist, y = Type2 + k_gap[3], fill = Correlation)) +
     geom_text(data = env_cor_self_list[[3]], mapping = aes(x = ID2 - length_dist, y = Type2 + k_gap[3], label = p_signif), size = 5) +
@@ -659,7 +659,7 @@ gglink_heatmaps2 <- function(
                size = 4) +
     scale_fill_gradient2(low = "#4393c3", mid = "#ffffff", high = "#d6604d", midpoint = 0, name = paste("Env", 3),
                          guide = guide_colorbar(order = 3)) +
-    # env 4 左下
+
     ggnewscale::new_scale_fill() +
     geom_tile(data = env_cor_self_list[[4]], mapping = aes(x = ID2 - length_dist, y = Type2 - length_dist, fill = Correlation)) +
     geom_text(data = env_cor_self_list[[4]], mapping = aes(x = ID2 - length_dist, y = Type2 - length_dist, label = p_signif), size = 5) +
@@ -702,7 +702,7 @@ gglink_heatmaps2 <- function(
   p1
 
   p2 <- ggplot() +
-    # env 1 右上
+
     geom_tile(data = env_cor_self_list[[1]], mapping = aes(x = ID2 + k_gap[1], y = Type2 + k_gap[1], fill = Correlation)) +
     geom_text(data = env_cor_self_list[[1]], mapping = aes(x = ID2 + k_gap[1], y = Type2 + k_gap[1], label = p_signif), size = 5) +
     geom_text(data = env_cor_self_list[[1]] %>% dplyr::distinct(ID, .keep_all = T), mapping = aes(x = ID2 + k_gap[1], y = length_dist + 1, label = ID)) +
@@ -714,7 +714,7 @@ gglink_heatmaps2 <- function(
                size = 4) +
     scale_fill_gradient2(low = "#4d9221", mid = "#ffffff", high = "#c51b7d", midpoint = 0, name = paste("Env", 1),
                          guide = guide_colorbar(order = 1)) +
-    # env 2 右下
+
     ggnewscale::new_scale_fill() +
     geom_tile(data = env_cor_self_list[[2]], mapping = aes(x = ID2 + k_gap[2], y = Type2 - length_dist, fill = Correlation)) +
     geom_text(data = env_cor_self_list[[2]], mapping = aes(x = ID2 + k_gap[2], y = Type2 - length_dist, label = p_signif), size = 5) +
@@ -727,7 +727,7 @@ gglink_heatmaps2 <- function(
                size = 4) +
     scale_fill_gradient2(low = "#8073ac", mid = "#ffffff", high = "#e08214", midpoint = 0, name = paste("Env", 2),
                          guide = guide_colorbar(order = 2)) +
-    # env 3 左上
+
     ggnewscale::new_scale_fill() +
     geom_tile(data = env_cor_self_list[[3]], mapping = aes(x = ID2 - length_dist, y = Type2 + k_gap[3], fill = Correlation)) +
     geom_text(data = env_cor_self_list[[3]], mapping = aes(x = ID2 - length_dist, y = Type2 + k_gap[3], label = p_signif), size = 5) +
@@ -740,7 +740,7 @@ gglink_heatmaps2 <- function(
                size = 4) +
     scale_fill_gradient2(low = "#4393c3", mid = "#ffffff", high = "#d6604d", midpoint = 0, name = paste("Env", 3),
                          guide = guide_colorbar(order = 3)) +
-    # env 4 左下
+
     ggnewscale::new_scale_fill() +
     geom_tile(data = env_cor_self_list[[4]], mapping = aes(x = ID2 - length_dist, y = Type2 - length_dist, fill = Correlation)) +
     geom_text(data = env_cor_self_list[[4]], mapping = aes(x = ID2 - length_dist, y = Type2 - length_dist, label = p_signif), size = 5) +
@@ -785,13 +785,13 @@ gglink_heatmaps2 <- function(
 
   return(list(p1, p2))
 
-  # ggsave(filename = "/Users/liuyue/Desktop/Github_repos/R&Python_Wechat_Official_Account_Platform/20250909_网络可视化R包ggNetView_添加核心变量与多个环境因子的关系网络图/Output/Out.pdf",
+
   #        height = 13,
   #        width = 13,
   #        plot = p1)
   #
   #
-  # ggsave(filename = "/Users/liuyue/Desktop/Github_repos/R&Python_Wechat_Official_Account_Platform/20250909_网络可视化R包ggNetView_添加核心变量与多个环境因子的关系网络图/Output/Out_2.pdf",
+
   #        height = 13,
   #        width = 13,
   #        plot = p2)

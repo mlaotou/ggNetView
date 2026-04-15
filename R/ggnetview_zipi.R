@@ -58,7 +58,7 @@
 #'
 #' @references
 #'   Guimera R, Amaral LAN (2005). "Functional cartography of complex metabolic
-#'   networks." \emph{Nature} 433(7028):895–900.
+#'   networks." \emph{Nature} 433(7028):895-900.
 #'
 #' @export
 #'
@@ -70,8 +70,8 @@
 #' nodes_bulk <- get_graph_nodes(g)
 #' adj_mat <- get_graph_adjacency(g)
 #' res <- ggnetview_zipi(nodes_bulk, adj_mat, "Modularity", "Degree")
-#' res$data   # Zi-Pi 计算结果
-#' res$plot   # Zi-Pi 散点图
+
+
 #' }
 ggnetview_zipi <- function(nodes_bulk, z_bulk_mat, modularity_col, degree_col,
                           zi_threshold = 2.5, pi_threshold = 0.62, na.rm = FALSE) {
@@ -86,51 +86,51 @@ ggnetview_zipi <- function(nodes_bulk, z_bulk_mat, modularity_col, degree_col,
     stop("`z_bulk_mat` must have rownames and colnames (node IDs).", call. = FALSE)
   }
 
-  # 支持节点 ID 来自 rownames 或 "name" 列（兼容 tidygraph 输出）
+
   rn <- rownames(nodes_bulk)
   if (is.null(rn) || length(rn) == 0L ||
       identical(rn, as.character(seq_len(nrow(nodes_bulk))))) {
     if ("name" %in% names(nodes_bulk)) {
       ids <- as.character(nodes_bulk[["name"]])
     } else {
-      stop("nodes_bulk 需有 rownames 为节点 ID，或包含 \"name\" 列。")
+      stop("`nodes_bulk` must have rownames as node IDs, or contain a `name` column.")
     }
   } else {
     ids <- rn
   }
   if (length(ids) == 0L || any(is.na(ids)) || any(ids == "")) {
-    stop("nodes_bulk 的节点 ID（rownames 或 name 列）不能为空或 NA。")
+    stop("Node IDs in `nodes_bulk` (rownames or `name` column) must not be empty or NA.")
   }
 
-  # —— 对齐：行名必须覆盖 nodes_bulk 的行名
+
   if (!all(ids %in% rownames(z_bulk_mat))) {
-    stop("rownames(nodes_bulk) 必须是 z_bulk_mat 的子集并对齐。")
+    stop("`rownames(nodes_bulk)` must be a subset of `rownames(z_bulk_mat)` and aligned.")
   }
-  # 重排矩阵顺序以匹配 nodes_bulk
+
   z_bulk_mat <- z_bulk_mat[ids, ids, drop = FALSE]
 
-  # —— 二值化 & 处理对角线
+
   if (any(!is.finite(z_bulk_mat))) {
     z_bulk_mat[!is.finite(z_bulk_mat)] <- 0
   }
   A <- (abs(z_bulk_mat) > 0) * 1L
-  diag(A) <- 1L  # 确保自连为 1，便于后续 -1
+  diag(A) <- 1L
 
   if (!modularity_col %in% names(nodes_bulk)) {
-    stop(sprintf("nodes_bulk 中缺少列 \"%s\"。", modularity_col))
+    stop(sprintf("Column `%s` is missing from `nodes_bulk`.", modularity_col))
   }
   if (!degree_col %in% names(nodes_bulk)) {
-    stop(sprintf("nodes_bulk 中缺少列 \"%s\"。", degree_col))
+    stop(sprintf("Column `%s` is missing from `nodes_bulk`.", degree_col))
   }
   mod  <- nodes_bulk[[modularity_col]]
   deg  <- nodes_bulk[[degree_col]]
 
-  # 安全性
-  if (any(is.na(mod))) stop("模块列存在 NA。")
-  if (any(is.na(deg))) stop("度列存在 NA。")
 
-  # —— 计算 within-module degree z
-  # 按模块拆分索引
+  if (any(is.na(mod))) stop("Module column contains NA values.")
+  if (any(is.na(deg))) stop("Degree column contains NA values.")
+
+
+
   split_idx <- split(seq_along(ids), f = factor(mod, levels = unique(mod)))
   z_vec <- numeric(length(ids)); names(z_vec) <- ids
 
@@ -146,20 +146,20 @@ ggnetview_zipi <- function(nodes_bulk, z_bulk_mat, modularity_col, degree_col,
     if (sd_k == 0) z_vec[idx] <- 0 else z_vec[idx] <- (k_in - mean(k_in)) / sd_k
   }
 
-  # —— 计算参与系数 P
-  # k_is：每个节点对每个模块的边数
+
+
   modules <- names(split_idx)
   kis_mat <- sapply(modules, function(lev) {
     idx <- split_idx[[lev]]
     rowSums(A[, idx, drop = FALSE])
   })
   if (!is.matrix(kis_mat)) kis_mat <- as.matrix(kis_mat)
-  # 去掉自身对角线：属于该模块的节点，k_is 减 1
+
   for (j in seq_along(modules)) {
     idx <- split_idx[[modules[j]]]
     kis_mat[idx, j] <- kis_mat[idx, j] - 1L
   }
-  kis_mat[kis_mat < 0] <- 0  # 理论上不会小于0，保险
+  kis_mat[kis_mat < 0] <- 0
 
   sum_kis2 <- rowSums(kis_mat^2)
   k_tot    <- as.numeric(deg)
@@ -169,7 +169,7 @@ ggnetview_zipi <- function(nodes_bulk, z_bulk_mat, modularity_col, degree_col,
   P[nz] <- 1 - (sum_kis2[nz] / (k_tot[nz]^2))
   names(P) <- ids
 
-  # —— 组织输出（用 name 关联，不新增 nodes_id）
+
   id_col <- "name"
   if (!id_col %in% names(nodes_bulk)) {
     nodes_bulk[[id_col]] <- ids
@@ -184,7 +184,7 @@ ggnetview_zipi <- function(nodes_bulk, z_bulk_mat, modularity_col, degree_col,
   )
   zi_pi <- dplyr::left_join(nodes_bulk, out, by = id_col)
 
-  # —— Zi-Pi 角色分类（NA 不参与分类，不当作 0）
+
   zi_pi$type <- NA_character_
   zi_ok <- !is.na(zi_pi$within_module_connectivities)
   pi_ok <- !is.na(zi_pi$among_module_connectivities)
@@ -199,12 +199,12 @@ ggnetview_zipi <- function(nodes_bulk, z_bulk_mat, modularity_col, degree_col,
     zi_pi <- zi_pi[valid, , drop = FALSE]
   }
 
-  # —— Zi-Pi 散点图（动态坐标轴、对称标签）
+
   plot_data <- zi_pi[valid, , drop = FALSE]
   if (nrow(plot_data) > 0L) {
     x_vals <- plot_data$among_module_connectivities
     y_vals <- plot_data$within_module_connectivities
-    # 保证阈值线在可视范围内，且右侧象限有足够空间放标签
+
     x_lim <- range(c(x_vals, pi_threshold), na.rm = TRUE)
     y_lim <- range(c(y_vals, zi_threshold), na.rm = TRUE)
     x_range_pre <- diff(x_lim)
@@ -218,7 +218,7 @@ ggnetview_zipi <- function(nodes_bulk, z_bulk_mat, modularity_col, degree_col,
     )
     zi_pi$type <- factor(zi_pi$type, levels = names(type_colors))
 
-    # 最小草图 p0：仅 data + scales，用于解析 x/y 范围
+
     p0 <- ggplot2::ggplot(
       data = zi_pi,
       ggplot2::aes(
@@ -229,7 +229,7 @@ ggnetview_zipi <- function(nodes_bulk, z_bulk_mat, modularity_col, degree_col,
       ggplot2::scale_x_continuous(limits = x_lim, expand = c(0.001, 0.1)) +
       ggplot2::scale_y_continuous(limits = y_lim, expand = c(0.1, 0.1))
 
-    # 解析 p0 得到 x、y 的有效范围（scale limits，geom 超出会被丢弃）
+
     built0 <- ggplot2::ggplot_build(p0)
     lay0 <- built0$layout
     x_range <- lay0$panel_scales_x[[1L]]$limits
@@ -237,17 +237,17 @@ ggnetview_zipi <- function(nodes_bulk, z_bulk_mat, modularity_col, degree_col,
     lab_size <- 5.5
     x_range_diff <- diff(x_range)
     y_range_diff <- diff(y_range)
-    # 左侧标签：紧贴阈值线左侧，尽量少留白
+
     left_half <- pi_threshold - x_range[1L]
     x_left <- pi_threshold - 0.015 * left_half
-    # 右侧标签：尽量靠右，远离阈值线（hjust=1 时文字向左延伸）
+
     right_half <- x_range[2L] - pi_threshold
     x_right <- x_range[2L] - 0.02 * x_range_diff
     x_right <- max(x_right, pi_threshold + 0.1 * right_half)
     y_top   <- y_range[2L] - 0.02 * y_range_diff
     y_bot   <- y_range[1L] + 0.02 * y_range_diff
 
-    # 完整图：在 p0 上叠加所有 layer 及四个 text
+
     p_zipi <- p0 +
       ggplot2::aes(color = .data$type) +
       ggplot2::annotate("rect", fill = "#b3cde3", xmin = -Inf, xmax = pi_threshold,

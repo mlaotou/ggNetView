@@ -86,11 +86,9 @@ g <- build_graph_from_mat(otu_rare_relative, method = "WGCNA",
 nodes_bulk <- get_graph_nodes(g)
 adj_mat <- get_graph_adjacency(g)
 res <- ggnetview_zipi(nodes_bulk, adj_mat, "Modularity", "Degree")
-res$data   # Zi-Pi 计算结果
-res$plot   # Zi-Pi 散点图
 }
 }
 \references{
 Guimera R, Amaral LAN (2005). "Functional cartography of complex metabolic
-  networks." \emph{Nature} 433(7028):895–900.
+  networks." \emph{Nature} 433(7028):895-900.
 }
