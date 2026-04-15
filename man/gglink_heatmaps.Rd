@@ -214,5 +214,11 @@ A list of length 3:
 Visualize multi-orientation environmental-species correlation heatmaps
 }
 \examples{
-NULL
+\dontrun{
+# `env` and `spec` are environmental / species abundance data frames.
+p <- gglink_heatmaps(
+  env  = env,
+  spec = spec
+)
+}
 }

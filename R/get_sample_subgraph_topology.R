@@ -30,7 +30,17 @@
 #' }
 #' @export
 #'
-#' @examples NULL
+#' @examples
+#' \dontrun{
+#' # `mat` is the OTU/feature-by-sample matrix used to build `graph_obj`.
+#' obj <- build_graph_from_mat(mat = mat, method = "cor")
+#' res <- get_sample_subgraph_topology(
+#'   graph_obj = obj,
+#'   mat       = mat,
+#'   bootstrap = 10
+#' )
+#' head(res$topology)
+#' }
 get_sample_subgraph_topology <- function(graph_obj,
                                          mat = NULL,
                                          transfrom.method = c("none", "scale", "center", "log2", "log10", "ln", "rrarefy", "rrarefy_relative"),

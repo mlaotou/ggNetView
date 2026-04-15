@@ -45,5 +45,12 @@ An graph object
 Build a graph object from a graph object
 }
 \examples{
-NULL
+data(ppi_example)
+ig <- igraph::graph_from_data_frame(
+  d        = ppi_example$ppi,
+  vertices = ppi_example$annotation,
+  directed = FALSE
+)
+obj <- build_graph_from_igraph(igraph = ig, module.method = "Fast_greedy")
+levels(get_graph_nodes(obj)$Modularity)
 }

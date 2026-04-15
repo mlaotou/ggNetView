@@ -74,5 +74,16 @@ from \code{graph_obj} using \code{igraph::subgraph()}, then computes topology
 for each sample-specific subgraph via \code{get_network_topology()}.
 }
 \examples{
-NULL
+\dontrun{
+# `mat` is the OTU/feature-by-sample matrix used to build `graph_obj`.
+obj <- build_graph_from_mat(mat = mat, method = "cor")
+res <- get_sample_subgraph_topology_parallel(
+  graph_obj = obj,
+  mat       = mat,
+  bootstrap = 10,
+  parallel  = TRUE,
+  n_workers = 2
+)
+head(res$topology)
+}
 }

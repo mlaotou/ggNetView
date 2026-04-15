@@ -19,7 +19,21 @@
 #' @returns A graph object representing the correlation-based two numeric matrix.
 #' @export
 #'
-#' @examples NULL
+#' @examples
+#' \donttest{
+#' set.seed(1)
+#' mat1 <- matrix(stats::rnorm(15 * 20), nrow = 15, ncol = 20)
+#' mat2 <- matrix(stats::rnorm(10 * 20), nrow = 10, ncol = 20)
+#' rownames(mat1) <- paste0("A", seq_len(15))
+#' rownames(mat2) <- paste0("B", seq_len(10))
+#' colnames(mat1) <- colnames(mat2) <- paste0("sample", seq_len(20))
+#' obj <- build_graph_from_double_mat(
+#'   mat1          = mat1,
+#'   mat2          = mat2,
+#'   module.method = "Fast_greedy"
+#' )
+#' obj
+#' }
 build_graph_from_double_mat <- function(mat1,
                                         mat2,
                                         module.method = c("Fast_greedy", "Walktrap", "Edge_betweenness", "Spinglass"),
@@ -27,6 +41,8 @@ build_graph_from_double_mat <- function(mat1,
                                         directed = F,
                                         top_modules = 15,
                                         seed = 1115){
+
+  module.method <- match.arg(module.method)
 
   df1 = mat1 %>% t() %>% as.data.frame()
   df2 = mat2 %>% t() %>% as.data.frame()

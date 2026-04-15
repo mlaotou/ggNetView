@@ -271,7 +271,15 @@
 #' and optional topology results.
 #' @export
 #'
-#' @examples NULL
+#' @examples
+#' \dontrun{
+#' # Provide either `mat` + `group_info` or a pre-built `graph_obj_list`.
+#' p <- ggNetView_multi_link(
+#'   mat        = mat,
+#'   group_info = group_info,
+#'   method     = "cor"
+#' )
+#' }
 ggNetView_multi_link <- function(mat = NULL,
                                  group_info = NULL,
                                  graph_obj_list = NULL,

@@ -11,7 +11,13 @@
 #' @returns A Data frame contain from, to and weight
 #' @export
 #'
-#' @examples NULL
+#' @examples
+#' \dontrun{
+#' # `TOM` is a topological overlap matrix from WGCNA and `mat` is the
+#' # expression matrix used to compute it.
+#' edge_df <- trans_TOM_in_WGCNA(TOM = TOM, mat = mat, threshold = 0.1)
+#' head(edge_df)
+#' }
 trans_TOM_in_WGCNA <- function(TOM, mat, threshold = NULL){
   TOM_mat <- as.matrix(TOM) %>%
     as.data.frame() %>%

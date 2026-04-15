@@ -16,7 +16,15 @@
 #' Node/edge attributes include correlation statistics and (optionally) module labels.
 #' @export
 #'
-#' @examples NULL
+#' @examples
+#' \dontrun{
+#' # `node_annotation` must contain a `Modularity` column that assigns
+#' # each node to a module.
+#' obj <- build_graph_from_module(
+#'   df              = edge_df,
+#'   node_annotation = node_annotation
+#' )
+#' }
 build_graph_from_module <- function(df,
                                     node_annotation = NULL,
                                     directed = F,

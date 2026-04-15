@@ -49,7 +49,23 @@
 #'
 #' @export
 #'
-#' @examples NULL
+#' @examples
+#' \donttest{
+#' set.seed(1)
+#' mat <- matrix(stats::rnorm(40 * 20), nrow = 40, ncol = 20)
+#' rownames(mat) <- paste0("feature", seq_len(40))
+#' colnames(mat) <- paste0("sample",  seq_len(20))
+#' obj <- build_graph_from_mat(
+#'   mat           = mat,
+#'   method        = "cor",
+#'   cor.method    = "pearson",
+#'   proc          = "none",
+#'   r.threshold   = 0.3,
+#'   p.threshold   = 0.05,
+#'   module.method = "Fast_greedy"
+#' )
+#' obj
+#' }
 build_graph_from_mat <- function(mat,
                                  transfrom.method = c("none", "scale", "center", "log2", "log10", "ln", "rrarefy", "rrarefy_relative"),
                                  r.threshold = 0.7,

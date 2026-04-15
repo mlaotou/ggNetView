@@ -85,5 +85,20 @@ Node/edge attributes include correlation statistics and (optionally) module labe
 Build a correlation-based network from a matrix
 }
 \examples{
-NULL
+\donttest{
+set.seed(1)
+mat <- matrix(stats::rnorm(40 * 20), nrow = 40, ncol = 20)
+rownames(mat) <- paste0("feature", seq_len(40))
+colnames(mat) <- paste0("sample",  seq_len(20))
+obj <- build_graph_from_mat(
+  mat           = mat,
+  method        = "cor",
+  cor.method    = "pearson",
+  proc          = "none",
+  r.threshold   = 0.3,
+  p.threshold   = 0.05,
+  module.method = "Fast_greedy"
+)
+obj
+}
 }

@@ -88,10 +88,11 @@ A list with: chosen_threshold, chosen_reason, tested_thresholds, scores (data.fr
 One-shot, non-interactive RMT threshold scan with auto selection
 }
 \examples{
-NULL
-
-
-# m <- cor(scale(matrix(rnorm(40000), 200, 200)))
-# res <- ggNetView_RMT(m, save_plots=TRUE)
-# res$chosen_threshold
+\dontrun{
+set.seed(1)
+m <- stats::cor(scale(matrix(stats::rnorm(40000), 200, 200)))
+rownames(m) <- colnames(m) <- paste0("g", seq_len(200))
+res <- ggNetView_RMT(m, method = "cor")
+res$chosen_threshold
+}
 }

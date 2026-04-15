@@ -15,7 +15,16 @@
 #'
 #' @export
 #'
-#' @examples NULL
+#' @examples
+#' \dontrun{
+#' # `wgcna_tom` is a long-format TOM edge list (from, to, weight)
+#' # produced by `trans_TOM_in_WGCNA()`, and `module` is the WGCNA
+#' # module-assignment data frame with columns (ID, Module).
+#' obj <- build_graph_from_wgcna(
+#'   wgcna_tom = wgcna_tom,
+#'   module    = module
+#' )
+#' }
 build_graph_from_wgcna <- function(wgcna_tom,
                                    module = NULL,
                                    node_annotation = NULL,

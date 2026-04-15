@@ -14,7 +14,15 @@
 #' @returns An graph object representing the correlation network.
 #' @export
 #'
-#' @examples NULL
+#' @examples
+#' \dontrun{
+#' # `node_annotation` must contain a `Modularity` column that assigns
+#' # each node to a module.
+#' obj <- build_graph_from_adj_mat_module(
+#'   adjacency_matrix = adj_mat,
+#'   node_annotation  = node_annotation
+#' )
+#' }
 build_graph_from_adj_mat_module <- function(adjacency_matrix,
                                             node_annotation = NULL,
                                             directed = F,

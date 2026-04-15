@@ -275,5 +275,30 @@ A ggplot object, or when \code{return_layout = TRUE}, a list with
 Visualize a network with custom layouts
 }
 \examples{
-NULL
+data(ppi_example)
+obj <- build_graph_from_df(
+  df              = ppi_example$ppi,
+  node_annotation = ppi_example$annotation,
+  module.method   = "Fast_greedy",
+  top_modules     = 5
+)
+
+ggNetView(
+  graph_obj     = obj,
+  layout        = "fr",
+  layout.module = "adjacent",
+  pointsize     = c(3, 8),
+  seed          = 1115
+)
+\donttest{
+ggNetView(
+  graph_obj       = obj,
+  layout          = "gephi",
+  layout.module   = "adjacent",
+  pointsize       = c(3, 8),
+  label           = TRUE,
+  add_group_outer = TRUE,
+  seed            = 1115
+)
+}
 }

@@ -16,7 +16,16 @@
 #' @returns A graph object representing the correlation-based two numeric matrix.
 #' @export
 #'
-#' @examples NULL
+#' @examples
+#' \dontrun{
+#' # `node_annotation` must contain a `Modularity` column that assigns each
+#' # node (rownames of `mat1` and `mat2`) to a module.
+#' obj <- build_graph_from_double_mat_with_module(
+#'   mat1            = mat1,
+#'   mat2            = mat2,
+#'   node_annotation = node_annotation
+#' )
+#' }
 build_graph_from_double_mat_with_module <- function(mat1,
                                                     mat2,
                                                     node_annotation = NULL,

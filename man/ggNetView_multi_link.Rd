@@ -449,5 +449,12 @@ Provide either \code{(mat, group_info)} or \code{graph_obj_list} as input.
 When \code{graph_obj_list} is provided, \code{mat} and \code{group_info} are ignored.
 }
 \examples{
-NULL
+\dontrun{
+# Provide either `mat` + `group_info` or a pre-built `graph_obj_list`.
+p <- ggNetView_multi_link(
+  mat        = mat,
+  group_info = group_info,
+  method     = "cor"
+)
+}
 }

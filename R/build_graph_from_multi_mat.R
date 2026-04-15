@@ -20,7 +20,25 @@
 #' @returns A graph object representing the correlation-based multi numeric matrix.
 #' @export
 #'
-#' @examples NULL
+#' @examples
+#' \donttest{
+#' set.seed(1)
+#' mat1 <- matrix(stats::rnorm(10 * 20), nrow = 10, ncol = 20)
+#' mat2 <- matrix(stats::rnorm(10 * 20), nrow = 10, ncol = 20)
+#' mat3 <- matrix(stats::rnorm(10 * 20), nrow = 10, ncol = 20)
+#' rownames(mat1) <- paste0("A", seq_len(10))
+#' rownames(mat2) <- paste0("B", seq_len(10))
+#' rownames(mat3) <- paste0("C", seq_len(10))
+#' colnames(mat1) <- colnames(mat2) <- colnames(mat3) <-
+#'   paste0("sample", seq_len(20))
+#' obj <- build_graph_from_multi_mat(
+#'   mat1          = mat1,
+#'   mat2          = mat2,
+#'   mat3,
+#'   module.method = "Fast_greedy"
+#' )
+#' obj
+#' }
 build_graph_from_multi_mat <- function(mat1,
                                        mat2,
                                        ...,

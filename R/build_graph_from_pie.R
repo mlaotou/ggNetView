@@ -14,7 +14,13 @@
 #'   Node/edge attributes include correlation statistics and (optionally) module labels.
 #' @export
 #'
-#' @examples NULL
+#' @examples
+#' data(ppi_example)
+#' obj <- build_graph_from_pie(
+#'   df              = ppi_example$ppi,
+#'   node_annotation = ppi_example$annotation
+#' )
+#' obj
 build_graph_from_pie <- function(df,
                                  node_annotation = NULL,
                                  directed = F,

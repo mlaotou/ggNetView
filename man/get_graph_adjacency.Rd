@@ -18,5 +18,12 @@ colnames. Non-zero entries indicate edges; values correspond to edge weights
 when the graph is weighted.
 }
 \examples{
-NULL
+data(ppi_example)
+obj <- build_graph_from_df(
+  df              = ppi_example$ppi,
+  node_annotation = ppi_example$annotation
+)
+adj <- get_graph_adjacency(obj)
+dim(adj)
+adj[1:3, 1:3]
 }

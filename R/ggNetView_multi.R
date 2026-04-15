@@ -167,7 +167,17 @@
 #' @returns  A ggplot object representing the network visualization.
 #' @export
 #'
-#' @examples NULL
+#' @examples
+#' \dontrun{
+#' # `mat` is a numeric matrix (features x samples) and
+#' # `group_info` is a data frame with columns Sample and Group.
+#' p <- ggNetView_multi(
+#'   mat        = mat,
+#'   group_info = group_info,
+#'   method     = "cor",
+#'   layout     = "fr"
+#' )
+#' }
 ggNetView_multi <- function(mat,
                             group_info,
                             transfrom.method = c("none", "scale", "center", "log2", "log10", "ln", "rrarefy",

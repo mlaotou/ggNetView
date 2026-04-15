@@ -16,7 +16,14 @@
 #'          \code{env_block}, and \code{method} (e.g. \code{"correlation"} or \code{"mantel"}).
 #' @export
 #'
-#' @examples NULL
+#' @examples
+#' \dontrun{
+#' # Adaptive-sized variant of `gglink_heatmaps()`.
+#' p <- gglink_heatmaps_2(
+#'   env  = env,
+#'   spec = spec
+#' )
+#' }
 gglink_heatmaps_2 <- function(
     env,
     spec,

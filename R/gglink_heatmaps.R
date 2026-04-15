@@ -128,7 +128,14 @@
 #'          \code{env_block}, and \code{method} (e.g. \code{"correlation"} or \code{"mantel"}).
 #' @export
 #'
-#' @examples NULL
+#' @examples
+#' \dontrun{
+#' # `env` and `spec` are environmental / species abundance data frames.
+#' p <- gglink_heatmaps(
+#'   env  = env,
+#'   spec = spec
+#' )
+#' }
 gglink_heatmaps <- function(
     env,
     spec,

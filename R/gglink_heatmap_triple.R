@@ -19,7 +19,15 @@
 #' @returns a ggplot2 object
 #' @export
 #'
-#' @examples NULL
+#' @examples
+#' \dontrun{
+#' p <- gglink_heatmap_triple(
+#'   Environment = env_df,
+#'   Experiment  = exp_df,
+#'   edge        = edge_df,
+#'   node        = node_df
+#' )
+#' }
 gglink_heatmap_triple <- function(
     Environment,
     Experiment,

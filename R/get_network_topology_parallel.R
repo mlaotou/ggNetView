@@ -58,7 +58,21 @@
 #'   such results.
 #' @export
 #'
-#' @examples NULL
+#' @examples
+#' \dontrun{
+#' data(ppi_example)
+#' obj <- build_graph_from_df(
+#'   df              = ppi_example$ppi,
+#'   node_annotation = ppi_example$annotation
+#' )
+#' topo <- get_network_topology_parallel(
+#'   graph_obj = obj,
+#'   bootstrap = 20,
+#'   parallel  = TRUE,
+#'   n_workers = 2
+#' )
+#' head(topo$topology)
+#' }
 get_network_topology_parallel <- function(graph_obj = NULL,
                                           graph_obj_list = NULL,
                                           mat = NULL,

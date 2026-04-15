@@ -6,7 +6,15 @@
 #' @returns a list
 #' @export
 #'
-#' @examples NULL
+#' @examples
+#' data(adjacency_matrix_example)
+#' set.seed(1)
+#' idx <- sample(ncol(adjacency_matrix_example), 80)
+#' obj <- build_graph_from_adj_mat(adjacency_matrix_example[idx, idx])
+#' info <- get_info_from_graph(obj)
+#' names(info)
+#' head(info$node_info)
+#' head(info$edge_info)
 get_info_from_graph <- function(graph_obj){
   # node info
   node_info <-  graph_obj %>%

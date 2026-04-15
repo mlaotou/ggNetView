@@ -52,7 +52,16 @@
 #'   such results.
 #' @export
 #'
-#' @examples NULL
+#' @examples
+#' \donttest{
+#' data(ppi_example)
+#' obj <- build_graph_from_df(
+#'   df              = ppi_example$ppi,
+#'   node_annotation = ppi_example$annotation
+#' )
+#' topo <- get_network_topology(graph_obj = obj, bootstrap = 10)
+#' head(topo$topology)
+#' }
 get_network_topology <- function(graph_obj = NULL,
                                  graph_obj_list = NULL,
                                  mat = NULL,

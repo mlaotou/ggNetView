@@ -9,7 +9,13 @@
 #'
 #' @export
 #'
-#' @examples NULL
+#' @examples
+#' data(ppi_example)
+#' obj <- build_graph_from_df(
+#'   df              = ppi_example$ppi,
+#'   node_annotation = ppi_example$annotation
+#' )
+#' head(get_graph_nodes(obj))
 get_graph_nodes <- function(graph_obj) {
   as.data.frame(tidygraph::as_tibble(graph_obj))
 }

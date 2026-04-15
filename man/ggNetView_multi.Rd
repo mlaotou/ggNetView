@@ -321,5 +321,14 @@ A ggplot object representing the network visualization.
 Visualize network with custom layouts in different samples
 }
 \examples{
-NULL
+\dontrun{
+# `mat` is a numeric matrix (features x samples) and
+# `group_info` is a data frame with columns Sample and Group.
+p <- ggNetView_multi(
+  mat        = mat,
+  group_info = group_info,
+  method     = "cor",
+  layout     = "fr"
+)
+}
 }

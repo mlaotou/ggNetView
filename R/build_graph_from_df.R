@@ -17,8 +17,16 @@
 #'   Node/edge attributes include correlation statistics and (optionally) module labels.
 #' @export
 #'
-#'
-#' @examples NULL
+#' @examples
+#' data(ppi_example)
+#' obj <- build_graph_from_df(
+#'   df              = ppi_example$ppi,
+#'   node_annotation = ppi_example$annotation,
+#'   directed        = FALSE,
+#'   module.method   = "Fast_greedy",
+#'   top_modules     = 5
+#' )
+#' obj
 #'
 build_graph_from_df <- function(df,
                                 node_annotation = NULL,
@@ -26,6 +34,8 @@ build_graph_from_df <- function(df,
                                 module.method = c("Fast_greedy", "Walktrap", "Edge_betweenness", "Spinglass"),
                                 top_modules = 15,
                                 seed = 1115){
+
+  module.method <- match.arg(module.method)
 
   set.seed(seed)
 

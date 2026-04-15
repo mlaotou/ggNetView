@@ -29,5 +29,12 @@ for seamless integration with \code{ggNetView()}. All other node columns
 are preserved.
 }
 \examples{
-NULL
+data(ppi_example)
+obj <- build_graph_from_df(
+  df              = ppi_example$ppi,
+  node_annotation = ppi_example$annotation
+)
+# Re-assign modularity from the existing `group` node column.
+obj2 <- update_graph_modules2(graph_obj = obj, modules_new = "group")
+levels(get_graph_nodes(obj2)$Modularity)
 }

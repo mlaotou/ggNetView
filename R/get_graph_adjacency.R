@@ -10,7 +10,15 @@
 #'
 #' @export
 #'
-#' @examples NULL
+#' @examples
+#' data(ppi_example)
+#' obj <- build_graph_from_df(
+#'   df              = ppi_example$ppi,
+#'   node_annotation = ppi_example$annotation
+#' )
+#' adj <- get_graph_adjacency(obj)
+#' dim(adj)
+#' adj[1:3, 1:3]
 get_graph_adjacency <- function(graph_obj) {
   nodes <- tidygraph::as_tibble(graph_obj)
   adj_mat <- as.matrix(igraph::as_adjacency_matrix(tidygraph::as.igraph(graph_obj)))

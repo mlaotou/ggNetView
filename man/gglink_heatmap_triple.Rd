@@ -46,5 +46,12 @@ a ggplot2 object
 Visualize multi-orientation environmental-species correlation heatmaps2
 }
 \examples{
-NULL
+\dontrun{
+p <- gglink_heatmap_triple(
+  Environment = env_df,
+  Experiment  = exp_df,
+  edge        = edge_df,
+  node        = node_df
+)
+}
 }

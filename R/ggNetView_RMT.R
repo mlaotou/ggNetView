@@ -40,12 +40,14 @@
 #'         unfolded (last-step unfolding), meta (matrix info & params), plots (file paths if saved).
 #' @export
 #'
-#' @examples NULL
-#'
-#'
-#' # m <- cor(scale(matrix(rnorm(40000), 200, 200)))
-#' # res <- ggNetView_RMT(m, save_plots=TRUE)
-#' # res$chosen_threshold
+#' @examples
+#' \dontrun{
+#' set.seed(1)
+#' m <- stats::cor(scale(matrix(stats::rnorm(40000), 200, 200)))
+#' rownames(m) <- colnames(m) <- paste0("g", seq_len(200))
+#' res <- ggNetView_RMT(m, method = "cor")
+#' res$chosen_threshold
+#' }
 ggNetView_RMT <- function(
     mat,
     transfrom.method = c("none", "scale", "center", "log2", "log10", "ln", "rrarefy", "rrarefy_relative"),

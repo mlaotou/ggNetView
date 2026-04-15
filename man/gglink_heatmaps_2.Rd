@@ -217,5 +217,11 @@ All tiles share the same size; larger env blocks simply extend further.
 The central species network is always kept at the centre of the canvas.
 }
 \examples{
-NULL
+\dontrun{
+# Adaptive-sized variant of `gglink_heatmaps()`.
+p <- gglink_heatmaps_2(
+  env  = env,
+  spec = spec
+)
+}
 }

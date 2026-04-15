@@ -100,5 +100,18 @@ Generates a data frame containing network topology information from either a
 pre-built graph object or directly from an adjacency matrix.
 }
 \examples{
-NULL
+\dontrun{
+data(ppi_example)
+obj <- build_graph_from_df(
+  df              = ppi_example$ppi,
+  node_annotation = ppi_example$annotation
+)
+topo <- get_network_topology_parallel(
+  graph_obj = obj,
+  bootstrap = 20,
+  parallel  = TRUE,
+  n_workers = 2
+)
+head(topo$topology)
+}
 }

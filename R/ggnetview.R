@@ -147,7 +147,33 @@
 #' \code{$plot} and \code{$layout_data}.
 #' @export
 #'
-#' @examples NULL
+#' @examples
+#' data(ppi_example)
+#' obj <- build_graph_from_df(
+#'   df              = ppi_example$ppi,
+#'   node_annotation = ppi_example$annotation,
+#'   module.method   = "Fast_greedy",
+#'   top_modules     = 5
+#' )
+#'
+#' ggNetView(
+#'   graph_obj     = obj,
+#'   layout        = "fr",
+#'   layout.module = "adjacent",
+#'   pointsize     = c(3, 8),
+#'   seed          = 1115
+#' )
+#' \donttest{
+#' ggNetView(
+#'   graph_obj       = obj,
+#'   layout          = "gephi",
+#'   layout.module   = "adjacent",
+#'   pointsize       = c(3, 8),
+#'   label           = TRUE,
+#'   add_group_outer = TRUE,
+#'   seed            = 1115
+#' )
+#' }
 ggNetView <- function(graph_obj,
                       layout = NULL,
                       node_add = 7,
@@ -208,6 +234,8 @@ ggNetView <- function(graph_obj,
                       scale_radius = NULL,
                       return_layout = FALSE
                       ){
+
+  layout.module <- match.arg(layout.module)
 
   set.seed(seed)
 
@@ -704,7 +732,7 @@ ggNetView <- function(graph_obj,
           dplyr::ungroup()
       }
     }
-    fill_classes <- unique(ly1_1[["graph_ly_final"]][[fill.by]])
+    fill_classes <- .ggnv_class_order(ly1_1[["graph_ly_final"]][[fill.by]])
     merge_point_legends <- is.character(shape) && identical(shape, fill.by)
     fill_scale_points <- if (is.null(fill)) {
       scale_fill_ggnetview(fill_classes,
@@ -729,7 +757,7 @@ ggNetView <- function(graph_obj,
         )
       } else if (is.null(color)) {
         color_scale_points <- scale_color_ggnetview(
-          unique(color_values),
+          .ggnv_class_order(color_values),
           labels = function(x) point_legend_label_fun(x, color.by),
           guide = if (same_fill_color_mapping) "none" else ggplot2::guide_legend(ncol = 1, order = 2)
         )
@@ -743,7 +771,7 @@ ggNetView <- function(graph_obj,
     }
     shape_scale_points <- NULL
     if (is.character(shape)) {
-      shape_classes <- unique(ly1_1[["graph_ly_final"]][[shape]])
+      shape_classes <- .ggnv_class_order(ly1_1[["graph_ly_final"]][[shape]])
       shape_values <- rep(21:25, length.out = length(shape_classes))
       shape_scale_points <- ggplot2::scale_shape_manual(
         values = shape_values,
@@ -873,7 +901,7 @@ ggNetView <- function(graph_obj,
 
       .build_label_location()
 
-      lab_classes <- sort(unique(lab_df$Modularity))
+      lab_classes <- .ggnv_class_order(lab_df$Modularity)
       fill_scale_lab <- if (is.null(fill)) scale_fill_ggnetview(lab_classes, labels = module_label_fun) else ggplot2::scale_fill_manual(values = fill, labels = module_label_fun)
       color_scale_lab <- if (is.null(color)) scale_color_ggnetview(lab_classes, labels = module_label_fun) else ggplot2::scale_color_manual(values = color, labels = module_label_fun)
 
@@ -913,7 +941,7 @@ ggNetView <- function(graph_obj,
 
       maskTable <- maskTable %>% dplyr::mutate(cluster = factor(cluster, levels = levels(ly1_1[["graph_ly_final"]]$Modularity), ordered = T))
 
-      mask_classes <- levels(maskTable$cluster)
+      mask_classes <- .ggnv_class_order(maskTable$cluster)
       fill_scale_mask <- if (is.null(fill)) scale_fill_ggnetview(mask_classes, labels = module_label_fun) else ggplot2::scale_fill_manual(values = fill, labels = module_label_fun)
       color_scale_mask <- if (is.null(color)) scale_color_ggnetview(mask_classes, labels = module_label_fun) else ggplot2::scale_color_manual(values = color, labels = module_label_fun)
 
@@ -941,8 +969,8 @@ ggNetView <- function(graph_obj,
 
       maskTable <- maskTable %>% dplyr::mutate(cluster = factor(cluster, levels = levels(ly1_1[["graph_ly_final"]]$Modularity), ordered = T))
 
-      lab_classes_outer <- levels(lab_df$Modularity)
-      mask_classes_outer <- levels(maskTable$cluster)
+      lab_classes_outer <- .ggnv_class_order(lab_df$Modularity)
+      mask_classes_outer <- .ggnv_class_order(maskTable$cluster)
       fill_scale_lab_outer <- if (is.null(fill)) scale_fill_ggnetview(lab_classes_outer, labels = module_label_fun) else ggplot2::scale_fill_manual(values = fill, labels = module_label_fun)
       color_scale_lab_outer <- if (is.null(color)) scale_color_ggnetview(lab_classes_outer, labels = module_label_fun) else ggplot2::scale_color_manual(values = color, labels = module_label_fun)
       fill_scale_mask_outer <- if (is.null(fill)) scale_fill_ggnetview(mask_classes_outer, na_value = NA, labels = module_label_fun) else ggplot2::scale_fill_manual(values = fill, labels = module_label_fun)

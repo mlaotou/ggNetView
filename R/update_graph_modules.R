@@ -19,7 +19,17 @@
 #'   (and \code{modularity} if that column exists).
 #' @export
 #'
-#' @examples NULL
+#' @examples
+#' data(ppi_example)
+#' obj <- build_graph_from_df(
+#'   df              = ppi_example$ppi,
+#'   node_annotation = ppi_example$annotation
+#' )
+#' obj2 <- update_graph_modules(
+#'   graph_obj = obj,
+#'   modules   = c("1" = "ModuleA", "2" = "ModuleB")
+#' )
+#' levels(get_graph_nodes(obj2)$Modularity)
 update_graph_modules <- function(graph_obj,
                                  modules,
                                  old_col = NULL,
@@ -176,7 +186,15 @@ update_graph_modules <- function(graph_obj,
 #'   All other node columns are preserved.
 #' @export
 #'
-#' @examples NULL
+#' @examples
+#' data(ppi_example)
+#' obj <- build_graph_from_df(
+#'   df              = ppi_example$ppi,
+#'   node_annotation = ppi_example$annotation
+#' )
+#' # Re-assign modularity from the existing `group` node column.
+#' obj2 <- update_graph_modules2(graph_obj = obj, modules_new = "group")
+#' levels(get_graph_nodes(obj2)$Modularity)
 update_graph_modules2 <- function(graph_obj,
                                  modules_new,
                                  levels = NULL) {
