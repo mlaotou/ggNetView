@@ -1,3 +1,4 @@
+#' @noRd
 create_layout_tripartite_equal_gephi_layout <- function(
     graph_obj,
     scale = TRUE,

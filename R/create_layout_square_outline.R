@@ -1,3 +1,4 @@
+#' @noRd
 create_layout_square_outline <- function(
     graph_obj,
     r = 6,

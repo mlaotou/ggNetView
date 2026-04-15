@@ -1,3 +1,4 @@
+#' @noRd
 generateMask_ggnetview <- function(dims,
                                    clusters,
                                    q = 0.88,

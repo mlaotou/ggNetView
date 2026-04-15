@@ -20,10 +20,7 @@ get_info_from_graph <- function(graph_obj){
   node_info <-  graph_obj %>%
     tidygraph::activate(nodes) %>%
     tidygraph::as_tibble() %>%
-    dplyr::select(-modularity,
-                  -modularity2,
-                  -modularity3
-                  )
+    dplyr::select(-dplyr::any_of(c("modularity", "modularity2", "modularity3")))
 
   node_info2 <- graph_obj %>%
     tidygraph::activate(nodes) %>%
@@ -33,6 +30,7 @@ get_info_from_graph <- function(graph_obj){
 
 
   # edge info
+  edge_cols <- c("name_from", "name_to", "weight", "correlation", "corr_direction")
   edge_info <- graph_obj %>%
     tidygraph::activate(edges) %>%
     tidygraph::as_tibble() %>%
@@ -42,7 +40,7 @@ get_info_from_graph <- function(graph_obj){
     dplyr::left_join(node_info2,
                      by = c("to" = "id")) %>%
     dplyr::rename(name_to = name) %>%
-    dplyr::select(name_from, name_to, weight, correlation, corr_direction) %>%
+    dplyr::select(dplyr::any_of(edge_cols)) %>%
     dplyr::rename(from = name_from,
                   to = name_to)
 

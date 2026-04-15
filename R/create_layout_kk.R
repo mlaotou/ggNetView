@@ -1,3 +1,4 @@
+#' @noRd
 create_layout_kk <- function(
     graph_obj,
     node_add = NULL,

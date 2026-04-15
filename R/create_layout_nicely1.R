@@ -1,3 +1,4 @@
+#' @noRd
 create_layout_nicely1 <- function(
     graph_obj,
     node_add = NULL,

@@ -1,3 +1,4 @@
+#' @noRd
 create_layout_square <- function(
     graph_obj,
     node_add = 7,

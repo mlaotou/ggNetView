@@ -1,3 +1,4 @@
+#' @noRd
 create_layout_stress <- function(
     graph_obj,
     node_add = NULL,

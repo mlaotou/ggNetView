@@ -1,4 +1,5 @@
 
+#' @noRd
 create_layout_star_concentric <- function(
     graph_obj,
     node_add   = 7,

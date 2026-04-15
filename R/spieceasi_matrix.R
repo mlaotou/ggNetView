@@ -2,6 +2,7 @@
 # Input: samples x taxa count matrix.
 # Default output: numeric partial-correlation matrix for method = "glasso".
 
+#' @noRd
 clr_vec <- function(x.f, base = exp(1), tol = .Machine$double.eps) {
   nzero <- (x.f >= tol)
   log_x <- log(ifelse(nzero, x.f, 1), base)

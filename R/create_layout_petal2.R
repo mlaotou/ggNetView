@@ -1,3 +1,4 @@
+#' @noRd
 create_layout_petal2 <- function(graph_obj,
                                  node_add = 7,
                                  r = 0.1,

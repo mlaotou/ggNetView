@@ -2,6 +2,7 @@
 # Input: samples x taxa count matrix.
 # Default output: numeric correlation matrix.
 
+#' @noRd
 norm_to_total <- function(x) {
   x / sum(x)
 }

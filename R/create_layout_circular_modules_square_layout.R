@@ -1,3 +1,4 @@
+#' @noRd
 create_layout_circular_modules_square_layout <- function(
     graph_obj,
     r = 1,

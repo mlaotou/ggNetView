@@ -1,5 +1,6 @@
 
 
+#' @noRd
 create_layout_diamond_outline <- function(
     graph_obj,
     r = 6,

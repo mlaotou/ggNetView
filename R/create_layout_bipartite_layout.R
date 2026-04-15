@@ -1,3 +1,4 @@
+#' @noRd
 create_layout_bipartite_layout <- function(
     graph_obj,
     r = 6,

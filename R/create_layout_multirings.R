@@ -1,3 +1,4 @@
+#' @noRd
 create_layout_multirings <- function(graph_obj,
                                      r = 1,
                                      node_add = 7,

@@ -66,6 +66,15 @@ build_graph_from_igraph <- function(igraph,
     igraph::E(g)$weight <- 1
   }
 
+  if (igraph::any_multiple(g) || any(igraph::which_loop(g))) {
+    g <- igraph::simplify(
+      g,
+      remove.multiple = TRUE,
+      remove.loops    = TRUE,
+      edge.attr.comb  = list(weight = "sum", "first")
+    )
+  }
+
   if (use_existing_modules) {
     module_values <- igraph::vertex_attr(g, detected_module_attr)
     if (all(is.na(module_values))) {

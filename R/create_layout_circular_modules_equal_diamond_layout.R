@@ -1,3 +1,4 @@
+#' @noRd
 create_layout_circular_modules_equal_diamond_layout <- function(
     graph_obj,
     r = 1,

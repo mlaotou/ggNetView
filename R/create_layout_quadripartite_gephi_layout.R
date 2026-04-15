@@ -1,3 +1,4 @@
+#' @noRd
 create_layout_quadripartite_gephi_layout <- function(
     graph_obj,
     r = 1,

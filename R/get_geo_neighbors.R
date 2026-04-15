@@ -1,3 +1,4 @@
+#' @noRd
 get_neighbors <- function(ly,
                           k = 5,
                           idx = NULL,

@@ -1,3 +1,4 @@
+#' @noRd
 create_layout_circular_modules_heart_centered_layout <- function(
     graph_obj,
     r = 0.15,

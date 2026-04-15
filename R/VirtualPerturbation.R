@@ -1,3 +1,4 @@
+#' @noRd
 VirtualPerturbation <- function(mat,
                                 transfrom.method = c("none", "scale", "center", "log2", "log10", "ln", "rrarefy", "rrarefy_relative"),
                                 r.threshold = 0.7,

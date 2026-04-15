@@ -1,3 +1,4 @@
+#' @noRd
 create_layout_consensus_module_equal_gephi <- function(
     graph_obj,
     scale = T,

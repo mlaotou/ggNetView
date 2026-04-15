@@ -1,3 +1,4 @@
+#' @noRd
 split_modules <- function(df, universe = NULL) {
   if (!is.null(universe)) {
     df <- df[df$name %in% universe, ]

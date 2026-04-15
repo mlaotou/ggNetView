@@ -1,3 +1,4 @@
+#' @noRd
 apply_transform_method <- function(mat, transfrom.method) {
   if (length(transfrom.method) != 1L || is.na(transfrom.method)) {
     stop("`transfrom.method` must be a single non-missing character value.", call. = FALSE)

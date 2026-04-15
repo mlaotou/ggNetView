@@ -1,3 +1,4 @@
+#' @noRd
 create_layout_heart_centered <- function(
     graph_obj,
     r = 0.15,
