@@ -149,8 +149,8 @@
   "hotPaths": [
     {
       "path": "R/ggnetview.R",
-      "accessCount": 33,
-      "lastAccessed": 1776251916485,
+      "accessCount": 35,
+      "lastAccessed": 1776267134227,
       "type": "file"
     },
     {
@@ -160,15 +160,15 @@
       "type": "directory"
     },
     {
-      "path": "R/get_geo_neighbors.R",
-      "accessCount": 10,
-      "lastAccessed": 1776212065811,
+      "path": "DESCRIPTION",
+      "accessCount": 12,
+      "lastAccessed": 1776265691881,
       "type": "file"
     },
     {
-      "path": "DESCRIPTION",
+      "path": "R/get_geo_neighbors.R",
       "accessCount": 10,
-      "lastAccessed": 1776253563157,
+      "lastAccessed": 1776212065811,
       "type": "file"
     },
     {
@@ -185,14 +185,20 @@
     },
     {
       "path": "R/ggnetview_zipi.R",
-      "accessCount": 7,
-      "lastAccessed": 1776212145321,
+      "accessCount": 8,
+      "lastAccessed": 1776267942327,
       "type": "file"
     },
     {
       "path": "R/get_sample_subgraph_topology_parallel.R",
       "accessCount": 7,
       "lastAccessed": 1776245341200,
+      "type": "file"
+    },
+    {
+      "path": "R/get_network_topology.R",
+      "accessCount": 7,
+      "lastAccessed": 1776267941521,
       "type": "file"
     },
     {
@@ -208,12 +214,6 @@
       "type": "file"
     },
     {
-      "path": "R/get_network_topology.R",
-      "accessCount": 5,
-      "lastAccessed": 1776245325870,
-      "type": "file"
-    },
-    {
       "path": "R/get_network_topology_parallel.R",
       "accessCount": 5,
       "lastAccessed": 1776245336178,
@@ -221,8 +221,8 @@
     },
     {
       "path": "R/data.R",
-      "accessCount": 4,
-      "lastAccessed": 1776241823427,
+      "accessCount": 5,
+      "lastAccessed": 1776265735780,
       "type": "file"
     },
     {
@@ -238,6 +238,12 @@
       "type": "file"
     },
     {
+      "path": "NAMESPACE",
+      "accessCount": 4,
+      "lastAccessed": 1776265698342,
+      "type": "file"
+    },
+    {
       "path": "R/update_graph_modules.R",
       "accessCount": 3,
       "lastAccessed": 1776244705324,
@@ -250,33 +256,33 @@
       "type": "file"
     },
     {
+      "path": "cran-comments.md",
+      "accessCount": 3,
+      "lastAccessed": 1776262890437,
+      "type": "file"
+    },
+    {
+      "path": "NEWS.md",
+      "accessCount": 3,
+      "lastAccessed": 1776262891589,
+      "type": "file"
+    },
+    {
+      "path": "vignettes/ggNetView-intro.Rmd",
+      "accessCount": 3,
+      "lastAccessed": 1776265698100,
+      "type": "file"
+    },
+    {
       "path": "R/ggnetview_modularity_heatmaps.R",
-      "accessCount": 2,
-      "lastAccessed": 1776211502787,
+      "accessCount": 3,
+      "lastAccessed": 1776267942726,
       "type": "file"
     },
     {
       "path": "R/globals.R",
       "accessCount": 2,
       "lastAccessed": 1776212948166,
-      "type": "file"
-    },
-    {
-      "path": "NAMESPACE",
-      "accessCount": 2,
-      "lastAccessed": 1776241574979,
-      "type": "file"
-    },
-    {
-      "path": "cran-comments.md",
-      "accessCount": 2,
-      "lastAccessed": 1776241589284,
-      "type": "file"
-    },
-    {
-      "path": "NEWS.md",
-      "accessCount": 2,
-      "lastAccessed": 1776241589575,
       "type": "file"
     },
     {
@@ -352,6 +358,12 @@
       "type": "file"
     },
     {
+      "path": "vignettes/correlation-networks.Rmd",
+      "accessCount": 2,
+      "lastAccessed": 1776268030940,
+      "type": "file"
+    },
+    {
       "path": "README.md",
       "accessCount": 1,
       "lastAccessed": 1776209805960,
@@ -406,9 +418,9 @@
       "type": "directory"
     },
     {
-      "path": "vignettes/ggNetView-intro.Rmd",
+      "path": "tests/testthat/test-apply-transform-method.R",
       "accessCount": 1,
-      "lastAccessed": 1776253874730,
+      "lastAccessed": 1776262916801,
       "type": "file"
     }
   ],
