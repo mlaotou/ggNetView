@@ -902,11 +902,9 @@ ggNetView <- function(graph_obj,
       .build_label_location()
 
       lab_classes <- .ggnv_class_order(lab_df$Modularity)
-      fill_scale_lab <- if (is.null(fill)) scale_fill_ggnetview(lab_classes, labels = module_label_fun) else ggplot2::scale_fill_manual(values = fill, labels = module_label_fun)
       color_scale_lab <- if (is.null(color)) scale_color_ggnetview(lab_classes, labels = module_label_fun) else ggplot2::scale_color_manual(values = color, labels = module_label_fun)
 
       p1_1 <- p1_1 +
-        ggnewscale::new_scale_fill() +
         ggnewscale::new_scale_color() +
         ggrepel::geom_text_repel(data = lab_df %>% dplyr::mutate(.label_text = module_label_fun(modularity3)),
                                  mapping = ggplot2::aes(x = x,
@@ -926,7 +924,6 @@ ggNetView <- function(graph_obj,
                                  force = 0.05,
                                  show.legend = F
         ) +
-        fill_scale_lab +
         color_scale_lab +
         ggplot2::coord_equal(clip = "off",
                              xlim = c(xr[1] - pad, xr[2] + pad),
@@ -971,13 +968,11 @@ ggNetView <- function(graph_obj,
 
       lab_classes_outer <- .ggnv_class_order(lab_df$Modularity)
       mask_classes_outer <- .ggnv_class_order(maskTable$cluster)
-      fill_scale_lab_outer <- if (is.null(fill)) scale_fill_ggnetview(lab_classes_outer, labels = module_label_fun) else ggplot2::scale_fill_manual(values = fill, labels = module_label_fun)
       color_scale_lab_outer <- if (is.null(color)) scale_color_ggnetview(lab_classes_outer, labels = module_label_fun) else ggplot2::scale_color_manual(values = color, labels = module_label_fun)
       fill_scale_mask_outer <- if (is.null(fill)) scale_fill_ggnetview(mask_classes_outer, na_value = NA, labels = module_label_fun) else ggplot2::scale_fill_manual(values = fill, labels = module_label_fun)
       color_scale_mask_outer <- if (is.null(color)) scale_color_ggnetview(mask_classes_outer, na_value = NA, labels = module_label_fun) else ggplot2::scale_color_manual(values = color, labels = module_label_fun)
 
       p1_1 <- p1_1 +
-        ggnewscale::new_scale_fill() +
         ggnewscale::new_scale_color() +
         ggrepel::geom_text_repel(data = lab_df %>% dplyr::mutate(.label_text = module_label_fun(modularity3)),
                                  mapping = ggplot2::aes(x = x,
@@ -997,7 +992,6 @@ ggNetView <- function(graph_obj,
                                  force = 0.05,
                                  show.legend = F
         ) +
-        fill_scale_lab_outer +
         color_scale_lab_outer +
         ggnewscale::new_scale_fill() +
         ggnewscale::new_scale_color() +

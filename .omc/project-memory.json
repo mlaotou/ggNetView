@@ -150,6 +150,18 @@
   },
   "hotPaths": [
     {
+      "path": "R/ggnetview.R",
+      "accessCount": 17,
+      "lastAccessed": 1776330480948,
+      "type": "directory"
+    },
+    {
+      "path": "R",
+      "accessCount": 9,
+      "lastAccessed": 1776329956723,
+      "type": "directory"
+    },
+    {
       "path": "vignettes/layout-gallery.Rmd",
       "accessCount": 7,
       "lastAccessed": 1776310237520,
@@ -160,18 +172,6 @@
       "accessCount": 5,
       "lastAccessed": 1776328587404,
       "type": "file"
-    },
-    {
-      "path": "R/ggnetview.R",
-      "accessCount": 4,
-      "lastAccessed": 1776309236858,
-      "type": "directory"
-    },
-    {
-      "path": "R",
-      "accessCount": 4,
-      "lastAccessed": 1776309811837,
-      "type": "directory"
     },
     {
       "path": "vignettes/network-topology.Rmd",
@@ -213,6 +213,12 @@
       "path": "DESCRIPTION",
       "accessCount": 2,
       "lastAccessed": 1776310372777,
+      "type": "file"
+    },
+    {
+      "path": "R/ggnetview_palette.R",
+      "accessCount": 2,
+      "lastAccessed": 1776329787374,
       "type": "file"
     },
     {
@@ -336,12 +342,6 @@
       "type": "file"
     },
     {
-      "path": "R/ggnetview_palette.R",
-      "accessCount": 1,
-      "lastAccessed": 1776308410903,
-      "type": "file"
-    },
-    {
       "path": "R/update_graph_modules.R",
       "accessCount": 1,
       "lastAccessed": 1776308485298,
@@ -351,6 +351,18 @@
       "path": "R/zzz.R",
       "accessCount": 1,
       "lastAccessed": 1776311202817,
+      "type": "file"
+    },
+    {
+      "path": "R/get_geo_neighbors.R",
+      "accessCount": 1,
+      "lastAccessed": 1776329963159,
+      "type": "directory"
+    },
+    {
+      "path": "R/get_location.R",
+      "accessCount": 1,
+      "lastAccessed": 1776330002227,
       "type": "file"
     }
   ],
