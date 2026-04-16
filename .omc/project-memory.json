@@ -346,6 +346,12 @@
       "accessCount": 1,
       "lastAccessed": 1776308485298,
       "type": "file"
+    },
+    {
+      "path": "R/zzz.R",
+      "accessCount": 1,
+      "lastAccessed": 1776311202817,
+      "type": "file"
     }
   ],
   "userDirectives": []
