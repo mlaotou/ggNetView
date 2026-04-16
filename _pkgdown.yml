@@ -33,6 +33,8 @@ navbar:
           href: articles/correlation-networks.html
         - text: WGCNA Network Pipeline
           href: articles/wgcna-pipeline.html
+        - text: Network Topology and Keystone Analysis
+          href: articles/network-topology.html
         - text: "---"
         - text: Reference
         - text: Layout Gallery
