@@ -146,20 +146,12 @@ show_layout("star_concentric")
 show_layout("diamond")
 ```
 
-```{r geom-diamond-outline, fig.cap = "Diamond outline (diamond_outline)"}
-show_layout("diamond_outline")
-```
-
 ```{r geom-square, fig.cap = "Square (square)"}
 show_layout("square")
 ```
 
 ```{r geom-square2, fig.cap = "Square variant (square2)"}
 show_layout("square2")
-```
-
-```{r geom-square-outline, fig.cap = "Square outline (square_outline)"}
-show_layout("square_outline")
 ```
 
 ```{r geom-rectangle, fig.cap = "Rectangle (rectangle)"}
@@ -188,14 +180,6 @@ show_layout("randomly")
 
 ## 3. Hierarchical layouts
 
-```{r hier-dendrogram, fig.cap = "Dendrogram (dendrogram)"}
-show_layout("dendrogram")
-```
-
-```{r hier-multirings, fig.cap = "Multi-ring concentric (multirings)"}
-show_layout("multirings")
-```
-
 ```{r hier-rightiso, fig.cap = "Right-isometric layers (rightiso_layers)"}
 show_layout("rightiso_layers")
 ```
@@ -207,88 +191,34 @@ circle, making module boundaries visually explicit. Each comes in a
 standard version (module sizes proportional to node count) and an
 **equal** version (all modules the same size).
 
-### Standard (proportional)
+Circular module layouts require `layout.module = "adjacent"` for best
+results. They work best with networks that have well-defined,
+moderately-sized modules.
 
-```{r cm-gephi, fig.cap = "Circular modules -- Gephi (circular_modules_gephi_layout)"}
-show_layout("circular_modules_gephi_layout")
-```
+```{r cm-examples, eval = FALSE}
+# Standard (proportional) variants
+show_layout("circular_modules_gephi_layout", layout.module = "adjacent")
+show_layout("circular_modules_petal_layout", layout.module = "adjacent")
+show_layout("circular_modules_petal2_layout", layout.module = "adjacent")
+show_layout("circular_modules_diamond_layout", layout.module = "adjacent")
+show_layout("circular_modules_star_layout", layout.module = "adjacent")
+show_layout("circular_modules_star_concentric_layout", layout.module = "adjacent")
+show_layout("circular_modules_square_layout", layout.module = "adjacent")
+show_layout("circular_modules_square2_layout", layout.module = "adjacent")
+show_layout("circular_modules_grid_layout", layout.module = "adjacent")
+show_layout("circular_modules_heart_centered_layout", layout.module = "adjacent")
 
-```{r cm-petal, fig.cap = "Circular modules -- petal (circular_modules_petal_layout)"}
-show_layout("circular_modules_petal_layout")
-```
-
-```{r cm-petal2, fig.cap = "Circular modules -- petal2 (circular_modules_petal2_layout)"}
-show_layout("circular_modules_petal2_layout")
-```
-
-```{r cm-diamond, fig.cap = "Circular modules -- diamond (circular_modules_diamond_layout)"}
-show_layout("circular_modules_diamond_layout")
-```
-
-```{r cm-star, fig.cap = "Circular modules -- star (circular_modules_star_layout)"}
-show_layout("circular_modules_star_layout")
-```
-
-```{r cm-star-conc, fig.cap = "Circular modules -- star concentric (circular_modules_star_concentric_layout)"}
-show_layout("circular_modules_star_concentric_layout")
-```
-
-```{r cm-square, fig.cap = "Circular modules -- square (circular_modules_square_layout)"}
-show_layout("circular_modules_square_layout")
-```
-
-```{r cm-square2, fig.cap = "Circular modules -- square2 (circular_modules_square2_layout)"}
-show_layout("circular_modules_square2_layout")
-```
-
-```{r cm-grid, fig.cap = "Circular modules -- grid (circular_modules_grid_layout)"}
-show_layout("circular_modules_grid_layout")
-```
-
-```{r cm-heart, fig.cap = "Circular modules -- heart (circular_modules_heart_centered_layout)"}
-show_layout("circular_modules_heart_centered_layout")
-```
-
-### Equal-sized modules
-
-```{r cme-gephi, fig.cap = "Equal circular modules -- Gephi (circular_modules_equal_gephi_layout)"}
-show_layout("circular_modules_equal_gephi_layout")
-```
-
-```{r cme-petal, fig.cap = "Equal circular modules -- petal (circular_modules_equal_petal_layout)"}
-show_layout("circular_modules_equal_petal_layout")
-```
-
-```{r cme-petal2, fig.cap = "Equal circular modules -- petal2 (circular_modules_equal_petal2_layout)"}
-show_layout("circular_modules_equal_petal2_layout")
-```
-
-```{r cme-diamond, fig.cap = "Equal circular modules -- diamond (circular_modules_equal_diamond_layout)"}
-show_layout("circular_modules_equal_diamond_layout")
-```
-
-```{r cme-star, fig.cap = "Equal circular modules -- star (circular_modules_equal_star_layout)"}
-show_layout("circular_modules_equal_star_layout")
-```
-
-```{r cme-star-conc, fig.cap = "Equal circular modules -- star concentric (circular_modules_equal_star_concentric_layout)"}
-show_layout("circular_modules_equal_star_concentric_layout")
-```
-
-```{r cme-square, fig.cap = "Equal circular modules -- square (circular_modules_equal_square_layout)"}
-show_layout("circular_modules_equal_square_layout")
-```
-
-```{r cme-square2, fig.cap = "Equal circular modules -- square2 (circular_modules_equal_square2_layout)"}
-show_layout("circular_modules_equal_square2_layout")
-```
-
-```{r cme-grid, fig.cap = "Equal circular modules -- grid (circular_modules_equal_grid_layout)"}
-show_layout("circular_modules_equal_grid_layout")
-```
-
-```{r cme-heart, fig.cap = "Equal circular modules -- heart (circular_modules_equal_heart_centered_layout)"}
-show_layout("circular_modules_equal_heart_centered_layout")
+# Equal-sized module variants
+show_layout("circular_modules_equal_gephi_layout", layout.module = "adjacent")
+show_layout("circular_modules_equal_petal_layout", layout.module = "adjacent")
+show_layout("circular_modules_equal_petal2_layout", layout.module = "adjacent")
+show_layout("circular_modules_equal_diamond_layout", layout.module = "adjacent")
+show_layout("circular_modules_equal_star_layout", layout.module = "adjacent")
+show_layout("circular_modules_equal_star_concentric_layout", layout.module = "adjacent")
+show_layout("circular_modules_equal_square_layout", layout.module = "adjacent")
+show_layout("circular_modules_equal_square2_layout", layout.module = "adjacent")
+show_layout("circular_modules_equal_grid_layout", layout.module = "adjacent")
+show_layout("circular_modules_equal_heart_centered_layout", layout.module = "adjacent")
 ```
 
 ## 5. Multipartite layouts
@@ -303,55 +233,29 @@ The `layout.module` parameter controls how modules are arranged:
 - `"adjacent"` -- modules positioned close together
 - `"order"` -- modules follow the block order (required for multipartite)
 
-```{r bip, fig.cap = "Bipartite (bipartite_layout)"}
+These layouts require that the number of modules matches the expected
+block count (e.g. bipartite needs exactly 2, tripartite needs 3).
+
+```{r multi-examples, eval = FALSE}
+# Bipartite (2-block)
 show_layout("bipartite_layout", layout.module = "order")
-```
-
-```{r bip-gephi, fig.cap = "Bipartite Gephi (bipartite_gephi_layout)"}
 show_layout("bipartite_gephi_layout", layout.module = "order")
-```
 
-```{r tri, fig.cap = "Tripartite (tripartite_layout)"}
+# Tripartite (3-block)
 show_layout("tripartite_layout", layout.module = "order")
-```
-
-```{r tri-gephi, fig.cap = "Tripartite Gephi (tripartite_gephi_layout)"}
 show_layout("tripartite_gephi_layout", layout.module = "order")
-```
-
-```{r tri-equal, fig.cap = "Tripartite equal Gephi (tripartite_equal_gephi_layout)"}
 show_layout("tripartite_equal_gephi_layout", layout.module = "order")
-```
 
-```{r quad, fig.cap = "Quadripartite (quadripartite_layout)"}
+# Quadripartite (4-block)
 show_layout("quadripartite_layout", layout.module = "order")
-```
-
-```{r quad-gephi, fig.cap = "Quadripartite Gephi (quadripartite_gephi_layout)"}
 show_layout("quadripartite_gephi_layout", layout.module = "order")
-```
-
-```{r quad-equal, fig.cap = "Quadripartite equal Gephi (quadripartite_equal_gephi_layout)"}
 show_layout("quadripartite_equal_gephi_layout", layout.module = "order")
-```
-
-```{r cross-quad, fig.cap = "Cross quadripartite Gephi (cross_quadripartite_gephi_layout)"}
 show_layout("cross_quadripartite_gephi_layout", layout.module = "order")
-```
-
-```{r cross-quad-equal, fig.cap = "Cross quadripartite equal Gephi (cross_quadripartite_equal_gephi_layout)"}
 show_layout("cross_quadripartite_equal_gephi_layout", layout.module = "order")
-```
 
-```{r penta, fig.cap = "Pentapartite (pentapartite_layout)"}
+# Pentapartite (5-block)
 show_layout("pentapartite_layout", layout.module = "order")
-```
-
-```{r penta-gephi, fig.cap = "Pentapartite Gephi (pentapartite_gephi_layout)"}
 show_layout("pentapartite_gephi_layout", layout.module = "order")
-```
-
-```{r penta-equal, fig.cap = "Pentapartite equal Gephi (pentapartite_equal_gephi_layout)"}
 show_layout("pentapartite_equal_gephi_layout", layout.module = "order")
 ```
 
@@ -361,11 +265,8 @@ Consensus layouts align modules from different networks into a shared
 coordinate system. Useful for comparing network structures across
 conditions.
 
-```{r consensus, fig.cap = "Consensus module Gephi (consensus_module_gephi)"}
+```{r consensus-examples, eval = FALSE}
 show_layout("consensus_module_gephi")
-```
-
-```{r consensus-equal, fig.cap = "Consensus module equal Gephi (consensus_module_equal_gephi)"}
 show_layout("consensus_module_equal_gephi")
 ```
 
@@ -401,7 +302,7 @@ show_layout("gephi", layout.module = "adjacent")
 | | `petal`, `petal2` | Petal / flower |
 | | `heart_centered` | Heart shape |
 | | `randomly` | Random placement |
-| **Hierarchical** | `dendrogram` | Circular dendrogram |
+| **Hierarchical** | `dendrogram` | Circular dendrogram (directed graphs) |
 | | `multirings` | Concentric rings |
 | | `rightiso_layers` | Right-isometric layers |
 | **Circular modules** | `circular_modules_*_layout` | Module per petal/shape |
@@ -421,7 +322,7 @@ show_layout("gephi", layout.module = "adjacent")
    clearly separated.
 3. **Use multipartite layouts** when nodes have a meaningful block
    assignment (bacteria/fungi, treatment/control).
-4. **Use `"dendrogram"`** to show hierarchical relationships.
+4. **Use `"dendrogram"`** for directed / hierarchical graphs.
 5. **Use `layout.module = "adjacent"`** to pull related modules closer
    together.
 6. **All layouts are deterministic** when `seed` is set -- figures are

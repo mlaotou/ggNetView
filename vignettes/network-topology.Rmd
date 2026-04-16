@@ -170,7 +170,7 @@ head(sample_topo$sample_stat)
 ```
 
 ```{r sample-topo-table}
-head(sample_topo$topology[, 1:8])
+head(sample_topo$topology)
 ```
 
 ### Parallel version
@@ -270,20 +270,25 @@ zipi_strict <- ggnetview_zipi(
 table(zipi_strict$data$type)
 ```
 
-## 6. Module composition heatmaps
+## 6. Module composition summary
 
-`ggnetview_modularity_heatmaps()` visualises how module abundance
-varies across samples. It takes the original OTU matrix and a graph
-object, and produces a heatmap where rows are modules and columns are
-samples.
+You can summarise module composition by counting nodes and examining
+the dominant taxa per module:
 
-```{r mod-heatmap, fig.width = 8, fig.height = 5, fig.cap = "Module abundance heatmap across samples."}
-ggnetview_modularity_heatmaps(
-  otu_mat    = mat,
-  graph_obj  = g,
-  module_col = "Modularity"
-)
+```{r mod-summary}
+nodes <- get_graph_nodes(g)
+module_summary <- as.data.frame(table(
+  Module = as.character(nodes$Modularity)
+))
+colnames(module_summary)[2] <- "Nodes"
+module_summary <- module_summary[order(-module_summary$Nodes), ]
+module_summary
 ```
+
+For richer module-environment correlation heatmaps, see
+`ggnetview_modularity_heatmaps()` which links module eigengenes or
+abundances to environmental variables — it requires an environmental
+data frame and `env_select` specification.
 
 ## 7. Putting it all together: a typical workflow
 
@@ -306,8 +311,8 @@ zipi <- ggnetview_zipi(
   "Modularity", "Degree"
 )
 
-# 6. Module heatmap
-ggnetview_modularity_heatmaps(mat, g, "Modularity")
+# 6. Module summary
+table(get_graph_nodes(g)$Modularity)
 ```
 
 Steps 3-6 work with any graph produced by `build_graph_from_mat()`,
