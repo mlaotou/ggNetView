@@ -155,18 +155,24 @@ create_layout_WGCNA <- function(
 #' at the origin; circle 2 is placed tangent to circle 1 along the +x axis;
 #' each subsequent circle is placed tangent to two consecutive circles on
 #' the current front chain, choosing the candidate that keeps the
-#' \strong{minimum bounding radius} of the whole packing as small as
-#' possible, among all non-overlapping tangent positions.
+#' \strong{minimum bounding radius measured from the area-weighted
+#' centroid of the packing} as small as possible, among all
+#' non-overlapping tangent positions.  After the loop finishes, the
+#' whole packing is translated so its area-weighted centroid sits at
+#' the origin.
 #'
-#' Why not "closest to origin"?  Scoring by \code{cx^2 + cy^2} grows the
-#' packing outward in whichever direction the origin happens to be, which
-#' biases the silhouette toward an oval / comma shape whenever a small
-#' module sits next to a much larger one (the small module has a LOT of
-#' slack around its tangent, but the score picks whichever tangent is a
-#' touch closer to (0, 0), so the chain keeps extending in that
-#' direction).  Scoring by bounding radius directly optimizes the
-#' property we actually want -- a circular outer silhouette -- so the
-#' packing grows isotropically regardless of module-size heterogeneity.
+#' Why \strong{area-weighted centroid}, not origin?  Scoring from the
+#' origin looks fine for uniform-sized circles but gets visibly biased
+#' once radii are heterogeneous -- circle 0 is anchored at (0, 0) and
+#' circle 1 is anchored on the +x axis, so the true centre of mass
+#' drifts sideways from step 2 onward.  Minimising \code{cx^2 + cy^2}
+#' then pulls subsequent placements toward a point that is no longer
+#' the visual centre, producing a comma / crescent silhouette.
+#' Minimising the distance \emph{from the current centroid} directly
+#' optimises the property we care about -- a circular outer silhouette
+#' -- and making that centroid area-weighted prevents a cluster of many
+#' tiny discs from out-voting a single dominant module.  The final
+#' translation then makes the plotted graph visually centred.
 #'
 #' @param radii numeric vector of module radii, ordered largest first.
 #' @return data.frame with columns \code{cx}, \code{cy}, one row per input radius.
@@ -182,7 +188,13 @@ create_layout_WGCNA <- function(
   if (n == 1L) return(data.frame(cx = cx, cy = cy))
 
   cx[2] <- radii[1] + radii[2]; cy[2] <- 0
-  if (n == 2L) return(data.frame(cx = cx, cy = cy))
+  if (n == 2L) {
+    # Still translate to area-weighted centroid for consistency.
+    w <- radii^2
+    cxbar <- sum(w * cx) / sum(w)
+    cybar <- sum(w * cy) / sum(w)
+    return(data.frame(cx = cx - cxbar, cy = cy - cybar))
+  }
 
   # Cyclic list of indices currently on the outer frontier
   front <- c(1L, 2L)
@@ -194,13 +206,18 @@ create_layout_WGCNA <- function(
     best_score <- Inf
     best_k <- NA_integer_
 
-    # Current outer radius of the packing BEFORE inserting circle i.
-    # Used to score candidate placements by "how far would this push the
-    # outer silhouette outward?".  Recomputed per-i because every new
-    # insertion can raise the bound.
-    existing_outer <- max(
-      sqrt(cx[1:(i - 1)]^2 + cy[1:(i - 1)]^2) + radii[1:(i - 1)]
-    )
+    # Pre-computed sums for incremental centroid of the first i circles.
+    # After placing circle i at (cx_p, cy_p) with radius r_i, the
+    # area-weighted centroid (weights = r^2) is:
+    #   cxbar = (sum_{q<i} r_q^2 * cx[q] + r_i^2 * cx_p) / W_new
+    #   W_new  = sum_{q<i} r_q^2 + r_i^2
+    # We then score by the maximum (dist-to-centroid + radius) over all
+    # i circles -- i.e. the bounding-radius of the whole packing
+    # measured from the true centre of mass, not from the origin.
+    r2_prev   <- radii[1:(i - 1)]^2
+    W_prev    <- sum(r2_prev)
+    Sx_prev   <- sum(r2_prev * cx[1:(i - 1)])
+    Sy_prev   <- sum(r2_prev * cy[1:(i - 1)])
 
     m <- length(front)
     for (k in seq_len(m)) {
@@ -224,11 +241,17 @@ create_layout_WGCNA <- function(
         min_allowed <- (radii[1:(i - 1)] + r_i)^2 - 1e-6
         if (any(dd < min_allowed)) next
 
-        # Score = minimum bounding radius of the whole packing AFTER
-        # placing circle i at (cx_p, cy_p).  Picking the smallest such
-        # score biases the arrangement toward a circular silhouette.
-        cand_outer <- sqrt(cx_p^2 + cy_p^2) + r_i
-        score <- max(existing_outer, cand_outer)
+        # Hypothetical area-weighted centroid with circle i included
+        W_new <- W_prev + r_i * r_i
+        cxbar <- (Sx_prev + r_i * r_i * cx_p) / W_new
+        cybar <- (Sy_prev + r_i * r_i * cy_p) / W_new
+
+        # Bounding radius of the full packing measured from that centroid
+        d_prev <- sqrt((cx[1:(i - 1)] - cxbar)^2 + (cy[1:(i - 1)] - cybar)^2) +
+                  radii[1:(i - 1)]
+        d_new  <- sqrt((cx_p - cxbar)^2 + (cy_p - cybar)^2) + r_i
+        score  <- max(max(d_prev), d_new)
+
         if (score < best_score) {
           best_score <- score
           best_cx <- cx_p
@@ -241,6 +264,9 @@ create_layout_WGCNA <- function(
     if (is.na(best_cx)) {
       # No valid tangent placement found on current front chain;
       # fall back to pushing the new circle onto the +x perimeter.
+      existing_outer <- max(
+        sqrt(cx[1:(i - 1)]^2 + cy[1:(i - 1)]^2) + radii[1:(i - 1)]
+      )
       best_cx <- existing_outer + r_i
       best_cy <- 0
       best_k <- NA_integer_
@@ -257,7 +283,14 @@ create_layout_WGCNA <- function(
     }
   }
 
-  data.frame(cx = cx, cy = cy)
+  # Translate the whole packing so its area-weighted centroid is the
+  # origin.  Without this, the fixed anchor at (0, 0) + (d, 0) would
+  # leave the plot visually off-centre for every non-trivial radii vector.
+  w     <- radii^2
+  cxbar <- sum(w * cx) / sum(w)
+  cybar <- sum(w * cy) / sum(w)
+
+  data.frame(cx = cx - cxbar, cy = cy - cybar)
 }
 
 
