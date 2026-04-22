@@ -33,15 +33,28 @@ build_graph_from_wgcna <- function(wgcna_tom,
 
   set.seed(seed)
 
-
+  # Build the igraph with `module` as the authoritative vertex list.
+  #
+  # Subtle but important: downstream sparsification (e.g. a `threshold`
+  # or `top_k` pass inside `trans_TOM_in_WGCNA()`) can remove every edge
+  # incident to some gene.  If we inferred the vertex set from the edge
+  # list alone (as the previous implementation effectively did via
+  # `as_tbl_graph(wgcna_tom)`), those edgeless genes would silently
+  # disappear from the plot even though `module` explicitly lists them.
+  #
+  # Passing only the ID column of `module` as `vertices` pins the full
+  # vertex set without also smuggling in `Module`/other columns as
+  # vertex attributes -- that lets the standard `left_join(module, ...)`
+  # below attach `Module` cleanly, without triggering name collisions
+  # (`Module.x` / `Module.y`) that would break `factor(Module)`.
   g <- igraph::graph_from_data_frame(
-    d = wgcna_tom,
-    vertices = module,
+    d        = wgcna_tom,
+    vertices = if (is.null(module)) NULL else module[, "ID", drop = FALSE],
     directed = directed
   )
 
   if (is.null(node_annotation)) {
-    graph_obj <- tidygraph::as_tbl_graph(wgcna_tom) %>%
+    graph_obj <- tidygraph::as_tbl_graph(g) %>%
       tidygraph::left_join(module, by = c("name" = "ID")) %>%
       tidygraph::mutate(modularity = factor(Module),
                         modularity2 = factor(modularity),
@@ -53,7 +66,7 @@ build_graph_from_wgcna <- function(wgcna_tom,
       tidygraph::arrange(Modularity, desc(Degree))
   }else{
 
-    graph_obj <- tidygraph::as_tbl_graph(wgcna_tom) %>%
+    graph_obj <- tidygraph::as_tbl_graph(g) %>%
       tidygraph::left_join(module, by = c("name" = "ID")) %>%
       tidygraph::mutate(modularity = factor(Module),
                         modularity2 = factor(modularity),

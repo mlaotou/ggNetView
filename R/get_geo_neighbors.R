@@ -836,6 +836,32 @@ module_layout4 <- function(graph_obj,
   ) %>%
     dplyr::mutate(Modularity = droplevels(Modularity))
 
+  # Per-module shrink toward each module's centroid.
+  #
+  # module_layout4 pairs with module-aware first-tier layouts
+  # (circular_modules_gephi_layout, bipartite_gephi_layout, WGCNA, ...),
+  # where the first tier has already placed nodes into geometrically
+  # distinct per-module clusters.  The right "shrink" semantic here is
+  # therefore to contract each cluster toward its own centroid -- module
+  # positions stay put, module interiors become tighter, inter-module
+  # whitespace grows.  (Contrast with module_layout / module_layout3,
+  # which use shrink_rings_global() because their first-tier layouts are
+  # not module-clustered in coordinate space.)
+  if (!is.null(shrink) && shrink != 1) {
+    graph_ly_final <- graph_ly_final %>%
+      dplyr::group_by(modularity3) %>%
+      dplyr::mutate(
+        x = mean(x) + (x - mean(x)) * shrink,
+        y = mean(y) + (y - mean(y)) * shrink
+      ) %>%
+      dplyr::ungroup()
+
+    # Keep the standalone `ly_final` data.frame in sync with the shrunk
+    # coordinates in `graph_ly_final` (same row order guaranteed by the
+    # bind_cols above).  Both are returned and consumed downstream.
+    ly_final$x <- graph_ly_final$x
+    ly_final$y <- graph_ly_final$y
+  }
 
   ggplot_data <- get_location(graph_ly_final, graph_obj_sort)
 
