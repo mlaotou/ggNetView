@@ -13,6 +13,7 @@ ggNetView(
   center = TRUE,
   idx = NULL,
   shrink = 1,
+  inner_shrink = 1,
   k_nn = 12,
   push_others_delta = 0,
   layout.module = c("random", "adjacent", "order"),
@@ -92,6 +93,17 @@ Index of nodes to be emphasized or centered in the layout}
 
 \item{shrink}{Numeric (default = 1).
 Shrinkage factor applied to the center points.}
+
+\item{inner_shrink}{Numeric (default = 1).
+Intra-module compactness factor for \code{layout = "WGCNA"} only.
+Controls how tightly nodes fill each module's allocated disc during
+the WGCNA bubble-pack layout: at \code{1} (default) nodes spread to
+fill 95\% of the disc (original behaviour); smaller values
+(e.g. \code{0.65}) contract the FR/uniform fill toward each module
+centre, exposing hub/periphery structure and producing visible
+inter-module whitespace.  Module disc centres and radii are
+invariant under \code{inner_shrink}; this parameter only affects
+the point cloud inside each module.  Ignored by all other layouts.}
 
 \item{k_nn}{Numeric (default = 8).
 Number of nearest neighbors used to build the local adjacency graph.}

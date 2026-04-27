@@ -45,6 +45,7 @@ create_layout_WGCNA <- function(
     graph_obj,
     node_add = NULL,
     r = 1,
+    inner_shrink = 1,
     scale = TRUE,
     anchor_dist = 10,
     orientation = c("up", "down", "left", "right"),
@@ -55,6 +56,16 @@ create_layout_WGCNA <- function(
   base_angle <- switch(orientation,
                        up = 0, right = -pi/2, down = pi, left = pi/2)
   theta_shift <- base_angle + angle
+
+  # --- Validate inner_shrink ---
+  # Default 1 reproduces the historical behaviour exactly (fit_radius = 0.95 * radius).
+  # Values < 1 contract intra-module FR/uniform fill toward each module's centre
+  # *without* changing the packed disc geometry, so inter-module gaps appear
+  # while disc centre-to-centre distances stay invariant.
+  if (!is.numeric(inner_shrink) || length(inner_shrink) != 1L ||
+      !is.finite(inner_shrink) || inner_shrink <= 0) {
+    stop("`inner_shrink` must be a single positive finite numeric value.")
+  }
 
   # --- Extract node data ---
   node_df <- graph_obj %>%
@@ -126,7 +137,8 @@ create_layout_WGCNA <- function(
       keep    = keep,
       cx      = mod_counts$cx[i],
       cy      = mod_counts$cy[i],
-      radius  = mod_counts$radius[i]
+      radius  = mod_counts$radius[i],
+      inner_shrink = inner_shrink
     )
   })
 
@@ -356,12 +368,23 @@ create_layout_WGCNA <- function(
 #' to a single uniform disc fill.  Single nodes are placed at the disc
 #' centre; empty modules return 0 rows.
 #'
+#' \strong{Intra-module compactness (\code{inner_shrink}).}  The effective
+#' fill radius is \code{radius * 0.95 * inner_shrink}.  At the default
+#' \code{inner_shrink = 1} the behaviour is identical to the original
+#' implementation -- nodes spread to fill 95\% of the allocated disc.
+#' Smaller values (e.g. 0.65) tighten the FR cluster toward each module's
+#' centre, exposing the natural hub/periphery structure produced by FR
+#' and leaving inter-module whitespace.  The packed disc geometry
+#' (\code{cx, cy, radius}) is unchanged, so module centre-to-centre
+#' distances are invariant under \code{inner_shrink}; only the visible
+#' point cloud per module shrinks.
+#'
 #' Vertex ordering is preserved: the rows of the returned data.frame are
 #' in the same order as \code{keep}, which matches the order produced by
 #' \code{module_layout4()} for this module.
 #'
 #' @noRd
-.fill_disc_fr <- function(ig_full, keep, cx, cy, radius) {
+.fill_disc_fr <- function(ig_full, keep, cx, cy, radius, inner_shrink = 1) {
   n <- length(keep)
   if (n <= 0L) return(data.frame(x = numeric(0), y = numeric(0)))
   if (n == 1L) return(data.frame(x = cx, y = cy))
@@ -369,14 +392,20 @@ create_layout_WGCNA <- function(
   sub <- igraph::induced_subgraph(ig_full, vids = keep)
 
   # No internal edges -> FR degenerates; use uniform disc fill.
+  # Historical behaviour (preserved at inner_shrink = 1): the empty-edge
+  # branch uses the full disc `radius`, *without* the 0.95 inner margin
+  # that the with-edge branch applies.  We multiply by `inner_shrink`
+  # so this branch contracts proportionally when the user opts in.
   if (igraph::ecount(sub) == 0L) {
-    return(.fill_disc_uniform(n = n, cx = cx, cy = cy, radius = radius))
+    return(.fill_disc_uniform(n = n, cx = cx, cy = cy,
+                              radius = radius * inner_shrink))
   }
 
-  # Inner radius the FR result (and the uniform fill) share.  The 0.95
-  # factor keeps a small margin between the outermost point and the
-  # packing boundary.
-  fit_radius <- radius * 0.95
+  # Inner radius shared by FR scaling and the non-LCC uniform fill.
+  # The 0.95 factor keeps a small margin between the outermost point and
+  # the disc boundary; `inner_shrink` (default 1) further contracts the
+  # fill area toward (cx, cy) without altering the disc-packing geometry.
+  fit_radius <- radius * 0.95 * inner_shrink
 
   # Split vertices into "belongs to largest connected component" vs "rest"
   # (smaller components + isolates).  FR will be run only on the LCC.

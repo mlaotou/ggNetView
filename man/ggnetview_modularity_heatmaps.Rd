@@ -121,7 +121,9 @@ for the central module anchor point.}
 tiles.}
 
 \item{...}{Additional arguments passed to layout and network rendering,
-including: \code{layout}, \code{layout.module}, \code{shrink}, \code{jitter},
+including: \code{layout}, \code{layout.module}, \code{shrink},
+\code{inner_shrink} (intra-module compactness, only used when
+\code{layout = "WGCNA"}; see \code{\link{ggNetView}}), \code{jitter},
 \code{add_outer}, \code{add_group_outer}, \code{label} (logical or character:
 module labels in ggNetView style), \code{labelsize}, \code{labelsegmentsize},
 \code{labelsegmentalpha}, \code{fill}, \code{color}, \code{pointsize}.}

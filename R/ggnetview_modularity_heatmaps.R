@@ -210,7 +210,9 @@ get_module_abundance <- function(otu_mat,
 #' @param SigLineColor Character vector of length 2. Colors for link gradient
 #'   (low and high correlation).
 #' @param ... Additional arguments passed to layout and network rendering,
-#'   including: \code{layout}, \code{layout.module}, \code{shrink}, \code{jitter},
+#'   including: \code{layout}, \code{layout.module}, \code{shrink},
+#'   \code{inner_shrink} (intra-module compactness, only used when
+#'   \code{layout = "WGCNA"}; see \code{\link{ggNetView}}), \code{jitter},
 #'   \code{add_outer}, \code{add_group_outer}, \code{label} (logical or character:
 #'   module labels in ggNetView style), \code{labelsize}, \code{labelsegmentsize},
 #'   \code{labelsegmentalpha}, \code{fill}, \code{color}, \code{pointsize}.
@@ -505,6 +507,7 @@ ggnetview_modularity_heatmaps <- function(
     angle = if (!is.null(ggnetview_args$angle)) ggnetview_args$angle else 0,
     center = if (!is.null(ggnetview_args$center)) ggnetview_args$center else TRUE,
     shrink = if (!is.null(ggnetview_args$shrink)) ggnetview_args$shrink else 1,
+    inner_shrink = if (!is.null(ggnetview_args$inner_shrink)) ggnetview_args$inner_shrink else 1,
     jitter = if (!is.null(ggnetview_args$jitter)) ggnetview_args$jitter else FALSE,
     jitter_sd = if (!is.null(ggnetview_args$jitter_sd)) ggnetview_args$jitter_sd else 0.1,
     k_nn = if (!is.null(ggnetview_args$k_nn)) ggnetview_args$k_nn else 12,

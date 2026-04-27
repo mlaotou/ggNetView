@@ -58,6 +58,9 @@
 #' Index of nodes to be emphasized or centered in the layout
 #' @param shrink Numeric (default = 1).
 #' Shrinkage factor applied to the center points.
+#' @param inner_shrink Numeric (default = 1).
+#' Intra-module compactness factor for \code{layout = "WGCNA"} only.
+#' See \code{\link{ggNetView}} for details.  Ignored by other layouts.
 #' @param k_nn Numeric (default = 8).
 #' Number of nearest neighbors used to build the local adjacency graph.
 #' @param push_others_delta Numeric (default = 0).
@@ -199,6 +202,7 @@ ggNetView_multi <- function(mat,
                             center = TRUE,
                             idx = NULL,
                             shrink = 1,
+                            inner_shrink = 1,
                             k_nn = 12,
                             push_others_delta = 0,
                             layout.module = c("random", "adjacent", "order"),
@@ -295,6 +299,7 @@ ggNetView_multi <- function(mat,
       center = center,
       idx = idx,
       shrink = shrink,
+      inner_shrink = inner_shrink,
       k_nn = k_nn,
       push_others_delta = push_others_delta,
       layout.module = layout.module,
