@@ -155,11 +155,19 @@ Point size for the heatmap diagonal nodes.}
 \item{CorePointSize}{Numeric (default = 8.5)
 Point size for the central species nodes.}
 
-\item{HeatmapPointFill}{Character (default = "#de77ae")
-Fill color for heatmap diagonal points.}
+\item{HeatmapPointFill}{Character vector (default = "#de77ae")
+Fill color(s) for heatmap diagonal points.
+- Length 1: a single color is used for all heatmap diagonal points across all quadrants.
+- Length equal to the number of quadrants in \code{orientation}: each quadrant gets
+  its own fill color, in the order given by \code{orientation}.
+- Other lengths: values are recycled across quadrants (modulo the vector length).}
 
-\item{CorePointFill}{Character (default = "#41b6c4")
-Fill color for central species nodes.}
+\item{CorePointFill}{Character vector (default = "#41b6c4")
+Fill color(s) for central species nodes.
+- Length 1: a single color is used for all central species nodes.
+- Length equal to the number of \code{spec_select} blocks: each spec block gets its
+  own fill color, in the order given by \code{names(spec_select)}.
+- Other lengths: values are recycled across spec blocks (modulo the vector length).}
 
 \item{HeatmapTileColor}{Character or NA (default = NA)
 Border color for heatmap tiles (passed to `geom_tile(colour=...)`).}

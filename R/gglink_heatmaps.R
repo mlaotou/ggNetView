@@ -102,10 +102,18 @@
 #' Point size for the heatmap diagonal nodes.
 #' @param CorePointSize Numeric (default = 8.5)
 #' Point size for the central species nodes.
-#' @param HeatmapPointFill Character (default = "#de77ae")
-#' Fill color for heatmap diagonal points.
-#' @param CorePointFill Character (default = "#41b6c4")
-#' Fill color for central species nodes.
+#' @param HeatmapPointFill Character vector (default = "#de77ae")
+#' Fill color(s) for heatmap diagonal points.
+#' - Length 1: a single color is used for all heatmap diagonal points across all quadrants.
+#' - Length equal to the number of quadrants in \code{orientation}: each quadrant gets
+#'   its own fill color, in the order given by \code{orientation}.
+#' - Other lengths: values are recycled across quadrants (modulo the vector length).
+#' @param CorePointFill Character vector (default = "#41b6c4")
+#' Fill color(s) for central species nodes.
+#' - Length 1: a single color is used for all central species nodes.
+#' - Length equal to the number of \code{spec_select} blocks: each spec block gets its
+#'   own fill color, in the order given by \code{names(spec_select)}.
+#' - Other lengths: values are recycled across spec blocks (modulo the vector length).
 #' @param HeatmapTileColor Character or NA (default = NA)
 #' Border color for heatmap tiles (passed to `geom_tile(colour=...)`).
 #' @param HeatmapTileSize Numeric (default = 0)
@@ -253,11 +261,11 @@ gglink_heatmaps <- function(
   if (length(CorePointSize) != 1 || !is.finite(CorePointSize) || CorePointSize <= 0) {
     stop("`CorePointSize` must be a single positive numeric value.")
   }
-  if (length(HeatmapPointFill) != 1L || !nzchar(HeatmapPointFill)) {
-    stop("`HeatmapPointFill` must be a non-empty character string.")
+  if (length(HeatmapPointFill) < 1L || any(is.na(HeatmapPointFill)) || any(!nzchar(HeatmapPointFill))) {
+    stop("`HeatmapPointFill` must be a non-empty character vector (length >= 1).")
   }
-  if (length(CorePointFill) != 1L || !nzchar(CorePointFill)) {
-    stop("`CorePointFill` must be a non-empty character string.")
+  if (length(CorePointFill) < 1L || any(is.na(CorePointFill)) || any(!nzchar(CorePointFill))) {
+    stop("`CorePointFill` must be a non-empty character vector (length >= 1).")
   }
   if (length(HeatmapTileSize) != 1 || !is.finite(HeatmapTileSize) || HeatmapTileSize < 0) {
     stop("`HeatmapTileSize` must be a single non-negative numeric value.")
@@ -815,7 +823,7 @@ gglink_heatmaps <- function(
   }
 
   if (n_spec == 1L) {
-    cor_spec_env <- layout_list[[1L]] %>% dplyr::select(ID, x, y)
+    cor_spec_env <- layout_list[[1L]] %>% dplyr::select(ID, x, y, spec_block)
   } else {
     anchors_df <- .compute_anchors(n_spec, group_layout, anchor_dist, nrow, ncol)
     n_nodes <- vapply(layout_list, function(x) base::nrow(x), integer(1))
@@ -844,10 +852,21 @@ gglink_heatmaps <- function(
         ly_df <- ly_df %>%
           dplyr::mutate(x = x * scale_j + ax, y = y * scale_j + ay)
       }
-      cor_spec_env_parts[[j]] <- ly_df %>% dplyr::select(ID, x, y)
+      cor_spec_env_parts[[j]] <- ly_df %>% dplyr::select(ID, x, y, spec_block)
     }
     cor_spec_env <- do.call(rbind, cor_spec_env_parts)
   }
+
+  # Resolve per-row fill colors for central species nodes (CorePointFill)
+  # and for heatmap diagonal points (HeatmapPointFill). Both can now be
+  # vectors and are recycled (modulo) over spec_blocks / orientation.
+  .pick_color <- function(palette, idx) {
+    palette[((as.integer(idx) - 1L) %% length(palette)) + 1L]
+  }
+  cor_spec_env$fill_color <- .pick_color(
+    CorePointFill,
+    match(cor_spec_env$spec_block, spec_block_names)
+  )
 
   k_vec
   k_gap
@@ -1095,7 +1114,9 @@ gglink_heatmaps <- function(
                 hjust = type_lab$hjust_type[1],
                 size = HeatmapLabelSize) +
       ggplot2::geom_point(data = diag, ggplot2::aes(x = x_diag, y = y_diag),
-                 shape = 21, fill = HeatmapPointFill, size = HeatmapPointSize) +
+                 shape = 21,
+                 fill = .pick_color(HeatmapPointFill, idx),
+                 size = HeatmapPointSize) +
       ggplot2::scale_fill_gradient2(
         low = low_pal[idx], mid = "#ffffff", high = high_pal[idx],
         midpoint = 0, name = paste0(scale_name, " ", idx),
@@ -1187,6 +1208,14 @@ gglink_heatmaps <- function(
 
 
   diag_all <- purrr::map_dfr(packs, "diag")
+  if (base::nrow(diag_all) > 0L) {
+    diag_all$fill_color <- .pick_color(
+      HeatmapPointFill,
+      match(diag_all$orientation, orientation)
+    )
+  } else {
+    diag_all$fill_color <- character(0)
+  }
 
   p0 <- ggplot2::ggplot()
 
@@ -1227,11 +1256,12 @@ gglink_heatmaps <- function(
     ggplot2::geom_point(
       data = diag_all,
       ggplot2::aes(x = x_diag, y = y_diag),
-      shape = 21, fill = HeatmapPointFill, size = HeatmapPointSize
+      shape = 21, fill = diag_all$fill_color, size = HeatmapPointSize
     ) +
     ggplot2::geom_point(
       data = cor_spec_env,
-      ggplot2::aes(x = x, y = y), shape = 21, fill = CorePointFill, size = CorePointSize
+      ggplot2::aes(x = x, y = y), shape = 21,
+      fill = cor_spec_env$fill_color, size = CorePointSize
     ) +
     ggplot2::geom_text(
       data = cor_spec_env,
@@ -1264,11 +1294,12 @@ gglink_heatmaps <- function(
     ggplot2::geom_point(
       data = diag_all,
       ggplot2::aes(x = x_diag, y = y_diag),
-      shape = 21, fill = HeatmapPointFill, size = HeatmapPointSize
+      shape = 21, fill = diag_all$fill_color, size = HeatmapPointSize
     ) +
     ggplot2::geom_point(
       data = cor_spec_env,
-      ggplot2::aes(x = x, y = y), shape = 21, fill = CorePointFill, size = CorePointSize
+      ggplot2::aes(x = x, y = y), shape = 21,
+      fill = cor_spec_env$fill_color, size = CorePointSize
     ) +
     ggplot2::geom_text(
       data = cor_spec_env,
@@ -1299,12 +1330,12 @@ gglink_heatmaps <- function(
     ggplot2::geom_point(
       data = diag_all,
       ggplot2::aes(x = x_diag, y = y_diag),
-      shape = 21, fill = HeatmapPointFill, size = HeatmapPointSize
+      shape = 21, fill = diag_all$fill_color, size = HeatmapPointSize
     ) +
     ggplot2::geom_point(data = cor_spec_env,
-               mapping = ggplot2::aes(x = x, y = y, fill = ID),
+               mapping = ggplot2::aes(x = x, y = y),
                shape = 21,
-               fill = CorePointFill,
+               fill = cor_spec_env$fill_color,
                size = CorePointSize) +
     ggplot2::geom_text(data = cor_spec_env,
               mapping = ggplot2::aes(x =x, y = y, label = ID),
