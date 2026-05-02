@@ -2,7 +2,7 @@
 % Please edit documentation in R/gglink_heatmaps.R
 \name{gglink_heatmaps}
 \alias{gglink_heatmaps}
-\title{Visualize multi-orientation environmental-species correlation heatmaps}
+\title{Multi-orientation species-environment correlation / Mantel heatmap}
 \usage{
 gglink_heatmaps(
   env,
@@ -46,7 +46,9 @@ gglink_heatmaps(
   orientation = c("top_right", "bottom_right", "top_left", "bottom_left"),
   r = 6,
   group_layout = c("circle", "row", "column", "square", "diamond", "triangle",
-    "triangle_down", "snake"),
+    "triangle_down", "snake", "arc"),
+  group_angle = 0,
+  group_arc_angle = pi/2,
   anchor_dist = 6,
   scale_networks = TRUE,
   nrow = NULL,
@@ -54,229 +56,399 @@ gglink_heatmaps(
 )
 }
 \arguments{
-\item{env}{Data Frame
-A data frame or matrix containing environmental variables.
-Each column represents an environmental factor.}
+\item{env}{Data frame or matrix. Environmental variables, one column per
+factor, one row per sample. Row order must match \code{spec}.}
 
-\item{spec}{Data Frame
-A data frame or matrix containing species abundance or trait data.
-Each column represents a species or taxonomic unit.}
+\item{spec}{Data frame or matrix. Species abundance / trait data, one
+column per species (or taxonomic unit), one row per sample. Row order
+must match \code{env}.}
 
-\item{env_select}{Optional list specifying the column indices (or names)
-of environmental variables to include in each environmental block.
-Each list element corresponds to one quadrant of the heatmap layout.}
+\item{env_select}{Named list (required). Each element gives the column
+indices or names of \code{env} that form one environmental block; each
+block becomes one heatmap quadrant. The list length must equal
+\code{length(orientation)}. Block names (used for
+\code{comparisons_groups}) come from \code{names(env_select)}, e.g.
+\code{list(Env01 = 1:14, Env02 = 15:28, Env03 = 29:42, Env04 = 43:56)}.}
 
-\item{spec_select}{Optional list specifying column indices (or names)
-of species to include. If multiple elements are provided, they define
-separate species clusters in the visualization.}
+\item{spec_select}{Named list (required). Each element gives the column
+indices or names of \code{spec} that form one species block. Each block
+is rendered as one central network (or one collapsed point if
+\code{spec_collapse = TRUE}). Block names come from
+\code{names(spec_select)}, e.g. \code{list(Spec01 = 1:15, Spec02 = 16:30)}.}
 
-\item{spec_layout}{Character or character vector (default = \code{"circle_outline"}).
-Spatial arrangement of species nodes for each central network.
-If a single value, applied to all spec blocks.
-If a vector, length must match the number of spec blocks; each element specifies
-the layout for that block in order. Valid options: \code{"circle_outline"},
-\code{"diamond_outline"}, \code{"rectangle_outline"}, \code{"square_outline"}.}
+\item{spec_layout}{Character or character vector (default
+\code{"circle_outline"}). Shape of the per-block node layout. Length 1
+applies to all blocks; a vector must have length equal to
+\code{length(spec_select)} and is matched element-wise. Valid values:
+\code{"circle_outline"}, \code{"diamond_outline"},
+\code{"rectangle_outline"}, \code{"square_outline"}.
+Ignored when \code{spec_collapse = TRUE}.}
 
-\item{spec_orientation}{Character
-spec_oritation. Options include: "up","down","left","right"}
+\item{spec_orientation}{Character (default \code{"up"}). Base orientation
+passed to the per-block layout function. One of \code{"up"},
+\code{"down"}, \code{"left"}, \code{"right"}.}
 
-\item{spec_relation}{Logical (defalt = TRUE)
-Whether to compulate the ralationship of spec}
+\item{spec_relation}{Logical (default \code{TRUE}). Whether to compute
+within-block species-species correlations to drive the per-block layout
+(e.g. modularity of \code{"circle_outline"}). Set \code{FALSE} for a
+geometry-only layout. Ignored when \code{spec_collapse = TRUE}.}
 
-\item{relation_method}{Character
-Method for computing relationships between species and environmental factors. Options are `"correlation"` or `"mantel"`.}
+\item{relation_method}{Character (default \code{"correlation"}). One of
+\code{"correlation"} or \code{"mantel"}.}
 
-\item{cor.method}{Character
-Correlation method to use when `relation_method = "correlation"`.
-One of `"pearson"`, `"kendall"`, or `"spearman"`.}
+\item{cor.method}{Character (default \code{"pearson"}). Correlation
+method used by \code{psych::corr.test} for env-env (the heatmap tiles)
+and, when \code{relation_method = "correlation"}, for spec-env links.
+One of \code{"pearson"}, \code{"kendall"}, \code{"spearman"}.}
 
-\item{cor.use}{Character
-Method for handling missing values in correlation computation.
-One of `"everything"`, `"all"`, `"complete"`, `"pairwise"`, or `"na"`.}
+\item{cor.use}{Character (default \code{"everything"}). Missing-value
+handling for \code{psych::corr.test}. One of \code{"everything"},
+\code{"all"}, \code{"complete"}, \code{"pairwise"}, \code{"na"}.}
 
-\item{mantel.method}{Character
-Type of Mantel test to use when `relation_method = "mantel"`.
-Options include `"mantel"`, `"mantel.partial"`, `"mantelhaen.test"`, and `"mantel.correlog"`.}
+\item{mantel.method}{Character. Reserved for future use — currently
+accepted for backwards compatibility but \strong{not} consumed by the
+active code path (only \code{vegan::mantel} via \code{mantel.method2}
+is used).}
 
-\item{mantel.method2}{Character
-Correlation coefficient used in the Mantel test.
-One of `"pearson"`, `"kendall"`, or `"spearman"`.}
+\item{mantel.method2}{Character (default \code{"pearson"}). Correlation
+coefficient passed to \code{vegan::mantel} as its \code{method}
+argument. One of \code{"pearson"}, \code{"kendall"},
+\code{"spearman"}.}
 
-\item{mantel.alternative}{Character
-Alternative hypothesis for Mantel test. One of `"two.sided"`, `"less"`, or `"greater"`.}
+\item{mantel.alternative}{Character. Same status as \code{mantel.method}
+— accepted but not consumed.}
 
-\item{spec_dist_method}{Character (default = `"bray"`)
-Dissimilarity method used to build the spec-block distance matrix when
-`relation_method = "mantel"`. The whole spec block (all columns) is treated
-as a community matrix and passed to `vegan::vegdist`. Common choices for
-species abundance data: `"bray"`, `"jaccard"`, `"euclidean"`. See
-`?vegan::vegdist` for the full list.}
+\item{spec_dist_method}{Character (default \code{"bray"}). Dissimilarity
+method (passed to \code{vegan::vegdist}) used to convert the spec
+block into ONE community distance matrix when
+\code{mantel_kind = "block_vs_col"}.}
 
-\item{env_dist_method}{Character (default = `"euclidean"`)
-Dissimilarity method used to build the per-env-column distance matrix when
-`relation_method = "mantel"`. Each individual env column is converted to a
-distance matrix with `vegan::vegdist`. Default `"euclidean"` is the standard
-choice for continuous environmental variables.}
+\item{env_dist_method}{Character (default \code{"euclidean"}). Distance
+method used to convert each env column into its own distance matrix
+under any \code{mantel_kind}.}
 
-\item{mantel_kind}{Character (default = `"block_vs_col"`)
-Which Mantel variant to use when `relation_method = "mantel"`. Common to
-both `gglink_heatmaps()` and `ggnetview_modularity_heatmaps()` so results
-from the two functions stay comparable.
-- `"block_vs_col"`: \strong{ecological standard} (linkET / ggcor style).
-  The whole spec block is converted to ONE distance matrix with
-  `spec_dist_method`; each env column is converted to its own distance
-  matrix with `env_dist_method`; one Mantel test per (spec_block, env_col).
-  Implemented by [mantel_block_vs_col()].
-- `"col_vs_col"`: \strong{column-vs-column} (legacy behaviour). Each spec
-  column and each env column is reduced to its own single-variable
-  distance matrix. Statistically close to a rank correlation; kept mainly
-  for backwards compatibility and sensitivity comparisons. Implemented by
-  [mantel_pairwise()].}
+\item{mantel_kind}{Character (default \code{"block_vs_col"}). Which
+Mantel variant to use; see \strong{Details}. Same parameter is exposed
+in \code{\link{ggnetview_modularity_heatmaps}}.}
 
-\item{permutations}{Integer (default = `999`)
-Number of permutations used by `vegan::mantel`.}
+\item{permutations}{Integer (default \code{999L}). Number of permutations
+passed to \code{vegan::mantel}.}
 
-\item{spec_collapse}{Logical (default = `FALSE`)
-Whether to collapse each `spec_select` block into a single labelled point.
-- `FALSE` (default): each spec block is rendered as a small network of nodes
-  (one node per spec column), as before.
-- `TRUE`: each spec block is rendered as ONE point placed at the block's
-  anchor position (center for single-block layouts, or the per-block anchor
-  from `group_layout` for multi-block layouts). The point's label is the
-  block's name from `names(spec_select)` (e.g. "Spec01", "Spec02").
-  In this mode, `spec_layout`, `spec_relation`, and `scale_networks` are
-  ignored, and link sources are always the collapsed block point regardless
-  of `relation_method`. This option pairs naturally with
-  `relation_method = "mantel"`, where each spec block is itself the
-  statistical unit of one Mantel test.}
+\item{spec_collapse}{Logical (default \code{FALSE}). If \code{TRUE}, each
+block is rendered as ONE labelled point at its anchor position; the
+point's label is the block name from \code{names(spec_select)}.
+In this mode, \code{spec_layout}, \code{spec_relation},
+\code{scale_networks} are all ignored, and link sources are always the
+collapsed point regardless of \code{relation_method}. Pairs naturally
+with \code{relation_method = "mantel"} +
+\code{mantel_kind = "block_vs_col"}.}
 
-\item{drop_nonsig}{Logical
-if `TRUE`, non-significant correlations are dropped from the final visualization.}
+\item{drop_nonsig}{Logical (default \code{FALSE}). If \code{TRUE},
+non-significant links (p > 0.05) are removed from the plot but kept
+in the returned stats data frame.}
 
-\item{comparisons}{Logical (default = TRUE).
-Whether to perform species-environment correlation or Mantel analysis.
-If \code{FALSE}, no spec-env links are computed or drawn.}
+\item{comparisons}{Logical (default \code{TRUE}). Master switch for
+spec-env analysis. \code{FALSE} skips all spec-env stats and links
+(only the env-env heatmaps remain).}
 
-\item{comparisons_groups}{List or NULL (default = NULL).
-When \code{comparisons = TRUE}, constrains which (env_block, spec_block) pairs are analyzed.
-Each element must be a length-2 character vector: \code{c(env_block_name, spec_block_name)},
-e.g. \code{list(c("Env01", "Spec01"), c("Env02", "Spec01"))}.
-Block names must match \code{names(env_select)} and \code{names(spec_select)}.
-If \code{NULL}, all env-spec block pairs are analyzed (default).}
+\item{comparisons_groups}{List or NULL (default \code{NULL}). When
+\code{comparisons = TRUE}, restricts which (env_block, spec_block)
+pairs are computed and drawn. Each element is a length-2 character
+vector \code{c(env_block_name, spec_block_name)}; names must match
+\code{names(env_select)} / \code{names(spec_select)}. \code{NULL}
+means "all pairs". Example:
+\code{list(c("Env01","Spec01"), c("Env02","Spec02"))}.}
 
-\item{shape}{Intrger
-Integer or numeric specifying the shape of species nodes in the plot (passed to `geom_point()`).}
+\item{shape}{Integer (default \code{22}). Reserved; the rendered point
+shapes are currently hard-coded internally and this argument is not
+actually consumed.}
 
-\item{distance}{Numeric
-the offset distance between central nodes and the environmental heatmaps.}
+\item{distance}{Numeric (default \code{3}). Offset added between the
+central node group and the env heatmaps. Positive pushes heatmaps
+outward; \code{0} places them flush against the central group;
+\strong{negative values are allowed} and will pull heatmaps inward
+(may visually overlap the central points). A \code{message()} is
+emitted on negative values, and a \code{warning()} is emitted if the
+value is so negative that an anchor coordinate becomes \eqn{\le 0}
+(the heatmap will then flip to the opposite side).}
 
-\item{HeatmapLabelSize}{Numeric (default = 5)
-Text size for heatmap axis labels (ID/Type).}
+\item{HeatmapLabelSize}{Numeric (default \code{5}). Text size for
+heatmap row/column labels (ID/Type).}
 
-\item{HeatmapSigSize}{Numeric (default = 5)
-Text size for significance symbols (e.g. `*`, `**`, `***`) inside heatmap tiles.}
+\item{HeatmapSigSize}{Numeric (default \code{5}). Text size for the
+significance marks (\code{*}, \code{**}, \code{***}) inside heatmap
+tiles.}
 
-\item{HeatmapColorBar}{NULL or list
-Controls the colorbar palettes used by each heatmap quadrant.
+\item{HeatmapColorBar}{\code{NULL} or list (default \code{NULL}).
+Per-quadrant colour palettes. Three accepted forms:
+\itemize{
+  \item \code{NULL}: use built-in defaults.
+  \item Length-2 named list \code{list(low = ..., high = ...)}: applied
+    to all quadrants (each value can be a vector that is recycled).
+  \item List of length \code{length(orientation)}: each element is
+    either \code{c(low, high)} or \code{list(low = ..., high = ...)}
+    for that quadrant in order. Example:
+    \code{list(c("#2166ac","#b2182b"), c("#1b7837","#762a83"),
+               c("#4393c3","#d6604d"), c("#92c5de","#f4a582"))}.
+}}
 
-- If `NULL`, the built-in default palettes are used (same as current behavior).
-- If a list of length 2 with names `low` and `high`, each should be a character
-  vector of colors (recycled if shorter) used across quadrants.
-- If a list of length equal to the number of quadrants, each element should be
-  either `c(low, high)` or `list(low=..., high=...)` for that quadrant (in order).
-- example `HeatmapColorBar = list(
- )`}
+\item{HeatmapLabelOrient}{Numeric (default \code{0}). Rotation angle (in
+degrees) for heatmap row/column labels. Use 45 or 90 to avoid label
+overlap.}
 
-\item{HeatmapLabelOrient}{Numeric (default = 0)
-Rotation angle (in degrees) for heatmap axis labels (ID/Type).
-Use this to avoid overlap of the top/bottom labels; e.g. 45 or 90.}
+\item{SigLineWidth}{Numeric vector of length 2 (default \code{c(0.5, 2)}).
+Min and max line width for spec-env link segments. Width is mapped from
+\code{-log10(p-value)} so smaller p (more significant) -> thicker line.}
 
-\item{SigLineWidth}{Numeric vector of length 2 (default = c(0.5, 2))
-Controls the minimum and maximum line width for species-environment links,
-scaled by significance (p-value). Smaller p leads to thicker lines.}
+\item{SigLineColor}{Character vector of length 2 (default
+\code{c("#fdbb84", "#d7301f")}). Colour gradient for spec-env link
+segments, mapped from low / high correlation (or Mantel r).}
 
-\item{SigLineColor}{Character vector (length 2, default = c("#fdbb84", "#d7301f"))
-Colors used for the species-environment link color gradient, corresponding to
-low and high correlation values respectively.}
+\item{HeatmapPointSize}{Numeric (default \code{5}). Point size for the
+diagonal anchor points on each heatmap (where the link lines land).}
 
-\item{HeatmapPointSize}{Numeric (default = 5)
-Point size for the heatmap diagonal nodes.}
+\item{CorePointSize}{Numeric (default \code{8.5}). Point size for the
+central species nodes (or collapsed block points).}
 
-\item{CorePointSize}{Numeric (default = 8.5)
-Point size for the central species nodes.}
+\item{HeatmapPointFill}{Character vector (default \code{"#de77ae"}).
+Fill colour(s) for the heatmap diagonal points.
+\itemize{
+  \item Length 1: same colour for all quadrants.
+  \item Length \code{length(orientation)}: one colour per quadrant, in
+    the order given by \code{orientation}.
+  \item Other lengths: recycled (modulo) over quadrants.
+}}
 
-\item{HeatmapPointFill}{Character vector (default = "#de77ae")
-Fill color(s) for heatmap diagonal points.
-- Length 1: a single color is used for all heatmap diagonal points across all quadrants.
-- Length equal to the number of quadrants in \code{orientation}: each quadrant gets
-  its own fill color, in the order given by \code{orientation}.
-- Other lengths: values are recycled across quadrants (modulo the vector length).}
+\item{CorePointFill}{Character vector (default \code{"#41b6c4"}). Fill
+colour(s) for the central species nodes.
+\itemize{
+  \item Length 1: same colour for everyone.
+  \item Length \code{length(spec_select)}: one colour per spec block,
+    in the order of \code{names(spec_select)}.
+  \item Other lengths: recycled (modulo) over spec blocks.
+}}
 
-\item{CorePointFill}{Character vector (default = "#41b6c4")
-Fill color(s) for central species nodes.
-- Length 1: a single color is used for all central species nodes.
-- Length equal to the number of \code{spec_select} blocks: each spec block gets its
-  own fill color, in the order given by \code{names(spec_select)}.
-- Other lengths: values are recycled across spec blocks (modulo the vector length).}
+\item{HeatmapTileColor}{Character or \code{NA} (default \code{NA}).
+Border colour for heatmap tiles (passed to \code{geom_tile(colour =
+...)}).}
 
-\item{HeatmapTileColor}{Character or NA (default = NA)
-Border color for heatmap tiles (passed to `geom_tile(colour=...)`).}
+\item{HeatmapTileSize}{Numeric (default \code{0}). Border line width for
+heatmap tiles.}
 
-\item{HeatmapTileSize}{Numeric (default = 0)
-Border line width for heatmap tiles (passed to `geom_tile(size=...)`).}
+\item{HeatmapScale}{Numeric (default \code{1}). Global scale for the
+overall heatmap layout (tile spacing). \code{>1} enlarges, \code{<1}
+shrinks.}
 
-\item{HeatmapScale}{Numeric (default = 1)
-Global scale factor for the overall heatmap size. Values > 1 enlarge the
-whole heatmap layout, while values < 1 shrink it.}
+\item{SigLineAlpha}{Numeric in \code{[0, 1]} (default \code{0.5}).
+Transparency of spec-env link segments.}
 
-\item{SigLineAlpha}{Numeric (default = 0.5)
-Transparency for species-network to heatmap link lines. Must be between 0 and 1.}
+\item{fontsize}{Numeric (default \code{5}). Deprecated. Use
+\code{HeatmapLabelSize} instead.}
 
-\item{fontsize}{Numeric (default = 5)
-(Deprecated) Use `HeatmapLabelSize` instead.}
+\item{orientation}{Character vector (default
+\code{c("top_right","bottom_right","top_left","bottom_left")}). Which
+heatmap quadrants to draw, in the same order as \code{env_select}'s
+elements (i.e. \code{env_select[[1]]} -> \code{orientation[1]}).}
 
-\item{orientation}{Character
-Character vector defining which heatmap quadrants to display. Can include any combination of `"top_right"`, `"bottom_right"`, `"top_left"`, and `"bottom_left"`.}
+\item{r}{Numeric (default 6). Effective radius of a single central
+network (in plot units). When \code{spec_collapse = TRUE} this only
+affects how compact a single block looks before being collapsed and is
+essentially cosmetic.}
 
-\item{r}{Numeric
-radius of the central species layout (in plot units).}
+\item{group_layout}{Character (default \code{"circle"}). Arrangement of
+the per-block anchors when \code{spec_select} has multiple elements.
+One of \code{"circle"}, \code{"row"}, \code{"column"},
+\code{"square"}, \code{"diamond"}, \code{"triangle"},
+\code{"triangle_down"}, \code{"snake"}, \code{"arc"}. \code{"arc"}
+places anchors on a circular arc whose chord has the same row-like
+footprint; curvature is controlled by \code{group_arc_angle}.}
 
-\item{group_layout}{Character (default = "circle").
-Arrangement of multiple species networks when \code{spec_select} has multiple elements.
-Options: \code{"circle"}, \code{"row"}, \code{"column"}, \code{"square"}, \code{"diamond"},
-\code{"triangle"}, \code{"triangle_down"}, \code{"snake"}.}
+\item{group_angle}{Numeric (default \code{0}). Extra rotation applied to
+the entire anchor set, on top of \code{group_layout}'s default
+orientation. Accepts radians (\code{|x| <= 2*pi}) or degrees
+(\code{|x| > 2*pi}); use \code{\link{deg}(x)} to force a small value
+to mean degrees. Examples: \code{group_angle = 45} tilts a row by 45°;
+\code{group_angle = pi/2} turns a row into a column.}
 
-\item{anchor_dist}{Numeric (default = 6).
-Distance between species networks when multiple \code{spec_select} blocks are used.}
+\item{group_arc_angle}{Numeric (default \code{pi/2}). Only used when
+\code{group_layout = "arc"}. Central angle subtended by the arc.
+\code{0} degenerates to a flat row; \code{pi/2} (= 90°) is a
+quarter-circle (default); \code{pi} is a half-circle. Negative values
+flip the arc to the opposite side. Same unit auto-detection as
+\code{group_angle}.}
 
-\item{scale_networks}{Logical (default = TRUE).
-If \code{TRUE}, normalize each species network to the same scale (radius \code{r}) before placing on anchors.
-If \code{FALSE}, \code{r} is the minimum network radius; larger networks scale proportionally by node count.}
+\item{anchor_dist}{Numeric (default \code{6}). Spacing of the anchor
+layout. For \code{row / column / snake} this is the centre-to-centre
+distance between adjacent anchors; for \code{circle / square /
+diamond / triangle} it is the radius from origin to each anchor; for
+\code{arc} it is the chord-projected spacing (chord length =
+\code{(n_blocks - 1) * anchor_dist}).}
 
-\item{nrow}{Integer (default = NULL).
-Number of rows for \code{group_layout = "row"}, \code{"column"}, or \code{"snake"}.}
+\item{scale_networks}{Logical (default \code{TRUE}). If \code{TRUE},
+normalise each per-block network to the same visual radius
+(\code{r}); if \code{FALSE}, \code{r} is the minimum network radius and
+larger networks scale proportionally to node count. Ignored when
+\code{spec_collapse = TRUE}.}
 
-\item{ncol}{Integer (default = NULL).
-Number of columns for \code{group_layout = "row"}, \code{"column"}, or \code{"snake"}.}
+\item{nrow, ncol}{Integer or NULL (default \code{NULL}). Grid dimensions
+for \code{group_layout = "row" | "column" | "snake"}. If both are
+NULL, defaults are inferred from the layout choice.}
 }
 \value{
 A list of length 3:
-- [[1]]: ggplot object with straight link segments.
-- [[2]]: ggplot object with curved link segments.
-- [[3]]: data.frame of full species-environment correlation statistics
-         (unfiltered, not affected by `drop_nonsig`), with columns
-         \code{ID}, \code{Type}, \code{Correlation}, \code{Pvalue}, \code{spec_block},
-         \code{env_block}, and \code{method} (e.g. \code{"correlation"} or \code{"mantel"}).
+\describe{
+  \item{\code{[[1]]}}{ggplot object with straight link segments
+    (\code{geom_segment}).}
+  \item{\code{[[2]]}}{ggplot object with curved link segments
+    (\code{geom_curve}).}
+  \item{\code{[[3]]}}{Data frame of full spec-env stats (unfiltered, not
+    affected by \code{drop_nonsig}). Columns: \code{ID}, \code{Type},
+    \code{Correlation}, \code{Pvalue}, \code{p_signif}, \code{spec_block},
+    \code{env_block}, \code{method} (\code{"correlation"} or
+    \code{"mantel"}). For \code{mantel_kind = "block_vs_col"}, \code{ID}
+    is the spec_block name; otherwise \code{ID} is the spec column name.}
+}
 }
 \description{
-Visualize multi-orientation environmental-species correlation heatmaps
+Render a "central species network(s)" surrounded by up to four
+environmental-correlation heatmap quadrants, with curved or straight link
+segments connecting each spec node (or each spec block) to each env
+variable. Supports both Pearson/Spearman/Kendall correlation and
+\code{vegan::mantel} tests, and exposes a unified Mantel API
+(\code{mantel_kind = "block_vs_col" | "col_vs_col"}) shared with
+\code{\link{ggnetview_modularity_heatmaps}}.
 }
+\details{
+\strong{Layered geometry.} The plot is built in three nested layers:
+\enumerate{
+  \item \strong{Single network geometry} (per spec block) controlled by
+    \code{spec_layout} / \code{spec_orientation} — how nodes inside one
+    block are arranged.
+  \item \strong{Group geometry} (across spec blocks) controlled by
+    \code{group_layout} / \code{group_angle} / \code{group_arc_angle} /
+    \code{anchor_dist} — how the per-block anchors are scattered on the
+    canvas.
+  \item \strong{Heatmap geometry} (around the centre) controlled by
+    \code{orientation} / \code{distance} / \code{HeatmapScale} — where the
+    four env heatmap quadrants sit relative to the central group.
+}
+
+\strong{Two collapse modes for \code{spec_select}.}
+\itemize{
+  \item \code{spec_collapse = FALSE} (default): each block is drawn as a
+    small network and each spec column has its own node. Link sources are
+    per-column nodes (correlation / col_vs_col mantel) or block centroids
+    (block_vs_col mantel).
+  \item \code{spec_collapse = TRUE}: each block becomes ONE labelled
+    point at its anchor position. Pairs naturally with
+    \code{relation_method = "mantel"} + \code{mantel_kind = "block_vs_col"},
+    where one block = one statistical unit.
+}
+
+\strong{Mantel API.} Two algorithms exposed via \code{mantel_kind} and
+shared with \code{\link{ggnetview_modularity_heatmaps}}:
+\itemize{
+  \item \code{"block_vs_col"} (default, ecological standard, linkET / ggcor
+    style): the whole spec block becomes ONE community-distance matrix
+    (\code{vegan::vegdist} with \code{spec_dist_method}); each env column
+    becomes its own distance matrix (\code{env_dist_method}); one Mantel
+    test per (spec_block, env_col). See \code{\link{mantel_block_vs_col}}.
+  \item \code{"col_vs_col"} (legacy, kept for sensitivity / backwards
+    compatibility): each spec column and each env column is reduced to a
+    single-column distance matrix; the resulting "Mantel" is mathematically
+    close to a rank correlation. See \code{\link{mantel_pairwise}}.
+}
+
+\strong{Angle inputs.} \code{group_angle} and \code{group_arc_angle}
+auto-detect their unit from the magnitude: \code{|x| <= 2*pi} is taken as
+radians, \code{|x| > 2*pi} as degrees. Use \code{\link{deg}} to force a
+small value to mean degrees (e.g. \code{deg(5)} = 5°).
+}
+\section{Data inputs}{
+
+}
+
+\section{Per-block (spec) geometry}{
+
+}
+
+\section{Across-block (group) geometry}{
+
+}
+
+\section{Heatmap geometry}{
+
+}
+
+\section{Statistics — correlation}{
+
+}
+
+\section{Statistics — Mantel}{
+
+}
+
+\section{What gets analysed}{
+
+}
+
+\section{Heatmap aesthetics}{
+
+}
+
+\section{Central node aesthetics}{
+
+}
+
+\section{Link line aesthetics}{
+
+}
+
+\section{Deprecated / unused parameters}{
+
+}
+
 \examples{
 \dontrun{
-# `env` and `spec` are environmental / species abundance data frames.
+# Minimal call (defaults: correlation, no collapse).
 p <- gglink_heatmaps(
   env  = env,
-  spec = spec
+  spec = spec,
+  env_select  = list(Env01 = 1:14, Env02 = 15:28,
+                     Env03 = 29:42, Env04 = 43:56),
+  spec_select = list(Spec01 = 1:15, Spec02 = 16:30)
 )
+p[[1]]   # straight links
+p[[2]]   # curved links
+head(p[[3]])
+
+# Ecologically standard Mantel + collapse each block to one point.
+p2 <- gglink_heatmaps(
+  env  = env,
+  spec = spec,
+  env_select  = list(Env01 = 1:14, Env02 = 15:28,
+                     Env03 = 29:42, Env04 = 43:56),
+  spec_select = list(Spec01 = 1:15, Spec02 = 16:30),
+  relation_method  = "mantel",
+  mantel_kind      = "block_vs_col",
+  spec_dist_method = "bray",
+  env_dist_method  = "euclidean",
+  spec_collapse    = TRUE,
+  group_layout     = "row",
+  group_angle      = 45,            # degrees, auto-detected
+  anchor_dist      = 4,
+  distance         = -1,            # heatmaps pulled slightly inward
+  CorePointFill    = c("#2166ac", "#b2182b"),
+  CorePointSize    = 10
+)
+p2[[1]]
 }
+}
+\seealso{
+\code{\link{ggnetview_modularity_heatmaps}} for the modularity-based
+counterpart with the same Mantel API;
+\code{\link{mantel_block_vs_col}}, \code{\link{mantel_pairwise}} for the
+underlying Mantel implementations;
+\code{\link{deg}} to make a numeric explicitly mean degrees in
+\code{group_angle} / \code{group_arc_angle}.
 }
