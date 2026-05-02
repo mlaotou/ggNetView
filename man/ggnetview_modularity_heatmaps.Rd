@@ -15,6 +15,10 @@ ggnetview_modularity_heatmaps(
   cor.method = c("pearson", "kendall", "spearman"),
   cor.use = c("everything", "all", "complete", "pairwise", "na"),
   mantel.method2 = c("pearson", "kendall", "spearman"),
+  mantel_kind = c("block_vs_col", "col_vs_col"),
+  spec_dist_method = "bray",
+  env_dist_method = "euclidean",
+  permutations = 999L,
   drop_nonsig = FALSE,
   layout = "gephi",
   layout.module = c("random", "adjacent", "order"),
@@ -64,6 +68,37 @@ use \code{"sum"} or \code{"mean"}.}
 \item{cor.use}{Handling of missing values in correlation.}
 
 \item{mantel.method2}{Correlation for Mantel test.}
+
+\item{mantel_kind}{Character (default = `"block_vs_col"`)
+Which Mantel variant to use when `relation_method = "mantel"`. Shared with
+[gglink_heatmaps()] so both functions use the exact same algorithm.
+- `"block_vs_col"`: \strong{ecological standard} (linkET / ggcor style).
+  For each module, the OTUs that belong to that module are pulled out of
+  `otu_mat` (samples x OTUs), converted into ONE community distance matrix
+  with `spec_dist_method`, then tested against each env column's distance
+  matrix (`env_dist_method`). One Mantel test per (module, env_col).
+  Implemented by [mantel_block_vs_col()].
+- `"col_vs_col"`: \strong{column-vs-column} (legacy behaviour). The module
+  representative vector (eigengene or abundance) is treated as a single
+  variable and its single-column distance matrix is tested against each
+  env column's single-column distance matrix. Statistically close to a
+  rank correlation. Implemented by [mantel_pairwise()].
+\strong{Note:} prior versions of this function used `"col_vs_col"`
+implicitly when `relation_method = "mantel"`. The default has been
+switched to `"block_vs_col"` to match the standard ecological Mantel
+interpretation; pass `mantel_kind = "col_vs_col"` to reproduce old results.}
+
+\item{spec_dist_method}{Character (default = `"bray"`)
+Distance method for the per-module community matrix
+(`vegan::vegdist`). Used only when
+`relation_method = "mantel"` and `mantel_kind = "block_vs_col"`.}
+
+\item{env_dist_method}{Character (default = `"euclidean"`)
+Distance method for each env column (`vegan::vegdist`). Used only when
+`relation_method = "mantel"`.}
+
+\item{permutations}{Integer (default = `999`)
+Permutations passed to `vegan::mantel`.}
 
 \item{drop_nonsig}{Logical. Drop non-significant links from plot.}
 

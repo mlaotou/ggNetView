@@ -38,6 +38,46 @@
 #' One of `"pearson"`, `"kendall"`, or `"spearman"`.
 #' @param mantel.alternative Character
 #' Alternative hypothesis for Mantel test. One of `"two.sided"`, `"less"`, or `"greater"`.
+#' @param spec_dist_method Character (default = `"bray"`)
+#' Dissimilarity method used to build the spec-block distance matrix when
+#' `relation_method = "mantel"`. The whole spec block (all columns) is treated
+#' as a community matrix and passed to `vegan::vegdist`. Common choices for
+#' species abundance data: `"bray"`, `"jaccard"`, `"euclidean"`. See
+#' `?vegan::vegdist` for the full list.
+#' @param env_dist_method Character (default = `"euclidean"`)
+#' Dissimilarity method used to build the per-env-column distance matrix when
+#' `relation_method = "mantel"`. Each individual env column is converted to a
+#' distance matrix with `vegan::vegdist`. Default `"euclidean"` is the standard
+#' choice for continuous environmental variables.
+#' @param mantel_kind Character (default = `"block_vs_col"`)
+#' Which Mantel variant to use when `relation_method = "mantel"`. Common to
+#' both `gglink_heatmaps()` and `ggnetview_modularity_heatmaps()` so results
+#' from the two functions stay comparable.
+#' - `"block_vs_col"`: \strong{ecological standard} (linkET / ggcor style).
+#'   The whole spec block is converted to ONE distance matrix with
+#'   `spec_dist_method`; each env column is converted to its own distance
+#'   matrix with `env_dist_method`; one Mantel test per (spec_block, env_col).
+#'   Implemented by [mantel_block_vs_col()].
+#' - `"col_vs_col"`: \strong{column-vs-column} (legacy behaviour). Each spec
+#'   column and each env column is reduced to its own single-variable
+#'   distance matrix. Statistically close to a rank correlation; kept mainly
+#'   for backwards compatibility and sensitivity comparisons. Implemented by
+#'   [mantel_pairwise()].
+#' @param permutations Integer (default = `999`)
+#' Number of permutations used by `vegan::mantel`.
+#' @param spec_collapse Logical (default = `FALSE`)
+#' Whether to collapse each `spec_select` block into a single labelled point.
+#' - `FALSE` (default): each spec block is rendered as a small network of nodes
+#'   (one node per spec column), as before.
+#' - `TRUE`: each spec block is rendered as ONE point placed at the block's
+#'   anchor position (center for single-block layouts, or the per-block anchor
+#'   from `group_layout` for multi-block layouts). The point's label is the
+#'   block's name from `names(spec_select)` (e.g. "Spec01", "Spec02").
+#'   In this mode, `spec_layout`, `spec_relation`, and `scale_networks` are
+#'   ignored, and link sources are always the collapsed block point regardless
+#'   of `relation_method`. This option pairs naturally with
+#'   `relation_method = "mantel"`, where each spec block is itself the
+#'   statistical unit of one Mantel test.
 #' @param drop_nonsig Logical
 #' if `TRUE`, non-significant correlations are dropped from the final visualization.
 #' @param comparisons Logical (default = TRUE).
@@ -158,6 +198,11 @@ gglink_heatmaps <- function(
     mantel.method = c("mantel", "mantel.partial", "mantelhaen.test", "mantel.correlog"),
     mantel.method2 = c("pearson", "kendall", "spearman"),
     mantel.alternative = c("two.sided", "less", "greater"),
+    spec_dist_method = "bray",
+    env_dist_method = "euclidean",
+    mantel_kind = c("block_vs_col", "col_vs_col"),
+    permutations = 999L,
+    spec_collapse = FALSE,
     drop_nonsig = FALSE,
     comparisons = TRUE,
     comparisons_groups = NULL,
@@ -197,6 +242,30 @@ gglink_heatmaps <- function(
   mantel.method   <- match.arg(mantel.method)
   mantel.method2  <- match.arg(mantel.method2)
   mantel.alternative <- match.arg(mantel.alternative)
+  if (!is.character(spec_dist_method) || length(spec_dist_method) != 1L || !nzchar(spec_dist_method)) {
+    stop("`spec_dist_method` must be a single non-empty character string (passed to `vegan::vegdist`).", call. = FALSE)
+  }
+  if (!is.character(env_dist_method) || length(env_dist_method) != 1L || !nzchar(env_dist_method)) {
+    stop("`env_dist_method` must be a single non-empty character string (passed to `vegan::vegdist`).", call. = FALSE)
+  }
+  mantel_kind <- match.arg(mantel_kind)
+  permutations <- as.integer(permutations)
+  if (length(permutations) != 1L || is.na(permutations) || permutations < 1L) {
+    stop("`permutations` must be a single positive integer.", call. = FALSE)
+  }
+  if (!is.logical(spec_collapse) || length(spec_collapse) != 1L || is.na(spec_collapse)) {
+    stop("`spec_collapse` must be a single TRUE or FALSE.", call. = FALSE)
+  }
+  if (isTRUE(spec_collapse) &&
+      !(relation_method == "mantel" && mantel_kind == "block_vs_col")) {
+    message("`spec_collapse = TRUE` collapses each spec block into one point; ",
+            "in the current mode (relation_method = '", relation_method,
+            if (relation_method == "mantel") paste0("', mantel_kind = '", mantel_kind, "'") else "'",
+            ") link sources are per spec column, so all column-level links from ",
+            "a block will originate from the same collapsed point. ",
+            "Consider `relation_method = 'mantel'` + `mantel_kind = 'block_vs_col'` ",
+            "for a one-line-per-block visualisation.")
+  }
   orientation     <- match.arg(orientation, several.ok = TRUE)
   group_layout    <- match.arg(group_layout)
   anchor_dist     <- as.numeric(anchor_dist)
@@ -635,6 +704,16 @@ gglink_heatmaps <- function(
                      p_signif = character(), spec_block = character(), env_block = character(), method = "correlation")
     }
   } else if (relation_method == "mantel") {
+    # Mantel test. Dispatched to a shared helper based on `mantel_kind` so
+    # that gglink_heatmaps() and ggnetview_modularity_heatmaps() use exactly
+    # the same algorithm:
+    #   - "block_vs_col": ecology-standard. spec block (whole) -> ONE dist;
+    #                     each env column -> its own dist; mantel per pair.
+    #                     ID column carries the spec_block name.
+    #                     Implemented by mantel_block_vs_col().
+    #   - "col_vs_col"  : legacy column-vs-column mantel (≈ rank correlation).
+    #                     ID column carries the spec column name.
+    #                     Implemented by mantel_pairwise().
     cor_spec_env_parts <- list()
     for (col in seq_len(ncol(pairs_to_compute))) {
       env_blk <- pairs_to_compute[1, col]
@@ -642,18 +721,36 @@ gglink_heatmaps <- function(
       j <- which(spec_block_names == spec_blk)
       p <- which(env_block_names == env_blk)
       if (length(j) != 1 || length(p) != 1) next
-      mout <- mantel_pairwise(
-        spec_df = spec_list[[j]],
-        env_df = env_list[[p]],
-        method = mantel.method2,
-        permutations = 999L,
-        na_omit = TRUE
-      )
+
+      if (mantel_kind == "block_vs_col") {
+        mout <- mantel_block_vs_col(
+          spec_df          = spec_list[[j]],
+          env_df           = env_list[[p]],
+          block_name       = spec_blk,
+          method           = mantel.method2,
+          spec_dist_method = spec_dist_method,
+          env_dist_method  = env_dist_method,
+          permutations     = permutations,
+          na_omit          = TRUE
+        )
+      } else {
+        mout <- mantel_pairwise(
+          spec_df      = spec_list[[j]],
+          env_df       = env_list[[p]],
+          method       = mantel.method2,
+          permutations = permutations,
+          na_omit      = TRUE
+        )
+      }
+
+      if (base::nrow(mout) == 0L) next
+
       mout <- mout %>%
         dplyr::mutate(
           spec_block = spec_blk,
-          env_block = env_blk,
+          env_block  = env_blk,
           p_signif = dplyr::case_when(
+            is.na(Pvalue) ~ "",
             Pvalue > 0.05 ~ "",
             Pvalue > 0.01 & Pvalue <= 0.05 ~ "*",
             Pvalue < 0.01 & Pvalue >= 0.001 ~ "**",
@@ -696,6 +793,18 @@ gglink_heatmaps <- function(
   layout_list <- list()
 
   for (j in seq_len(n_spec)) {
+    # `spec_collapse = TRUE` short-circuits everything: each block becomes a
+    # single point labelled with the block's name. The block-level position is
+    # set to (0, 0) here and translated to its anchor in the next stage.
+    if (isTRUE(spec_collapse)) {
+      layout_list[[j]] <- data.frame(
+        ID = spec_block_names[j],
+        x = 0, y = 0,
+        spec_block = spec_block_names[j],
+        stringsAsFactors = FALSE
+      )
+      next
+    }
     lay_name <- spec_layout_vec[j]
     func_name <- paste0("create_layout_", lay_name)
     lay_func <- utils::getFromNamespace(func_name, "ggNetView")
@@ -833,7 +942,11 @@ gglink_heatmaps <- function(
       ly_df <- layout_list[[j]]
       ax <- anchors_df[j, 1]
       ay <- anchors_df[j, 2]
-      if (isTRUE(scale_networks)) {
+      if (isTRUE(spec_collapse)) {
+        # Each block is already a single (0, 0) point; just translate to anchor.
+        ly_df <- ly_df %>%
+          dplyr::mutate(x = ax, y = ay)
+      } else if (isTRUE(scale_networks)) {
         xmin <- min(ly_df$x)
         xmax <- max(ly_df$x)
         ymin <- min(ly_df$y)
@@ -968,13 +1081,61 @@ gglink_heatmaps <- function(
     heatmap_step = heatmap_step
   )
 
-  cor_spec_env_location <- cor_spec_env_list_out %>%
-    dplyr::mutate(ID = as.character(ID), Type = as.character(Type)) %>%
-    dplyr::left_join(cor_spec_env, by = "ID") %>%
-    dplyr::left_join(xy_targets, by = c("Type" = "ID")) %>%
-    dplyr::mutate(
-      line_type = dplyr::if_else(.data$Pvalue <= 0.05, "solid", "dashed")
-    )
+  # Build the lookup table that translates each row's `ID` value into a link
+  # source coordinate (x, y). Three cases:
+  #   - spec_collapse = TRUE : every link starts at the collapsed block point.
+  #                            cor_spec_env already has one row per block with
+  #                            ID = spec_block name, so a direct select works
+  #                            (mantel) and we also fall back to joining via
+  #                            spec_block (correlation, where row IDs are spec
+  #                            column names but spec_block column carries the
+  #                            block name).
+  #   - relation_method = "mantel" + collapse = FALSE :
+  #       ID = spec_block name -> use the network's centroid (mean of nodes).
+  #   - correlation + collapse = FALSE :
+  #       ID = spec column name -> use that column's node position.
+  if (isTRUE(spec_collapse)) {
+    block_xy <- cor_spec_env %>%
+      dplyr::distinct(spec_block, .keep_all = TRUE) %>%
+      dplyr::select(spec_block, x, y) %>%
+      dplyr::mutate(spec_block = as.character(spec_block))
+
+    cor_spec_env_location <- cor_spec_env_list_out %>%
+      dplyr::mutate(ID = as.character(ID),
+                    Type = as.character(Type),
+                    spec_block = as.character(spec_block)) %>%
+      dplyr::left_join(block_xy, by = "spec_block") %>%
+      dplyr::left_join(xy_targets, by = c("Type" = "ID")) %>%
+      dplyr::mutate(
+        line_type = dplyr::if_else(.data$Pvalue <= 0.05, "solid", "dashed")
+      )
+  } else {
+    # Pick the link-source lookup based on what `ID` actually contains:
+    #   - mantel + block_vs_col : ID = spec_block name -> use block centroid
+    #   - mantel + col_vs_col   : ID = spec column name -> use that node
+    #   - correlation           : ID = spec column name -> use that node
+    if (relation_method == "mantel" && mantel_kind == "block_vs_col") {
+      link_source_xy <- cor_spec_env %>%
+        dplyr::group_by(spec_block) %>%
+        dplyr::summarise(x = mean(x, na.rm = TRUE),
+                         y = mean(y, na.rm = TRUE),
+                         .groups = "drop") %>%
+        dplyr::rename(ID = spec_block) %>%
+        dplyr::mutate(ID = as.character(ID))
+    } else {
+      link_source_xy <- cor_spec_env %>%
+        dplyr::select(ID, x, y) %>%
+        dplyr::mutate(ID = as.character(ID))
+    }
+
+    cor_spec_env_location <- cor_spec_env_list_out %>%
+      dplyr::mutate(ID = as.character(ID), Type = as.character(Type)) %>%
+      dplyr::left_join(link_source_xy, by = "ID") %>%
+      dplyr::left_join(xy_targets, by = c("Type" = "ID")) %>%
+      dplyr::mutate(
+        line_type = dplyr::if_else(.data$Pvalue <= 0.05, "solid", "dashed")
+      )
+  }
 
   # Filter only at plotting stage to avoid dropping central nodes
   link_df <- cor_spec_env_location

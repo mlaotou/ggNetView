@@ -172,6 +172,33 @@ get_module_abundance <- function(otu_mat,
 #' @param cor.method Correlation method: \code{"pearson"}, \code{"kendall"}, \code{"spearman"}.
 #' @param cor.use Handling of missing values in correlation.
 #' @param mantel.method2 Correlation for Mantel test.
+#' @param mantel_kind Character (default = `"block_vs_col"`)
+#' Which Mantel variant to use when `relation_method = "mantel"`. Shared with
+#' [gglink_heatmaps()] so both functions use the exact same algorithm.
+#' - `"block_vs_col"`: \strong{ecological standard} (linkET / ggcor style).
+#'   For each module, the OTUs that belong to that module are pulled out of
+#'   `otu_mat` (samples x OTUs), converted into ONE community distance matrix
+#'   with `spec_dist_method`, then tested against each env column's distance
+#'   matrix (`env_dist_method`). One Mantel test per (module, env_col).
+#'   Implemented by [mantel_block_vs_col()].
+#' - `"col_vs_col"`: \strong{column-vs-column} (legacy behaviour). The module
+#'   representative vector (eigengene or abundance) is treated as a single
+#'   variable and its single-column distance matrix is tested against each
+#'   env column's single-column distance matrix. Statistically close to a
+#'   rank correlation. Implemented by [mantel_pairwise()].
+#' \strong{Note:} prior versions of this function used `"col_vs_col"`
+#' implicitly when `relation_method = "mantel"`. The default has been
+#' switched to `"block_vs_col"` to match the standard ecological Mantel
+#' interpretation; pass `mantel_kind = "col_vs_col"` to reproduce old results.
+#' @param spec_dist_method Character (default = `"bray"`)
+#' Distance method for the per-module community matrix
+#' (`vegan::vegdist`). Used only when
+#' `relation_method = "mantel"` and `mantel_kind = "block_vs_col"`.
+#' @param env_dist_method Character (default = `"euclidean"`)
+#' Distance method for each env column (`vegan::vegdist`). Used only when
+#' `relation_method = "mantel"`.
+#' @param permutations Integer (default = `999`)
+#' Permutations passed to `vegan::mantel`.
 #' @param drop_nonsig Logical. Drop non-significant links from plot.
 #' @param layout Character. Layout for ggNetView (e.g. \code{"gephi"}, \code{"square"}).
 #' @param layout.module Character. Module ordering strategy passed through to
@@ -231,6 +258,10 @@ ggnetview_modularity_heatmaps <- function(
     cor.method = c("pearson", "kendall", "spearman"),
     cor.use = c("everything", "all", "complete", "pairwise", "na"),
     mantel.method2 = c("pearson", "kendall", "spearman"),
+    mantel_kind = c("block_vs_col", "col_vs_col"),
+    spec_dist_method = "bray",
+    env_dist_method = "euclidean",
+    permutations = 999L,
     drop_nonsig = FALSE,
     layout = "gephi",
     layout.module = c("random", "adjacent", "order"),
@@ -257,6 +288,24 @@ ggnetview_modularity_heatmaps <- function(
   cor.method <- match.arg(cor.method)
   cor.use <- match.arg(cor.use)
   mantel.method2 <- match.arg(mantel.method2)
+  mantel_kind <- match.arg(mantel_kind)
+  if (!is.character(spec_dist_method) || length(spec_dist_method) != 1L || !nzchar(spec_dist_method)) {
+    stop("`spec_dist_method` must be a single non-empty character string (passed to `vegan::vegdist`).", call. = FALSE)
+  }
+  if (!is.character(env_dist_method) || length(env_dist_method) != 1L || !nzchar(env_dist_method)) {
+    stop("`env_dist_method` must be a single non-empty character string (passed to `vegan::vegdist`).", call. = FALSE)
+  }
+  permutations <- as.integer(permutations)
+  if (length(permutations) != 1L || is.na(permutations) || permutations < 1L) {
+    stop("`permutations` must be a single positive integer.", call. = FALSE)
+  }
+  if (relation_method == "mantel") {
+    message("Using `mantel_kind = \"", mantel_kind, "\"`. ",
+            "Note: prior versions ran the equivalent of `\"col_vs_col\"` when ",
+            "`relation_method = \"mantel\"`. The new default is the ecologically ",
+            "standard `\"block_vs_col\"` (community matrix vs each env column). ",
+            "Pass `mantel_kind = \"col_vs_col\"` to reproduce old results.")
+  }
   orientation <- match.arg(orientation, several.ok = TRUE)
 
   distance <- as.numeric(distance)
@@ -365,32 +414,93 @@ ggnetview_modularity_heatmaps <- function(
                     spec_block = character(), env_block = character(), method = "correlation")
     }
   } else {
+    # Mantel test. Two algorithms exposed via `mantel_kind`, both shared with
+    # gglink_heatmaps() through helpers in mantel_utils.R:
+    #   - "block_vs_col": for each module, pull out that module's OTUs from
+    #     otu_mat, transpose to (samples x OTUs), and let mantel_block_vs_col()
+    #     build ONE community-distance matrix per module that is tested
+    #     against each env column. ID = module name (e.g. "M1").
+    #   - "col_vs_col": treat each module's representative vector
+    #     (eigengene/abundance, already in spec_df) as a single variable and
+    #     run column-vs-column mantel via mantel_pairwise(). ID = module name
+    #     (column name in spec_df).
     cor_parts <- list()
+
+    if (mantel_kind == "block_vs_col") {
+      module_members <- get_module_members(graph_obj, exclude_others = TRUE)
+      module_names <- names(module_members)
+      # Restrict to modules that appear in spec_df (e.g. those with >= 2 OTUs
+      # actually computed for eigengene); preserves alignment with the plot.
+      module_names <- intersect(module_names, colnames(spec_df))
+    }
+
     for (col in seq_len(nrow(pairs_to_compute))) {
       env_blk <- pairs_to_compute[col, 1]
       spec_blk <- pairs_to_compute[col, 2]
       j <- which(spec_block_names == spec_blk)
       p <- which(env_block_names == env_blk)
       if (length(j) != 1 || length(p) != 1) next
-      mout <- mantel_pairwise(
-        spec_df = spec_list[[j]],
-        env_df = env_list[[p]],
-        method = mantel.method2,
-        permutations = 999L,
-        na_omit = TRUE
-      ) %>%
-        dplyr::mutate(
-          spec_block = spec_blk,
-          env_block = env_blk,
-          p_signif = dplyr::case_when(
-            Pvalue > 0.05 ~ "",
-            Pvalue > 0.01 & Pvalue <= 0.05 ~ "*",
-            Pvalue < 0.01 & Pvalue >= 0.001 ~ "**",
-            Pvalue < 0.001 ~ "***",
-            TRUE ~ ""
+
+      env_block_df <- env_list[[p]]
+
+      if (mantel_kind == "block_vs_col") {
+        # One Mantel test per (module, env_col) pair
+        for (mod in module_names) {
+          otu_in_mod <- intersect(module_members[[mod]], rownames(otu_mat))
+          if (length(otu_in_mod) < 2L) next
+          # samples x OTUs community submatrix
+          comm_sub <- t(otu_mat[otu_in_mod, , drop = FALSE])
+          mout <- mantel_block_vs_col(
+            spec_df          = comm_sub,
+            env_df           = env_block_df,
+            block_name       = mod,
+            method           = mantel.method2,
+            spec_dist_method = spec_dist_method,
+            env_dist_method  = env_dist_method,
+            permutations     = permutations,
+            na_omit          = TRUE
           )
+          if (base::nrow(mout) == 0L) next
+          mout <- mout %>%
+            dplyr::mutate(
+              spec_block = spec_blk,
+              env_block  = env_blk,
+              p_signif = dplyr::case_when(
+                is.na(Pvalue) ~ "",
+                Pvalue > 0.05 ~ "",
+                Pvalue > 0.01 & Pvalue <= 0.05 ~ "*",
+                Pvalue < 0.01 & Pvalue >= 0.001 ~ "**",
+                Pvalue < 0.001 ~ "***",
+                TRUE ~ ""
+              )
+            )
+          cor_parts[[length(cor_parts) + 1L]] <- mout
+        }
+      } else {
+        # col_vs_col: legacy; ID = module column name in spec_df
+        mout <- mantel_pairwise(
+          spec_df      = spec_list[[j]],
+          env_df       = env_block_df,
+          method       = mantel.method2,
+          permutations = permutations,
+          na_omit      = TRUE
         )
-      cor_parts[[length(cor_parts) + 1L]] <- mout
+        if (base::nrow(mout) == 0L) next
+        mout <- mout %>%
+          dplyr::mutate(
+            spec_block = spec_blk,
+            env_block  = env_blk,
+            p_signif = dplyr::case_when(
+              is.na(Pvalue) ~ "",
+              Pvalue > 0.05 ~ "",
+              Pvalue > 0.01 & Pvalue <= 0.05 ~ "*",
+              Pvalue < 0.01 & Pvalue >= 0.001 ~ "**",
+              Pvalue < 0.001 ~ "***",
+              TRUE ~ ""
+            )
+          )
+        cor_parts[[length(cor_parts) + 1L]] <- mout
+      }
     }
     cor_spec_env_list_out <- if (length(cor_parts) > 0) {
       do.call(rbind, cor_parts) %>% dplyr::mutate(method = "mantel")

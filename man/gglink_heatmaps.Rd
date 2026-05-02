@@ -18,6 +18,11 @@ gglink_heatmaps(
   mantel.method = c("mantel", "mantel.partial", "mantelhaen.test", "mantel.correlog"),
   mantel.method2 = c("pearson", "kendall", "spearman"),
   mantel.alternative = c("two.sided", "less", "greater"),
+  spec_dist_method = "bray",
+  env_dist_method = "euclidean",
+  mantel_kind = c("block_vs_col", "col_vs_col"),
+  permutations = 999L,
+  spec_collapse = FALSE,
   drop_nonsig = FALSE,
   comparisons = TRUE,
   comparisons_groups = NULL,
@@ -99,6 +104,51 @@ One of `"pearson"`, `"kendall"`, or `"spearman"`.}
 
 \item{mantel.alternative}{Character
 Alternative hypothesis for Mantel test. One of `"two.sided"`, `"less"`, or `"greater"`.}
+
+\item{spec_dist_method}{Character (default = `"bray"`)
+Dissimilarity method used to build the spec-block distance matrix when
+`relation_method = "mantel"`. The whole spec block (all columns) is treated
+as a community matrix and passed to `vegan::vegdist`. Common choices for
+species abundance data: `"bray"`, `"jaccard"`, `"euclidean"`. See
+`?vegan::vegdist` for the full list.}
+
+\item{env_dist_method}{Character (default = `"euclidean"`)
+Dissimilarity method used to build the per-env-column distance matrix when
+`relation_method = "mantel"`. Each individual env column is converted to a
+distance matrix with `vegan::vegdist`. Default `"euclidean"` is the standard
+choice for continuous environmental variables.}
+
+\item{mantel_kind}{Character (default = `"block_vs_col"`)
+Which Mantel variant to use when `relation_method = "mantel"`. Common to
+both `gglink_heatmaps()` and `ggnetview_modularity_heatmaps()` so results
+from the two functions stay comparable.
+- `"block_vs_col"`: \strong{ecological standard} (linkET / ggcor style).
+  The whole spec block is converted to ONE distance matrix with
+  `spec_dist_method`; each env column is converted to its own distance
+  matrix with `env_dist_method`; one Mantel test per (spec_block, env_col).
+  Implemented by [mantel_block_vs_col()].
+- `"col_vs_col"`: \strong{column-vs-column} (legacy behaviour). Each spec
+  column and each env column is reduced to its own single-variable
+  distance matrix. Statistically close to a rank correlation; kept mainly
+  for backwards compatibility and sensitivity comparisons. Implemented by
+  [mantel_pairwise()].}
+
+\item{permutations}{Integer (default = `999`)
+Number of permutations used by `vegan::mantel`.}
+
+\item{spec_collapse}{Logical (default = `FALSE`)
+Whether to collapse each `spec_select` block into a single labelled point.
+- `FALSE` (default): each spec block is rendered as a small network of nodes
+  (one node per spec column), as before.
+- `TRUE`: each spec block is rendered as ONE point placed at the block's
+  anchor position (center for single-block layouts, or the per-block anchor
+  from `group_layout` for multi-block layouts). The point's label is the
+  block's name from `names(spec_select)` (e.g. "Spec01", "Spec02").
+  In this mode, `spec_layout`, `spec_relation`, and `scale_networks` are
+  ignored, and link sources are always the collapsed block point regardless
+  of `relation_method`. This option pairs naturally with
+  `relation_method = "mantel"`, where each spec block is itself the
+  statistical unit of one Mantel test.}
 
 \item{drop_nonsig}{Logical
 if `TRUE`, non-significant correlations are dropped from the final visualization.}
