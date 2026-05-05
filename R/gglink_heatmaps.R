@@ -7,7 +7,10 @@
 #' variable. Supports both Pearson/Spearman/Kendall correlation and
 #' \code{vegan::mantel} tests, and exposes a unified Mantel API
 #' (\code{mantel_kind = "block_vs_col" | "col_vs_col"}) shared with
-#' \code{\link{ggnetview_modularity_heatmaps}}.
+#' \code{\link{ggnetview_modularity_heatmaps}}. Link line colour and width
+#' are user-configurable through expression strings (\code{link_color_by},
+#' \code{link_width_by}); non-significant links are rendered as a separate
+#' flat-grey background layer for visual context.
 #'
 #' @details
 #' \strong{Layered geometry.} The plot is built in three nested layers:
@@ -54,6 +57,37 @@
 #' auto-detect their unit from the magnitude: \code{|x| <= 2*pi} is taken as
 #' radians, \code{|x| > 2*pi} as degrees. Use \code{\link{deg}} to force a
 #' small value to mean degrees (e.g. \code{deg(5)} = 5°).
+#'
+#' \strong{Link line styling.} Spec-env links are rendered in two stacked
+#' layers controlled by \code{sig_threshold}:
+#' \itemize{
+#'   \item \strong{Significant layer} (\code{Pvalue <= sig_threshold}):
+#'     colour and width are mapped from user-supplied expressions
+#'     \code{link_color_by} and \code{link_width_by} (each a string like
+#'     \code{"Correlation"}, \code{"-log10(Pvalue)"}, or
+#'     \code{"abs(Correlation)"}). The colour gradient endpoints come from
+#'     \code{SigLineColor}; pass \code{SigLineMid} (e.g. \code{"white"}) to
+#'     switch to a diverging \code{scale_colour_gradient2(midpoint = 0)},
+#'     recommended whenever the mapped variable can be negative (signed
+#'     correlations). The width scale range comes from \code{SigLineWidth}.
+#'   \item \strong{Non-significant layer} (\code{Pvalue > sig_threshold}):
+#'     drawn flat in \code{NonsigLineColor} (default light grey) with line
+#'     type \code{NonsigLineType} (default dashed) at the minimum of
+#'     \code{SigLineWidth}, purely as visual context. This layer is omitted
+#'     when \code{drop_nonsig = TRUE}.
+#' }
+#' Both layers share \code{SigLineAlpha}. Because non-significant links do
+#' not participate in the colour/width scales, the legends only reflect
+#' the significant layer.
+#'
+#' \strong{Available columns for link expressions.} \code{link_color_by}
+#' and \code{link_width_by} are evaluated against the link data frame,
+#' which contains the spec-env stat columns plus link-source / link-target
+#' coordinates: \code{ID}, \code{Type}, \code{Correlation}, \code{Pvalue},
+#' \code{p_signif}, \code{spec_block}, \code{env_block}, \code{method},
+#' \code{is_sig}, plus \code{x}, \code{y}, \code{x_to}, \code{y_to}. Most
+#' users will only build expressions from \code{Correlation} and
+#' \code{Pvalue}.
 #'
 #' @section Data inputs:
 #' @param env Data frame or matrix. Environmental variables, one column per
@@ -200,8 +234,8 @@
 #'   means "all pairs". Example:
 #'   \code{list(c("Env01","Spec01"), c("Env02","Spec02"))}.
 #' @param drop_nonsig Logical (default \code{FALSE}). If \code{TRUE},
-#'   non-significant links (p > 0.05) are removed from the plot but kept
-#'   in the returned stats data frame.
+#'   non-significant links (\code{Pvalue > sig_threshold}) are removed
+#'   from the plot but kept in the returned stats data frame.
 #'
 #' @section Heatmap aesthetics:
 #' @param HeatmapColorBar \code{NULL} or list (default \code{NULL}).
@@ -253,35 +287,93 @@
 #'   }
 #'
 #' @section Link line aesthetics:
+#' @param link_color_by Character string (default \code{"Correlation"}).
+#'   An R expression, written as a string, that is parsed via
+#'   \code{rlang::parse_expr} and evaluated against the link data frame to
+#'   produce the values mapped to link line colour. Accepts a bare column
+#'   name (\code{"Correlation"}, \code{"Pvalue"}) or any numeric expression
+#'   of the available columns (see \strong{Details} for the full list).
+#'   Common choices:
+#'   \itemize{
+#'     \item \code{"Correlation"} — signed effect size; pair with
+#'       \code{SigLineMid = "white"} for a diverging palette around 0.
+#'     \item \code{"abs(Correlation)"} — unsigned effect size.
+#'     \item \code{"-log10(Pvalue)"} — significance strength (large = more
+#'       significant).
+#'   }
+#'   The expression must yield a numeric vector with one entry per link
+#'   row; otherwise the function errors out and lists the available
+#'   numeric columns. Only significant links (\code{Pvalue <=
+#'   sig_threshold}) flow through this colour scale; non-significant links
+#'   are drawn flat in \code{NonsigLineColor}.
+#' @param link_width_by Character string (default \code{"-log10(Pvalue)"}).
+#'   An R expression (string) evaluated against the link data frame to
+#'   produce the values mapped to link line width. Same syntax and
+#'   evaluation rules as \code{link_color_by}; same set of available
+#'   columns. Common choices: \code{"-log10(Pvalue)"} (default; significance
+#'   strength), \code{"abs(Correlation)"}, \code{"Correlation^2"}. Only
+#'   significant links participate in this width scale; non-significant
+#'   links are drawn at \code{min(SigLineWidth)} as a flat background.
 #' @param SigLineWidth Numeric vector of length 2 (default \code{c(0.5, 2)}).
-#'   Min and max line width for spec-env link segments. Width is mapped from
-#'   \code{-log10(p-value)} so smaller p (more significant) -> thicker line.
+#'   Min and max line width for the significant spec-env link segments
+#'   (mapped through \code{link_width_by}). The minimum is also used as the
+#'   fixed width for non-significant background lines.
 #' @param SigLineColor Character vector of length 2 (default
-#'   \code{c("#fdbb84", "#d7301f")}). Colour gradient for spec-env link
-#'   segments, mapped from low / high correlation (or Mantel r).
+#'   \code{c("#fdbb84", "#d7301f")}). Colour gradient endpoints (low, high)
+#'   for the significant spec-env link segments (mapped through
+#'   \code{link_color_by}).
+#' @param SigLineMid Character or \code{NULL} (default \code{NULL}). If
+#'   \code{NULL}, link colour uses \code{ggplot2::scale_colour_gradient(low,
+#'   high)} — no centred midpoint, suitable when the mapped variable is
+#'   one-sided (e.g. \code{"Pvalue"}, \code{"-log10(Pvalue)"},
+#'   \code{"abs(Correlation)"}). If a single colour string (e.g.
+#'   \code{"white"}), link colour switches to
+#'   \code{ggplot2::scale_colour_gradient2(low, mid, high, midpoint = 0)}
+#'   — recommended when \code{link_color_by = "Correlation"} and the
+#'   values span both signs.
 #' @param SigLineAlpha Numeric in \code{[0, 1]} (default \code{0.5}).
-#'   Transparency of spec-env link segments.
+#'   Transparency of spec-env link segments (applied to both the significant
+#'   and non-significant layers).
+#' @param NonsigLineColor Character (default \code{"grey80"}). Fixed colour
+#'   for non-significant link segments (\code{Pvalue > sig_threshold}). Only
+#'   used when \code{drop_nonsig = FALSE}.
+#' @param NonsigLineType Character (default \code{"dashed"}). Line type for
+#'   non-significant link segments. Any value accepted by ggplot2's
+#'   \code{linetype} aesthetic (e.g. \code{"solid"}, \code{"dashed"},
+#'   \code{"dotted"}).
+#' @param sig_threshold Numeric in \code{(0, 1)} (default \code{0.05}).
+#'   P-value threshold separating significant from non-significant links.
+#'   Used to (a) decide which links go through the colour/width scales,
+#'   (b) drive \code{drop_nonsig} filtering.
 #'
 #' @section Deprecated / unused parameters:
+#' These arguments are kept in the signature for backwards compatibility
+#' with old call sites but are NOT consumed by the active code path. They
+#' may be removed in a future release.
 #' @param shape Integer (default \code{22}). Reserved; the rendered point
-#'   shapes are currently hard-coded internally and this argument is not
-#'   actually consumed.
+#'   shapes are currently hard-coded to \code{21} internally.
 #' @param fontsize Numeric (default \code{5}). Deprecated. Use
-#'   \code{HeatmapLabelSize} instead.
+#'   \code{HeatmapLabelSize} (which now also drives the central species
+#'   node label size).
 #'
 #' @return A list of length 3:
 #' \describe{
-#'   \item{\code{[[1]]}}{ggplot object with straight link segments
-#'     (\code{geom_segment}).}
-#'   \item{\code{[[2]]}}{ggplot object with curved link segments
-#'     (\code{geom_curve}).}
-#'   \item{\code{[[3]]}}{Data frame of full spec-env stats (unfiltered, not
-#'     affected by \code{drop_nonsig}). Columns: \code{ID}, \code{Type},
-#'     \code{Correlation}, \code{Pvalue}, \code{p_signif}, \code{spec_block},
-#'     \code{env_block}, \code{method} (\code{"correlation"} or
-#'     \code{"mantel"}). For \code{mantel_kind = "block_vs_col"}, \code{ID}
-#'     is the spec_block name; otherwise \code{ID} is the spec column name.}
+#'   \item{\code{[[1]]}}{A \code{ggplot} object with straight link segments
+#'     (rendered with \code{ggplot2::geom_segment}).}
+#'   \item{\code{[[2]]}}{A \code{ggplot} object with curved link segments
+#'     (rendered with \code{ggplot2::geom_curve}, curvature \code{0.25}).}
+#'   \item{\code{[[3]]}}{A data frame of the full spec-env statistics,
+#'     \strong{unfiltered} (not affected by \code{drop_nonsig} or
+#'     \code{sig_threshold}). Columns: \code{ID}, \code{Type},
+#'     \code{Correlation}, \code{Pvalue}, \code{p_signif} (one of
+#'     \code{""}, \code{"*"}, \code{"**"}, \code{"***"} at the fixed
+#'     0.05 / 0.01 / 0.001 cutoffs), \code{spec_block}, \code{env_block},
+#'     \code{method} (\code{"correlation"} or \code{"mantel"}). For
+#'     \code{mantel_kind = "block_vs_col"}, \code{ID} is the spec_block
+#'     name; otherwise \code{ID} is the spec column name.}
 #' }
+#' Both ggplot objects can be post-processed with the usual ggplot2 idioms
+#' (\code{+ ggplot2::labs(...)}, \code{+ ggplot2::theme(...)}, etc.).
 #'
 #' @seealso
 #' \code{\link{ggnetview_modularity_heatmaps}} for the modularity-based
@@ -327,6 +419,26 @@
 #'   CorePointSize    = 10
 #' )
 #' p2[[1]]
+#'
+#' # Customise link aesthetics with R expressions passed as strings: colour
+#' # by signed correlation (with a centred diverging palette), width by the
+#' # absolute effect size, drop non-significant links, and tighten the
+#' # threshold. Any string parseable as an expression of the link data
+#' # frame's columns is accepted.
+#' p3 <- gglink_heatmaps(
+#'   env  = env,
+#'   spec = spec,
+#'   env_select  = list(Env01 = 1:14, Env02 = 15:28,
+#'                      Env03 = 29:42, Env04 = 43:56),
+#'   spec_select = list(Spec01 = 1:15, Spec02 = 16:30),
+#'   link_color_by = "Correlation",
+#'   link_width_by = "abs(Correlation)",
+#'   SigLineColor  = c("#2166ac", "#b2182b"),
+#'   SigLineMid    = "white",
+#'   sig_threshold = 0.01,
+#'   drop_nonsig   = TRUE
+#' )
+#' p3[[2]]
 #' }
 gglink_heatmaps <- function(
     env,
@@ -358,6 +470,12 @@ gglink_heatmaps <- function(
     HeatmapLabelOrient = 0,
     SigLineWidth = c(0.5, 2),
     SigLineColor = c("#fdbb84", "#d7301f"),
+    SigLineMid = NULL,
+    link_color_by = "Correlation",
+    link_width_by = "-log10(Pvalue)",
+    NonsigLineColor = "grey80",
+    NonsigLineType = "dashed",
+    sig_threshold = 0.05,
     HeatmapPointSize = 5,
     CorePointSize = 8.5,
     HeatmapPointFill = "#de77ae",
@@ -501,6 +619,45 @@ gglink_heatmaps <- function(
   if (length(SigLineAlpha) != 1 || !is.finite(SigLineAlpha) || SigLineAlpha < 0 || SigLineAlpha > 1) {
     stop("`SigLineAlpha` must be a single numeric value between 0 and 1.")
   }
+  if (!is.null(SigLineMid)) {
+    if (!is.character(SigLineMid) || length(SigLineMid) != 1L || !nzchar(SigLineMid)) {
+      stop("`SigLineMid` must be NULL or a single non-empty colour string.")
+    }
+  }
+  if (!is.character(NonsigLineColor) || length(NonsigLineColor) != 1L || !nzchar(NonsigLineColor)) {
+    stop("`NonsigLineColor` must be a single non-empty colour string.")
+  }
+  if (!is.character(NonsigLineType) || length(NonsigLineType) != 1L || !nzchar(NonsigLineType)) {
+    stop("`NonsigLineType` must be a single non-empty character (linetype).")
+  }
+  sig_threshold <- as.numeric(sig_threshold)
+  if (length(sig_threshold) != 1L || !is.finite(sig_threshold) || sig_threshold <= 0 || sig_threshold >= 1) {
+    stop("`sig_threshold` must be a single numeric value in (0, 1).")
+  }
+  # `link_color_by` and `link_width_by` are strings holding R expressions.
+  # Validate they are non-empty single strings, then parse them once into
+  # quosures that can be spliced into dplyr::mutate against the link data
+  # frame (e.g. "Correlation", "-log10(Pvalue)", "abs(Correlation)").
+  if (!is.character(link_color_by) || length(link_color_by) != 1L || !nzchar(link_color_by)) {
+    stop("`link_color_by` must be a single non-empty character string holding an R expression.", call. = FALSE)
+  }
+  if (!is.character(link_width_by) || length(link_width_by) != 1L || !nzchar(link_width_by)) {
+    stop("`link_width_by` must be a single non-empty character string holding an R expression.", call. = FALSE)
+  }
+  link_color_expr <- tryCatch(
+    rlang::parse_expr(link_color_by),
+    error = function(e) {
+      stop(sprintf("`link_color_by = '%s'` is not a parseable R expression: %s",
+                   link_color_by, conditionMessage(e)), call. = FALSE)
+    }
+  )
+  link_width_expr <- tryCatch(
+    rlang::parse_expr(link_width_by),
+    error = function(e) {
+      stop(sprintf("`link_width_by = '%s'` is not a parseable R expression: %s",
+                   link_width_by, conditionMessage(e)), call. = FALSE)
+    }
+  )
   # if env_select = NULL & spec_select = NULL
 
 
@@ -766,9 +923,6 @@ gglink_heatmaps <- function(
     }
   }
 
-  env_cor_self_list
-
-
   # rename list based on orientation
   names(env_cor_self_list) <- orientation
 
@@ -934,8 +1088,6 @@ gglink_heatmaps <- function(
       dplyr::filter(.data$env_block == env_block_names[i])
   })
   names(cor_spec_env_list) <- orientation
-
-  cor_spec_env_list_out
 
   # core location layout: one network per spec block
   n_spec <- length(spec_list)
@@ -1178,10 +1330,6 @@ gglink_heatmaps <- function(
     match(cor_spec_env$spec_block, spec_block_names)
   )
 
-  k_vec
-  k_gap
-  length_dist
-
   .diag_xy <- function(id_idx, type_idx, ori, k_gap, length_dist, side_anchor, heatmap_step) {
     x_anchor <- if (ori %in% c("top_right", "bottom_right")) side_anchor[["right"]] else side_anchor[["left"]]
     y_anchor <- if (ori %in% c("top_right", "top_left")) side_anchor[["top"]] else side_anchor[["bottom"]]
@@ -1315,7 +1463,7 @@ gglink_heatmaps <- function(
       dplyr::left_join(block_xy, by = "spec_block") %>%
       dplyr::left_join(xy_targets, by = c("Type" = "ID")) %>%
       dplyr::mutate(
-        line_type = dplyr::if_else(.data$Pvalue <= 0.05, "solid", "dashed")
+        is_sig = .data$Pvalue <= sig_threshold
       )
   } else {
     # Pick the link-source lookup based on what `ID` actually contains:
@@ -1341,15 +1489,51 @@ gglink_heatmaps <- function(
       dplyr::left_join(link_source_xy, by = "ID") %>%
       dplyr::left_join(xy_targets, by = c("Type" = "ID")) %>%
       dplyr::mutate(
-        line_type = dplyr::if_else(.data$Pvalue <= 0.05, "solid", "dashed")
+        is_sig = .data$Pvalue <= sig_threshold
       )
   }
 
-  # Filter only at plotting stage to avoid dropping central nodes
-  link_df <- cor_spec_env_location
-  if (isTRUE(drop_nonsig)) {
-    link_df <- link_df %>% dplyr::filter(.data$Pvalue <= 0.05)
+  # Evaluate the expressions parsed from `link_color_by` / `link_width_by`
+  # against the joined link data frame, producing internal numeric columns
+  # `link_color_value` and `link_width_value`. Users can therefore pass any
+  # expression of the link data frame's columns — "Correlation", "Pvalue",
+  # "-log10(Pvalue)", "abs(Correlation)", etc.
+  link_df <- tryCatch(
+    cor_spec_env_location %>%
+      dplyr::mutate(
+        link_color_value = !!link_color_expr,
+        link_width_value = !!link_width_expr
+      ),
+    error = function(e) {
+      stop(sprintf(
+        "Failed to evaluate `link_color_by = '%s'` or `link_width_by = '%s'` against the link data frame. Available numeric columns: %s. Underlying error: %s",
+        link_color_by, link_width_by,
+        paste(names(cor_spec_env_location)[vapply(cor_spec_env_location, is.numeric, logical(1))], collapse = ", "),
+        conditionMessage(e)
+      ), call. = FALSE)
+    }
+  )
+  if (!is.numeric(link_df$link_color_value)) {
+    stop(sprintf(
+      "`link_color_by = '%s'` must evaluate to a numeric vector. Available numeric columns: %s.",
+      link_color_by,
+      paste(names(cor_spec_env_location)[vapply(cor_spec_env_location, is.numeric, logical(1))], collapse = ", ")
+    ), call. = FALSE)
   }
+  if (!is.numeric(link_df$link_width_value)) {
+    stop(sprintf(
+      "`link_width_by = '%s'` must evaluate to a numeric vector. Available numeric columns: %s.",
+      link_width_by,
+      paste(names(cor_spec_env_location)[vapply(cor_spec_env_location, is.numeric, logical(1))], collapse = ", ")
+    ), call. = FALSE)
+  }
+
+  # Filter only at plotting stage to avoid dropping central nodes
+  if (isTRUE(drop_nonsig)) {
+    link_df <- link_df %>% dplyr::filter(.data$Pvalue <= sig_threshold)
+  }
+  link_sig    <- link_df %>% dplyr::filter(.data$is_sig)
+  link_nonsig <- link_df %>% dplyr::filter(!.data$is_sig)
 
   .offset_env <- function(df, ori, k_gap, length_dist, side_anchor, heatmap_step,
                           HeatmapLabelOrient = 0,
@@ -1606,123 +1790,97 @@ gglink_heatmaps <- function(
     )
   }
 
-  p0
-
-  p1 <- p0 +
-    ggnewscale::new_scale_color() +
-    ggplot2::geom_segment(
-      data = link_df,
-      ggplot2::aes(x = x, y = y, xend = x_to, yend = y_to,
-          color = Correlation,
-          linetype = line_type,
-          linewidth = -log10(Pvalue)),
-      alpha = SigLineAlpha
-    ) +
-    ggplot2::scale_color_gradient(low = SigLineColor[1], high = SigLineColor[2]) +
-    ggplot2::scale_linewidth_continuous(range = SigLineWidth) +
-    ggplot2::scale_linetype_identity() +
-
-    ggplot2::geom_point(
-      data = diag_all,
-      ggplot2::aes(x = x_diag, y = y_diag),
-      shape = 21, fill = diag_all$fill_color, size = HeatmapPointSize
-    ) +
-    ggplot2::geom_point(
-      data = cor_spec_env,
-      ggplot2::aes(x = x, y = y), shape = 21,
-      fill = cor_spec_env$fill_color, size = CorePointSize
-    ) +
-    ggplot2::geom_text(
-      data = cor_spec_env,
-      ggplot2::aes(x = x, y = y, label = ID), size = 5
-    ) +
-    ggplot2::coord_cartesian(clip = "off") +
-    ggplot2::theme_void() +
-    ggplot2::theme(
-      plot.margin = ggplot2::margin(10, 10, 10, 10),
-      aspect.ratio = 1,
-      legend.position = "top"
+  # Pick the colour scale for the significant link layer. SigLineMid = NULL
+  # keeps the historical 2-colour gradient (suitable for one-sided variables
+  # such as Pvalue / neglog10p). A non-NULL SigLineMid switches to a
+  # diverging scale_colour_gradient2(midpoint = 0), recommended when mapping
+  # a signed variable like Correlation.
+  link_color_scale <- if (is.null(SigLineMid)) {
+    ggplot2::scale_color_gradient(
+      low = SigLineColor[1], high = SigLineColor[2],
+      name = link_color_by
     )
-
-  p1
-
-
-  p2 <- p0 +
-    ggnewscale::new_scale_color() +
-    ggplot2::geom_segment(
-      data = link_df,
-      ggplot2::aes(x = x, y = y, xend = x_to, yend = y_to,
-          color = Correlation,
-          linetype = line_type,
-          linewidth = -log10(Pvalue)),
-      alpha = SigLineAlpha
-    ) +
-    ggplot2::scale_color_gradient(low = SigLineColor[1], high = SigLineColor[2]) +
-    ggplot2::scale_linewidth_continuous(range = SigLineWidth) +
-    ggplot2::scale_linetype_identity() +
-    ggplot2::geom_point(
-      data = diag_all,
-      ggplot2::aes(x = x_diag, y = y_diag),
-      shape = 21, fill = diag_all$fill_color, size = HeatmapPointSize
-    ) +
-    ggplot2::geom_point(
-      data = cor_spec_env,
-      ggplot2::aes(x = x, y = y), shape = 21,
-      fill = cor_spec_env$fill_color, size = CorePointSize
-    ) +
-    ggplot2::geom_text(
-      data = cor_spec_env,
-      ggplot2::aes(x = x, y = y, label = ID),
-      size = 5
-    ) +
-    ggplot2::coord_cartesian(clip = "off") +
-    ggplot2::theme_void() +
-    ggplot2::theme(
-      plot.margin = ggplot2::margin(10, 10, 10, 10),
-      aspect.ratio = 1,
-      legend.position = "top"
+  } else {
+    ggplot2::scale_color_gradient2(
+      low = SigLineColor[1], mid = SigLineMid, high = SigLineColor[2],
+      midpoint = 0, name = link_color_by
     )
+  }
 
-  p2 <- p0 +
-    ggnewscale::new_scale_fill() +
-    ggplot2::geom_curve(data = link_df,
-              mapping = ggplot2::aes(x = x, y = y, xend = x_to, yend = y_to,
-                            color = Correlation,
-                            linetype = line_type,
-                            linewidth = -log10(Pvalue)),
-               alpha = SigLineAlpha,
-               curvature = 0.25
-    ) +
-    ggplot2::scale_color_gradient(low = SigLineColor[1], high = SigLineColor[2]) +
-    ggplot2::scale_linewidth_continuous(range = SigLineWidth) +
-    ggplot2::scale_linetype_identity() +
-    ggplot2::geom_point(
-      data = diag_all,
-      ggplot2::aes(x = x_diag, y = y_diag),
-      shape = 21, fill = diag_all$fill_color, size = HeatmapPointSize
-    ) +
-    ggplot2::geom_point(data = cor_spec_env,
-               mapping = ggplot2::aes(x = x, y = y),
-               shape = 21,
-               fill = cor_spec_env$fill_color,
-               size = CorePointSize) +
-    ggplot2::geom_text(data = cor_spec_env,
-              mapping = ggplot2::aes(x =x, y = y, label = ID),
-              size = 5) +
-    # geom_line(data = cor_spec_env_location %>% dplyr::distinct(ID, .keep_all = T) %>% dplyr::select(ID, x, y),
-    #           mapping = ggplot2::aes(x = x, y = y, group = 1),
-    #           linetype = 1,
-    #           linewidth = 1.5,
-    #           color = "#41b6c4") +
-    ggplot2::coord_cartesian(clip = "off") +
-    ggplot2::theme_void() +
-    ggplot2::theme(
-      plot.margin = ggplot2::margin(1, 1, 1, 1, "cm"),
-      aspect.ratio = 1,
-      legend.position = "top"
-    )
+  # Build the link layers: an optional non-significant background (flat
+  # gray, fixed thinnest width, dashed) and a significant foreground that
+  # carries the two scales the user can configure via `link_color_by` and
+  # `link_width_by`. We keep these as small builders so p1 (geom_segment)
+  # and p2 (geom_curve) share exactly the same logic.
+  .nonsig_layer <- function(geom_fn, extra_args = list()) {
+    if (isTRUE(drop_nonsig) || base::nrow(link_nonsig) == 0L) return(NULL)
+    do.call(geom_fn, c(list(
+      data = link_nonsig,
+      mapping = ggplot2::aes(x = x, y = y, xend = x_to, yend = y_to),
+      colour    = NonsigLineColor,
+      linetype  = NonsigLineType,
+      linewidth = min(SigLineWidth),
+      alpha     = SigLineAlpha
+    ), extra_args))
+  }
+  .sig_layer <- function(geom_fn, extra_args = list()) {
+    if (base::nrow(link_sig) == 0L) return(NULL)
+    do.call(geom_fn, c(list(
+      data = link_sig,
+      mapping = ggplot2::aes(
+        x = x, y = y, xend = x_to, yend = y_to,
+        colour    = .data$link_color_value,
+        linewidth = .data$link_width_value
+      ),
+      linetype = "solid",
+      alpha    = SigLineAlpha
+    ), extra_args))
+  }
 
-  p2
+  .build_link_plot <- function(geom_fn, geom_extra = list(), plot_margin) {
+    has_sig <- base::nrow(link_sig) > 0L
+    p <- p0 +
+      ggnewscale::new_scale_color() +
+      .nonsig_layer(geom_fn, geom_extra) +
+      .sig_layer(geom_fn, geom_extra) +
+      (if (has_sig) link_color_scale else NULL) +
+      (if (has_sig) ggplot2::scale_linewidth_continuous(range = SigLineWidth, name = link_width_by) else NULL) +
+      ggplot2::geom_point(
+        data = diag_all,
+        ggplot2::aes(x = x_diag, y = y_diag),
+        shape = 21, fill = diag_all$fill_color, size = HeatmapPointSize
+      ) +
+      ggplot2::geom_point(
+        data = cor_spec_env,
+        ggplot2::aes(x = x, y = y), shape = 21,
+        fill = cor_spec_env$fill_color, size = CorePointSize
+      ) +
+      ggplot2::geom_text(
+        data = cor_spec_env,
+        ggplot2::aes(x = x, y = y, label = ID),
+        size = HeatmapLabelSize
+      ) +
+      ggplot2::coord_cartesian(clip = "off") +
+      ggplot2::theme_void() +
+      ggplot2::theme(
+        plot.margin = plot_margin,
+        aspect.ratio = 1,
+        legend.position = "top"
+      )
+    p
+  }
+
+  p1 <- .build_link_plot(
+    geom_fn     = ggplot2::geom_segment,
+    geom_extra  = list(),
+    plot_margin = ggplot2::margin(10, 10, 10, 10)
+  )
+
+  p2 <- .build_link_plot(
+    geom_fn     = ggplot2::geom_curve,
+    geom_extra  = list(curvature = 0.25),
+    plot_margin = ggplot2::margin(1, 1, 1, 1, "cm")
+  )
 
   return(list(p1, p2, cor_spec_env_list_out))
 

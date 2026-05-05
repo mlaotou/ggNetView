@@ -45,6 +45,7 @@ Imports:
     qgraph,
     Rcpp,
     readr,
+    rlang,
     scales,
     scatterpie,
     stats,

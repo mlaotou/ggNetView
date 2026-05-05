@@ -34,6 +34,12 @@ gglink_heatmaps(
   HeatmapLabelOrient = 0,
   SigLineWidth = c(0.5, 2),
   SigLineColor = c("#fdbb84", "#d7301f"),
+  SigLineMid = NULL,
+  link_color_by = "Correlation",
+  link_width_by = "-log10(Pvalue)",
+  NonsigLineColor = "grey80",
+  NonsigLineType = "dashed",
+  sig_threshold = 0.05,
   HeatmapPointSize = 5,
   CorePointSize = 8.5,
   HeatmapPointFill = "#de77ae",
@@ -144,8 +150,8 @@ with \code{relation_method = "mantel"} +
 \code{mantel_kind = "block_vs_col"}.}
 
 \item{drop_nonsig}{Logical (default \code{FALSE}). If \code{TRUE},
-non-significant links (p > 0.05) are removed from the plot but kept
-in the returned stats data frame.}
+non-significant links (\code{Pvalue > sig_threshold}) are removed
+from the plot but kept in the returned stats data frame.}
 
 \item{comparisons}{Logical (default \code{TRUE}). Master switch for
 spec-env analysis. \code{FALSE} skips all spec-env stats and links
@@ -160,8 +166,7 @@ means "all pairs". Example:
 \code{list(c("Env01","Spec01"), c("Env02","Spec02"))}.}
 
 \item{shape}{Integer (default \code{22}). Reserved; the rendered point
-shapes are currently hard-coded internally and this argument is not
-actually consumed.}
+shapes are currently hard-coded to \code{21} internally.}
 
 \item{distance}{Numeric (default \code{3}). Offset added between the
 central node group and the env heatmaps. Positive pushes heatmaps
@@ -197,12 +202,67 @@ degrees) for heatmap row/column labels. Use 45 or 90 to avoid label
 overlap.}
 
 \item{SigLineWidth}{Numeric vector of length 2 (default \code{c(0.5, 2)}).
-Min and max line width for spec-env link segments. Width is mapped from
-\code{-log10(p-value)} so smaller p (more significant) -> thicker line.}
+Min and max line width for the significant spec-env link segments
+(mapped through \code{link_width_by}). The minimum is also used as the
+fixed width for non-significant background lines.}
 
 \item{SigLineColor}{Character vector of length 2 (default
-\code{c("#fdbb84", "#d7301f")}). Colour gradient for spec-env link
-segments, mapped from low / high correlation (or Mantel r).}
+\code{c("#fdbb84", "#d7301f")}). Colour gradient endpoints (low, high)
+for the significant spec-env link segments (mapped through
+\code{link_color_by}).}
+
+\item{SigLineMid}{Character or \code{NULL} (default \code{NULL}). If
+\code{NULL}, link colour uses \code{ggplot2::scale_colour_gradient(low,
+high)} — no centred midpoint, suitable when the mapped variable is
+one-sided (e.g. \code{"Pvalue"}, \code{"-log10(Pvalue)"},
+\code{"abs(Correlation)"}). If a single colour string (e.g.
+\code{"white"}), link colour switches to
+\code{ggplot2::scale_colour_gradient2(low, mid, high, midpoint = 0)}
+— recommended when \code{link_color_by = "Correlation"} and the
+values span both signs.}
+
+\item{link_color_by}{Character string (default \code{"Correlation"}).
+An R expression, written as a string, that is parsed via
+\code{rlang::parse_expr} and evaluated against the link data frame to
+produce the values mapped to link line colour. Accepts a bare column
+name (\code{"Correlation"}, \code{"Pvalue"}) or any numeric expression
+of the available columns (see \strong{Details} for the full list).
+Common choices:
+\itemize{
+  \item \code{"Correlation"} — signed effect size; pair with
+    \code{SigLineMid = "white"} for a diverging palette around 0.
+  \item \code{"abs(Correlation)"} — unsigned effect size.
+  \item \code{"-log10(Pvalue)"} — significance strength (large = more
+    significant).
+}
+The expression must yield a numeric vector with one entry per link
+row; otherwise the function errors out and lists the available
+numeric columns. Only significant links (\code{Pvalue <=
+sig_threshold}) flow through this colour scale; non-significant links
+are drawn flat in \code{NonsigLineColor}.}
+
+\item{link_width_by}{Character string (default \code{"-log10(Pvalue)"}).
+An R expression (string) evaluated against the link data frame to
+produce the values mapped to link line width. Same syntax and
+evaluation rules as \code{link_color_by}; same set of available
+columns. Common choices: \code{"-log10(Pvalue)"} (default; significance
+strength), \code{"abs(Correlation)"}, \code{"Correlation^2"}. Only
+significant links participate in this width scale; non-significant
+links are drawn at \code{min(SigLineWidth)} as a flat background.}
+
+\item{NonsigLineColor}{Character (default \code{"grey80"}). Fixed colour
+for non-significant link segments (\code{Pvalue > sig_threshold}). Only
+used when \code{drop_nonsig = FALSE}.}
+
+\item{NonsigLineType}{Character (default \code{"dashed"}). Line type for
+non-significant link segments. Any value accepted by ggplot2's
+\code{linetype} aesthetic (e.g. \code{"solid"}, \code{"dashed"},
+\code{"dotted"}).}
+
+\item{sig_threshold}{Numeric in \code{(0, 1)} (default \code{0.05}).
+P-value threshold separating significant from non-significant links.
+Used to (a) decide which links go through the colour/width scales,
+(b) drive \code{drop_nonsig} filtering.}
 
 \item{HeatmapPointSize}{Numeric (default \code{5}). Point size for the
 diagonal anchor points on each heatmap (where the link lines land).}
@@ -240,10 +300,12 @@ overall heatmap layout (tile spacing). \code{>1} enlarges, \code{<1}
 shrinks.}
 
 \item{SigLineAlpha}{Numeric in \code{[0, 1]} (default \code{0.5}).
-Transparency of spec-env link segments.}
+Transparency of spec-env link segments (applied to both the significant
+and non-significant layers).}
 
 \item{fontsize}{Numeric (default \code{5}). Deprecated. Use
-\code{HeatmapLabelSize} instead.}
+\code{HeatmapLabelSize} (which now also drives the central species
+node label size).}
 
 \item{orientation}{Character vector (default
 \code{c("top_right","bottom_right","top_left","bottom_left")}). Which
@@ -297,17 +359,22 @@ NULL, defaults are inferred from the layout choice.}
 \value{
 A list of length 3:
 \describe{
-  \item{\code{[[1]]}}{ggplot object with straight link segments
-    (\code{geom_segment}).}
-  \item{\code{[[2]]}}{ggplot object with curved link segments
-    (\code{geom_curve}).}
-  \item{\code{[[3]]}}{Data frame of full spec-env stats (unfiltered, not
-    affected by \code{drop_nonsig}). Columns: \code{ID}, \code{Type},
-    \code{Correlation}, \code{Pvalue}, \code{p_signif}, \code{spec_block},
-    \code{env_block}, \code{method} (\code{"correlation"} or
-    \code{"mantel"}). For \code{mantel_kind = "block_vs_col"}, \code{ID}
-    is the spec_block name; otherwise \code{ID} is the spec column name.}
+  \item{\code{[[1]]}}{A \code{ggplot} object with straight link segments
+    (rendered with \code{ggplot2::geom_segment}).}
+  \item{\code{[[2]]}}{A \code{ggplot} object with curved link segments
+    (rendered with \code{ggplot2::geom_curve}, curvature \code{0.25}).}
+  \item{\code{[[3]]}}{A data frame of the full spec-env statistics,
+    \strong{unfiltered} (not affected by \code{drop_nonsig} or
+    \code{sig_threshold}). Columns: \code{ID}, \code{Type},
+    \code{Correlation}, \code{Pvalue}, \code{p_signif} (one of
+    \code{""}, \code{"*"}, \code{"**"}, \code{"***"} at the fixed
+    0.05 / 0.01 / 0.001 cutoffs), \code{spec_block}, \code{env_block},
+    \code{method} (\code{"correlation"} or \code{"mantel"}). For
+    \code{mantel_kind = "block_vs_col"}, \code{ID} is the spec_block
+    name; otherwise \code{ID} is the spec column name.}
 }
+Both ggplot objects can be post-processed with the usual ggplot2 idioms
+(\code{+ ggplot2::labs(...)}, \code{+ ggplot2::theme(...)}, etc.).
 }
 \description{
 Render a "central species network(s)" surrounded by up to four
@@ -316,7 +383,10 @@ segments connecting each spec node (or each spec block) to each env
 variable. Supports both Pearson/Spearman/Kendall correlation and
 \code{vegan::mantel} tests, and exposes a unified Mantel API
 (\code{mantel_kind = "block_vs_col" | "col_vs_col"}) shared with
-\code{\link{ggnetview_modularity_heatmaps}}.
+\code{\link{ggnetview_modularity_heatmaps}}. Link line colour and width
+are user-configurable through expression strings (\code{link_color_by},
+\code{link_width_by}); non-significant links are rendered as a separate
+flat-grey background layer for visual context.
 }
 \details{
 \strong{Layered geometry.} The plot is built in three nested layers:
@@ -363,6 +433,37 @@ shared with \code{\link{ggnetview_modularity_heatmaps}}:
 auto-detect their unit from the magnitude: \code{|x| <= 2*pi} is taken as
 radians, \code{|x| > 2*pi} as degrees. Use \code{\link{deg}} to force a
 small value to mean degrees (e.g. \code{deg(5)} = 5°).
+
+\strong{Link line styling.} Spec-env links are rendered in two stacked
+layers controlled by \code{sig_threshold}:
+\itemize{
+  \item \strong{Significant layer} (\code{Pvalue <= sig_threshold}):
+    colour and width are mapped from user-supplied expressions
+    \code{link_color_by} and \code{link_width_by} (each a string like
+    \code{"Correlation"}, \code{"-log10(Pvalue)"}, or
+    \code{"abs(Correlation)"}). The colour gradient endpoints come from
+    \code{SigLineColor}; pass \code{SigLineMid} (e.g. \code{"white"}) to
+    switch to a diverging \code{scale_colour_gradient2(midpoint = 0)},
+    recommended whenever the mapped variable can be negative (signed
+    correlations). The width scale range comes from \code{SigLineWidth}.
+  \item \strong{Non-significant layer} (\code{Pvalue > sig_threshold}):
+    drawn flat in \code{NonsigLineColor} (default light grey) with line
+    type \code{NonsigLineType} (default dashed) at the minimum of
+    \code{SigLineWidth}, purely as visual context. This layer is omitted
+    when \code{drop_nonsig = TRUE}.
+}
+Both layers share \code{SigLineAlpha}. Because non-significant links do
+not participate in the colour/width scales, the legends only reflect
+the significant layer.
+
+\strong{Available columns for link expressions.} \code{link_color_by}
+and \code{link_width_by} are evaluated against the link data frame,
+which contains the spec-env stat columns plus link-source / link-target
+coordinates: \code{ID}, \code{Type}, \code{Correlation}, \code{Pvalue},
+\code{p_signif}, \code{spec_block}, \code{env_block}, \code{method},
+\code{is_sig}, plus \code{x}, \code{y}, \code{x_to}, \code{y_to}. Most
+users will only build expressions from \code{Correlation} and
+\code{Pvalue}.
 }
 \section{Data inputs}{
 
@@ -406,6 +507,9 @@ small value to mean degrees (e.g. \code{deg(5)} = 5°).
 
 \section{Deprecated / unused parameters}{
 
+These arguments are kept in the signature for backwards compatibility
+with old call sites but are NOT consumed by the active code path. They
+may be removed in a future release.
 }
 
 \examples{
@@ -442,6 +546,26 @@ p2 <- gglink_heatmaps(
   CorePointSize    = 10
 )
 p2[[1]]
+
+# Customise link aesthetics with R expressions passed as strings: colour
+# by signed correlation (with a centred diverging palette), width by the
+# absolute effect size, drop non-significant links, and tighten the
+# threshold. Any string parseable as an expression of the link data
+# frame's columns is accepted.
+p3 <- gglink_heatmaps(
+  env  = env,
+  spec = spec,
+  env_select  = list(Env01 = 1:14, Env02 = 15:28,
+                     Env03 = 29:42, Env04 = 43:56),
+  spec_select = list(Spec01 = 1:15, Spec02 = 16:30),
+  link_color_by = "Correlation",
+  link_width_by = "abs(Correlation)",
+  SigLineColor  = c("#2166ac", "#b2182b"),
+  SigLineMid    = "white",
+  sig_threshold = 0.01,
+  drop_nonsig   = TRUE
+)
+p3[[2]]
 }
 }
 \seealso{

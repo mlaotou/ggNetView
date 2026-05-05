@@ -112,8 +112,8 @@ argument. One of \code{"pearson"}, \code{"kendall"},
 — accepted but not consumed.}
 
 \item{drop_nonsig}{Logical (default \code{FALSE}). If \code{TRUE},
-non-significant links (p > 0.05) are removed from the plot but kept
-in the returned stats data frame.}
+non-significant links (\code{Pvalue > sig_threshold}) are removed
+from the plot but kept in the returned stats data frame.}
 
 \item{comparisons}{Logical (default \code{TRUE}). Master switch for
 spec-env analysis. \code{FALSE} skips all spec-env stats and links
@@ -128,8 +128,7 @@ means "all pairs". Example:
 \code{list(c("Env01","Spec01"), c("Env02","Spec02"))}.}
 
 \item{shape}{Integer (default \code{22}). Reserved; the rendered point
-shapes are currently hard-coded internally and this argument is not
-actually consumed.}
+shapes are currently hard-coded to \code{21} internally.}
 
 \item{distance}{Numeric (default \code{3}). Offset added between the
 central node group and the env heatmaps. Positive pushes heatmaps
@@ -165,12 +164,14 @@ degrees) for heatmap row/column labels. Use 45 or 90 to avoid label
 overlap.}
 
 \item{SigLineWidth}{Numeric vector of length 2 (default \code{c(0.5, 2)}).
-Min and max line width for spec-env link segments. Width is mapped from
-\code{-log10(p-value)} so smaller p (more significant) -> thicker line.}
+Min and max line width for the significant spec-env link segments
+(mapped through \code{link_width_by}). The minimum is also used as the
+fixed width for non-significant background lines.}
 
 \item{SigLineColor}{Character vector of length 2 (default
-\code{c("#fdbb84", "#d7301f")}). Colour gradient for spec-env link
-segments, mapped from low / high correlation (or Mantel r).}
+\code{c("#fdbb84", "#d7301f")}). Colour gradient endpoints (low, high)
+for the significant spec-env link segments (mapped through
+\code{link_color_by}).}
 
 \item{HeatmapPointSize}{Numeric (default \code{5}). Point size for the
 diagonal anchor points on each heatmap (where the link lines land).}
@@ -208,10 +209,12 @@ overall heatmap layout (tile spacing). \code{>1} enlarges, \code{<1}
 shrinks.}
 
 \item{SigLineAlpha}{Numeric in \code{[0, 1]} (default \code{0.5}).
-Transparency of spec-env link segments.}
+Transparency of spec-env link segments (applied to both the significant
+and non-significant layers).}
 
 \item{fontsize}{Numeric (default \code{5}). Deprecated. Use
-\code{HeatmapLabelSize} instead.}
+\code{HeatmapLabelSize} (which now also drives the central species
+node label size).}
 
 \item{orientation}{Character vector (default
 \code{c("top_right","bottom_right","top_left","bottom_left")}). Which
