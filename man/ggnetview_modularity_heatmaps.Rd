@@ -184,7 +184,7 @@ for heatmap tiles.}
 \code{\link{ggNetView}} network call. Commonly used:
 \code{shrink}, \code{inner_shrink} (intra-module compactness, only
 for \code{layout = "WGCNA"}), \code{jitter}, \code{add_outer},
-\code{add_group_outer}, \code{label} (logical or character — module
+\code{add_group_outer}, \code{label} (logical or character -- module
 labels in ggNetView style), \code{labelsize},
 \code{labelsegmentsize}, \code{labelsegmentalpha}, \code{fill},
 \code{color}, \code{pointsize}.}
@@ -265,38 +265,66 @@ combinations.
 }
 \section{Data inputs}{
 
+The graph carrying module assignments, the env data table that defines
+the heatmap quadrants, the OTU abundance matrix used to summarise each
+module, and the named list that partitions env into blocks.
 }
 
 \section{Module representation}{
 
+How each module's per-sample value is computed before being correlated
+with env: either as the eigengene (PC1 of the OTU sub-matrix) or as a
+summary (sum / mean) of within-module abundances.
 }
 
-\section{Statistics — correlation}{
+\section{Statistics -- correlation}{
 
+Parameters that govern the env-env tile correlations and (when
+\code{relation_method = "correlation"}) the module-env link
+correlations: the correlation method and missing-value handling.
 }
 
-\section{Statistics — Mantel}{
+\section{Statistics -- Mantel}{
 
+Parameters used only when \code{relation_method = "mantel"}: the
+Mantel variant, the dissimilarity / distance metrics, the Mantel
+correlation method, and the permutation count.
 }
 
 \section{What gets analysed / drawn}{
 
+Filters and selectors that decide what ends up on the plot: dropping
+non-significant links, and which heatmap quadrants are rendered.
 }
 
 \section{Geometry}{
 
+Spatial parameters that position the env heatmaps relative to the
+central network and select the network's own layout: heatmap offset,
+network radius, overall heatmap scale, and the layout/module-ordering
+choices forwarded to \code{ggNetView()}.
 }
 
 \section{Heatmap aesthetics}{
 
+Visual styling of the env-env heatmap tiles: per-quadrant colour
+palettes, label and significance-mark sizes, label rotation, the
+central anchor point on each heatmap, and tile border styling.
 }
 
 \section{Link line aesthetics}{
 
+Visual styling of the module-env link segments: line-width range
+(mapped from p-value), colour gradient (mapped from correlation /
+Mantel r), and overall transparency.
 }
 
 \section{Forwarded to ggNetView}{
 
+Extra arguments captured via \code{...} and forwarded verbatim to the
+underlying \code{\link{ggNetView}} call. Use them to customise the
+central network's appearance (labels, fills, jitter, outer rings,
+point sizes) without leaving this wrapper.
 }
 
 \examples{

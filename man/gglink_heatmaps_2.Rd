@@ -98,7 +98,7 @@ One of \code{"pearson"}, \code{"kendall"}, \code{"spearman"}.}
 handling for \code{psych::corr.test}. One of \code{"everything"},
 \code{"all"}, \code{"complete"}, \code{"pairwise"}, \code{"na"}.}
 
-\item{mantel.method}{Character. Reserved for future use — currently
+\item{mantel.method}{Character. Reserved for future use -- currently
 accepted for backwards compatibility but \strong{not} consumed by the
 active code path (only \code{vegan::mantel} via \code{mantel.method2}
 is used).}
@@ -109,7 +109,7 @@ argument. One of \code{"pearson"}, \code{"kendall"},
 \code{"spearman"}.}
 
 \item{mantel.alternative}{Character. Same status as \code{mantel.method}
-— accepted but not consumed.}
+-- accepted but not consumed.}
 
 \item{drop_nonsig}{Logical (default \code{FALSE}). If \code{TRUE},
 non-significant links (\code{Pvalue > sig_threshold}) are removed

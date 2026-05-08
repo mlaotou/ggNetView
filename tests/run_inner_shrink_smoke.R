@@ -8,6 +8,26 @@
 # tests/testthat/test-inner_shrink.R but without testthat machinery,
 # so you can eyeball the numbers.
 
+# ---------------------------------------------------------------------------
+# Skip under R CMD check.
+# ---------------------------------------------------------------------------
+# This file lives in `tests/` so R CMD check picks it up and runs it. But
+# it relies on `devtools::load_all(".")`, which requires a writable source
+# tree containing a top-level DESCRIPTION -- something that does not exist
+# inside check's temporary install directory. Without this guard, the
+# script aborts during check with "Could not find a root 'DESCRIPTION'
+# file" and the whole `R CMD check` run fails.
+#
+# The behaviour we actually want: run normally for a developer who
+# launches it with `Rscript tests/run_inner_shrink_smoke.R` from the
+# package root, and exit silently when it gets executed by R CMD check.
+# Detecting "we're in the package root" by `file.exists("DESCRIPTION")`
+# captures both cases without any heuristics.
+if (!file.exists("DESCRIPTION")) {
+  cat("run_inner_shrink_smoke.R: skipped (run from package root for the eyeball test).\n")
+  quit(save = "no", status = 0L)
+}
+
 if (!requireNamespace("devtools", quietly = TRUE)) {
   stop("Install devtools first: install.packages('devtools').")
 }

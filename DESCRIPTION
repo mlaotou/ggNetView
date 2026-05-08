@@ -58,8 +58,11 @@ Imports:
     VGAM,
     WGCNA
 Suggests:
+    dynamicTreeCut,
+    influential,
     knitr,
     rmarkdown,
+    RobustRankAggreg,
     testthat (>= 3.0.0)
 VignetteBuilder: knitr
 Encoding: UTF-8

@@ -208,6 +208,10 @@ get_module_abundance <- function(otu_mat,
 #' combinations.
 #'
 #' @section Data inputs:
+#' The graph carrying module assignments, the env data table that defines
+#' the heatmap quadrants, the OTU abundance matrix used to summarise each
+#' module, and the named list that partitions env into blocks.
+#'
 #' @param graph_obj A \code{tbl_graph} (e.g. from \code{build_graph_from_mat}
 #'   or \code{build_graph_from_df}). Must have a node \code{name} attribute
 #'   and a module column (one of \code{"Modularity"}, \code{"modularity3"},
@@ -228,6 +232,10 @@ get_module_abundance <- function(otu_mat,
 #'   \code{list(Env01 = 1:5, Env02 = 6:10, Env03 = 11:15, Env04 = 16:20)}.
 #'
 #' @section Module representation:
+#' How each module's per-sample value is computed before being correlated
+#' with env: either as the eigengene (PC1 of the OTU sub-matrix) or as a
+#' summary (sum / mean) of within-module abundances.
+#'
 #' @param module_index Character (default \code{"eigengene"}). How each
 #'   module is summarised into one per-sample value used downstream.
 #'   \code{"eigengene"} = PC1 of the module's OTU sub-matrix
@@ -237,7 +245,11 @@ get_module_abundance <- function(otu_mat,
 #'   \code{module_index = "abundance"}. Either \code{"sum"} or
 #'   \code{"mean"}.
 #'
-#' @section Statistics — correlation:
+#' @section Statistics -- correlation:
+#' Parameters that govern the env-env tile correlations and (when
+#' \code{relation_method = "correlation"}) the module-env link
+#' correlations: the correlation method and missing-value handling.
+#'
 #' @param relation_method Character (default \code{"correlation"}). One of
 #'   \code{"correlation"} or \code{"mantel"}.
 #' @param cor.method Character (default \code{"pearson"}). Correlation
@@ -248,7 +260,11 @@ get_module_abundance <- function(otu_mat,
 #'   handling for \code{psych::corr.test}. One of \code{"everything"},
 #'   \code{"all"}, \code{"complete"}, \code{"pairwise"}, \code{"na"}.
 #'
-#' @section Statistics — Mantel:
+#' @section Statistics -- Mantel:
+#' Parameters used only when \code{relation_method = "mantel"}: the
+#' Mantel variant, the dissimilarity / distance metrics, the Mantel
+#' correlation method, and the permutation count.
+#'
 #' @param mantel_kind Character (default \code{"block_vs_col"}). Which
 #'   Mantel algorithm to use; see \strong{Details}. The same parameter is
 #'   exposed in \code{\link{gglink_heatmaps}}.
@@ -267,6 +283,9 @@ get_module_abundance <- function(otu_mat,
 #'   permutations passed to \code{vegan::mantel}.
 #'
 #' @section What gets analysed / drawn:
+#' Filters and selectors that decide what ends up on the plot: dropping
+#' non-significant links, and which heatmap quadrants are rendered.
+#'
 #' @param drop_nonsig Logical (default \code{FALSE}). If \code{TRUE},
 #'   non-significant links (p > 0.05) are removed from the plots; the
 #'   returned stats data frame is unaffected.
@@ -275,6 +294,11 @@ get_module_abundance <- function(otu_mat,
 #'   heatmap quadrants to draw, in the same order as \code{env_select}.
 #'
 #' @section Geometry:
+#' Spatial parameters that position the env heatmaps relative to the
+#' central network and select the network's own layout: heatmap offset,
+#' network radius, overall heatmap scale, and the layout/module-ordering
+#' choices forwarded to \code{ggNetView()}.
+#'
 #' @param distance Numeric (default \code{3}). Offset between the central
 #'   network's outer boundary and the env heatmaps. Positive pushes
 #'   heatmaps outward; \code{0} places them flush; negative values pull
@@ -291,6 +315,10 @@ get_module_abundance <- function(otu_mat,
 #'   \code{"random"}, \code{"adjacent"}, \code{"order"}.
 #'
 #' @section Heatmap aesthetics:
+#' Visual styling of the env-env heatmap tiles: per-quadrant colour
+#' palettes, label and significance-mark sizes, label rotation, the
+#' central anchor point on each heatmap, and tile border styling.
+#'
 #' @param HeatmapColorBar \code{NULL} or list (default \code{NULL}).
 #'   Per-quadrant colour palettes. Three accepted forms:
 #'   \itemize{
@@ -321,6 +349,10 @@ get_module_abundance <- function(otu_mat,
 #'   for heatmap tiles.
 #'
 #' @section Link line aesthetics:
+#' Visual styling of the module-env link segments: line-width range
+#' (mapped from p-value), colour gradient (mapped from correlation /
+#' Mantel r), and overall transparency.
+#'
 #' @param SigLineWidth Numeric vector of length 2 (default
 #'   \code{c(0.5, 2)}). Min / max line width for module-env links; mapped
 #'   from \code{-log10(p-value)} so smaller p -> thicker line.
@@ -331,11 +363,16 @@ get_module_abundance <- function(otu_mat,
 #'   Transparency for module-env link segments.
 #'
 #' @section Forwarded to ggNetView:
+#' Extra arguments captured via \code{...} and forwarded verbatim to the
+#' underlying \code{\link{ggNetView}} call. Use them to customise the
+#' central network's appearance (labels, fills, jitter, outer rings,
+#' point sizes) without leaving this wrapper.
+#'
 #' @param ... Additional arguments forwarded to the underlying
 #'   \code{\link{ggNetView}} network call. Commonly used:
 #'   \code{shrink}, \code{inner_shrink} (intra-module compactness, only
 #'   for \code{layout = "WGCNA"}), \code{jitter}, \code{add_outer},
-#'   \code{add_group_outer}, \code{label} (logical or character — module
+#'   \code{add_group_outer}, \code{label} (logical or character -- module
 #'   labels in ggNetView style), \code{labelsize},
 #'   \code{labelsegmentsize}, \code{labelsegmentalpha}, \code{fill},
 #'   \code{color}, \code{pointsize}.

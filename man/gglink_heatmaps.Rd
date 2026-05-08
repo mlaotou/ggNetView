@@ -111,7 +111,7 @@ One of \code{"pearson"}, \code{"kendall"}, \code{"spearman"}.}
 handling for \code{psych::corr.test}. One of \code{"everything"},
 \code{"all"}, \code{"complete"}, \code{"pairwise"}, \code{"na"}.}
 
-\item{mantel.method}{Character. Reserved for future use — currently
+\item{mantel.method}{Character. Reserved for future use -- currently
 accepted for backwards compatibility but \strong{not} consumed by the
 active code path (only \code{vegan::mantel} via \code{mantel.method2}
 is used).}
@@ -122,7 +122,7 @@ argument. One of \code{"pearson"}, \code{"kendall"},
 \code{"spearman"}.}
 
 \item{mantel.alternative}{Character. Same status as \code{mantel.method}
-— accepted but not consumed.}
+-- accepted but not consumed.}
 
 \item{spec_dist_method}{Character (default \code{"bray"}). Dissimilarity
 method (passed to \code{vegan::vegdist}) used to convert the spec
@@ -213,12 +213,12 @@ for the significant spec-env link segments (mapped through
 
 \item{SigLineMid}{Character or \code{NULL} (default \code{NULL}). If
 \code{NULL}, link colour uses \code{ggplot2::scale_colour_gradient(low,
-high)} — no centred midpoint, suitable when the mapped variable is
+high)} -- no centred midpoint, suitable when the mapped variable is
 one-sided (e.g. \code{"Pvalue"}, \code{"-log10(Pvalue)"},
 \code{"abs(Correlation)"}). If a single colour string (e.g.
 \code{"white"}), link colour switches to
 \code{ggplot2::scale_colour_gradient2(low, mid, high, midpoint = 0)}
-— recommended when \code{link_color_by = "Correlation"} and the
+-- recommended when \code{link_color_by = "Correlation"} and the
 values span both signs.}
 
 \item{link_color_by}{Character string (default \code{"Correlation"}).
@@ -229,10 +229,10 @@ name (\code{"Correlation"}, \code{"Pvalue"}) or any numeric expression
 of the available columns (see \strong{Details} for the full list).
 Common choices:
 \itemize{
-  \item \code{"Correlation"} — signed effect size; pair with
+  \item \code{"Correlation"} -- signed effect size; pair with
     \code{SigLineMid = "white"} for a diverging palette around 0.
-  \item \code{"abs(Correlation)"} — unsigned effect size.
-  \item \code{"-log10(Pvalue)"} — significance strength (large = more
+  \item \code{"abs(Correlation)"} -- unsigned effect size.
+  \item \code{"-log10(Pvalue)"} -- significance strength (large = more
     significant).
 }
 The expression must yield a numeric vector with one entry per link
@@ -329,12 +329,12 @@ footprint; curvature is controlled by \code{group_arc_angle}.}
 the entire anchor set, on top of \code{group_layout}'s default
 orientation. Accepts radians (\code{|x| <= 2*pi}) or degrees
 (\code{|x| > 2*pi}); use \code{\link{deg}(x)} to force a small value
-to mean degrees. Examples: \code{group_angle = 45} tilts a row by 45°;
+to mean degrees. Examples: \code{group_angle = 45} tilts a row by 45 degrees;
 \code{group_angle = pi/2} turns a row into a column.}
 
 \item{group_arc_angle}{Numeric (default \code{pi/2}). Only used when
 \code{group_layout = "arc"}. Central angle subtended by the arc.
-\code{0} degenerates to a flat row; \code{pi/2} (= 90°) is a
+\code{0} degenerates to a flat row; \code{pi/2} (= 90 degrees) is a
 quarter-circle (default); \code{pi} is a half-circle. Negative values
 flip the arc to the opposite side. Same unit auto-detection as
 \code{group_angle}.}
@@ -392,14 +392,14 @@ flat-grey background layer for visual context.
 \strong{Layered geometry.} The plot is built in three nested layers:
 \enumerate{
   \item \strong{Single network geometry} (per spec block) controlled by
-    \code{spec_layout} / \code{spec_orientation} — how nodes inside one
+    \code{spec_layout} / \code{spec_orientation} -- how nodes inside one
     block are arranged.
   \item \strong{Group geometry} (across spec blocks) controlled by
     \code{group_layout} / \code{group_angle} / \code{group_arc_angle} /
-    \code{anchor_dist} — how the per-block anchors are scattered on the
+    \code{anchor_dist} -- how the per-block anchors are scattered on the
     canvas.
   \item \strong{Heatmap geometry} (around the centre) controlled by
-    \code{orientation} / \code{distance} / \code{HeatmapScale} — where the
+    \code{orientation} / \code{distance} / \code{HeatmapScale} -- where the
     four env heatmap quadrants sit relative to the central group.
 }
 
@@ -432,7 +432,7 @@ shared with \code{\link{ggnetview_modularity_heatmaps}}:
 \strong{Angle inputs.} \code{group_angle} and \code{group_arc_angle}
 auto-detect their unit from the magnitude: \code{|x| <= 2*pi} is taken as
 radians, \code{|x| > 2*pi} as degrees. Use \code{\link{deg}} to force a
-small value to mean degrees (e.g. \code{deg(5)} = 5°).
+small value to mean degrees (e.g. \code{deg(5)} = 5 degrees).
 
 \strong{Link line styling.} Spec-env links are rendered in two stacked
 layers controlled by \code{sig_threshold}:
@@ -467,42 +467,77 @@ users will only build expressions from \code{Correlation} and
 }
 \section{Data inputs}{
 
+Matrices and block selectors that drive the whole computation: the env
+and spec data tables plus the named lists that partition each into
+visual blocks (heatmap quadrants and central networks).
 }
 
 \section{Per-block (spec) geometry}{
 
+Controls how nodes are arranged inside one spec block: the layout shape
+(e.g. circle vs diamond outline), its base orientation, whether the
+block is collapsed to a single labelled point, and how its visual
+radius scales.
 }
 
 \section{Across-block (group) geometry}{
 
+Controls how the per-block anchors are scattered across the figure:
+the macro arrangement (circle / row / arc / ...), its rotation, the
+anchor-to-anchor spacing, and any grid dimensions when applicable.
 }
 
 \section{Heatmap geometry}{
 
+Where the env-env heatmaps are placed and scaled relative to the
+central spec blocks: which quadrants are drawn, how far the heatmaps
+sit from the centre, and an overall size multiplier.
 }
 
-\section{Statistics — correlation}{
+\section{Statistics -- correlation}{
 
+Parameters that govern the env-env and (when
+\code{relation_method = "correlation"}) spec-env correlation pipeline:
+the correlation method, missing-value handling, and the choice between
+correlation and Mantel as the spec-env relation.
 }
 
-\section{Statistics — Mantel}{
+\section{Statistics -- Mantel}{
 
+Parameters used only when \code{relation_method = "mantel"}: the
+Mantel variant, the dissimilarity / distance metrics applied to the
+spec block and env columns, the Mantel correlation method, and the
+permutation count.
 }
 
 \section{What gets analysed}{
 
+Switches that decide which (env_block, spec_block) pairs are
+actually computed and drawn -- the master on/off, the optional
+restriction list, and the rule for hiding non-significant links.
 }
 
 \section{Heatmap aesthetics}{
 
+Visual styling of the env-env heatmap tiles and labels: per-quadrant
+colour palettes, label and significance-mark sizes, label rotation,
+tile borders, and the diagonal anchor points where link lines land.
 }
 
 \section{Central node aesthetics}{
 
+Visual styling of the central spec nodes (or the collapsed block
+points when \code{spec_collapse = TRUE}): point size and per-block
+fill colour.
 }
 
 \section{Link line aesthetics}{
 
+Visual styling of the spec-env link segments: which numeric
+expression drives the colour and width scales for significant
+links, the colour endpoints and optional centred midpoint, line
+widths, transparency, and the separate styling for non-significant
+links.
 }
 
 \section{Deprecated / unused parameters}{

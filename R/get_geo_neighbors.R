@@ -181,7 +181,17 @@ module_layout <- function(graph_obj,
       ly_sub <- layout[-out_ly$node, , drop = FALSE]
 
     } else if (i == nrow(node_df_sorted_number)) {
-        neighbors_list[[i]] <- ly_sub
+        # The last iteration dumps whatever is left in `ly_sub`.  Keep
+        # only the (x, y) coordinate columns -- otherwise any
+        # module-aware first-tier layout that adds an extra column to
+        # its return value (e.g. `group` in
+        # `create_layout_circular_modules_*_layout()` or any
+        # `*partite_*_layout()` family) would produce a 3-column
+        # data.frame here, while the earlier iterations always pushed
+        # 2-column data.frames into `neighbors_list`.  The subsequent
+        # `do.call(rbind, neighbors_list)` would then fail with
+        # "numbers of columns of arguments do not match".
+        neighbors_list[[i]] <- ly_sub %>% dplyr::select(x, y)
     } else {
       out <- get_neighbors(ly = ly_sub,
                            k = node_df_sorted_number$n[i])

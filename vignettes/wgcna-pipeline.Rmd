@@ -131,6 +131,17 @@ dim(expr_mat)
 ### Step 2: Pick a soft-thresholding power
 
 ```{r full-power, eval = has_wgcna, fig.cap = "Scale-free topology fit versus soft-thresholding power."}
+# Force WGCNA into single-threaded mode before calling
+# `pickSoftThreshold()`. WGCNA spins up an internal foreach/parallel
+# cluster by default, which is fragile inside vignette / R CMD check
+# environments (and intermittently dies with
+# "Error in summary.connection(connection) : invalid connection").
+# Single-threaded is slower but deterministic and side-effect-free,
+# which is exactly what we want for reproducible documentation. Users
+# can re-enable parallelism for production work via
+# `WGCNA::allowWGCNAThreads()` or `WGCNA::enableWGCNAThreads()`.
+WGCNA::disableWGCNAThreads()
+
 powers <- c(seq(1, 10, by = 1), seq(12, 30, by = 2))
 sft <- WGCNA::pickSoftThreshold(
   expr_mat,
@@ -198,9 +209,15 @@ edge list (`from`, `to`, `weight`). Use the `threshold` argument to
 keep only the strongest edges:
 
 ```{r full-trans, eval = has_wgcna}
+# `trans_TOM_in_WGCNA()` uses `colnames(mat)` as node IDs, so `mat` must
+# be in the same orientation as the input to `WGCNA::adjacency()`:
+# samples in rows, features (genes/OTUs) in columns. `expr_mat` is
+# already in that shape (we transposed once at Step 1), so pass it
+# straight in -- transposing again would swap node IDs to sample IDs and
+# fail the dimension check inside trans_TOM_in_WGCNA().
 edge_df <- trans_TOM_in_WGCNA(
   TOM       = TOM,
-  mat       = t(expr_mat),
+  mat       = expr_mat,
   threshold = 0.1
 )
 head(edge_df)
@@ -235,9 +252,14 @@ ggNetView(
 Try different layouts to highlight module structure:
 
 ```{r full-plot-circular, eval = has_wgcna, fig.cap = "Circular module layout groups nodes by WGCNA module."}
+# Note the `_layout` suffix: the petal-style layout functions are named
+# `create_layout_circular_modules_petal_layout()` (and the *2 variant),
+# whereas other layouts like `fr` / `gephi` / `kk` use the bare name. The
+# `layout` argument is concatenated to `create_layout_` to look up the
+# function, so it must include the suffix here.
 ggNetView(
   graph_full,
-  layout    = "circular_modules_petal",
+  layout    = "circular_modules_petal_layout",
   seed      = 1,
   pointsize = c(2, 6),
   fill.by   = "Modularity",

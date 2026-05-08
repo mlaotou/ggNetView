@@ -174,3 +174,156 @@ test_that("get_network_topology_parallel works when parallel is FALSE", {
   expect_true(is.list(out))
   expect_true(all(c("topology", "Robustness") %in% names(out)))
 })
+
+# ---------------------------------------------------------------------------
+# build_graph_from_node_edge()
+# ---------------------------------------------------------------------------
+
+test_that("build_graph_from_node_edge retains isolated nodes", {
+  node <- data.frame(
+    name = c("A", "B", "C", "D", "E"),
+    grp  = c("g1", "g1", "g2", "g2", "g3"),
+    stringsAsFactors = FALSE
+  )
+  edge <- data.frame(
+    from   = c("A", "B"),
+    to     = c("B", "C"),
+    weight = c(0.8, 0.6),
+    stringsAsFactors = FALSE
+  )
+
+  obj <- build_graph_from_node_edge(node = node, edge = edge, top_modules = 5)
+
+  expect_s3_class(obj, "tbl_graph")
+
+  # Critical contract: D and E are isolated; build_graph_from_df() would
+  # silently drop them. build_graph_from_node_edge() must keep them.
+  node_df <- obj %>%
+    tidygraph::activate(nodes) %>%
+    tidygraph::as_tibble()
+  expect_setequal(node_df$name, c("A", "B", "C", "D", "E"))
+
+  expect_true(all(c("name", "grp", "Modularity", "Degree", "Strength") %in% colnames(node_df)))
+
+  edge_df <- obj %>%
+    tidygraph::activate(edges) %>%
+    tidygraph::as_tibble()
+  expect_true(all(c("weight", "correlation") %in% colnames(edge_df)))
+})
+
+test_that("build_graph_from_node_edge errors on missing arguments", {
+  expect_error(
+    build_graph_from_node_edge(edge = data.frame(from = "A", to = "B")),
+    "node"
+  )
+  expect_error(
+    build_graph_from_node_edge(node = data.frame(name = "A")),
+    "edge"
+  )
+})
+
+test_that("build_graph_from_node_edge errors on duplicated node IDs", {
+  node <- data.frame(name = c("A", "A", "B"), stringsAsFactors = FALSE)
+  edge <- data.frame(from = "A", to = "B", weight = 1, stringsAsFactors = FALSE)
+  expect_error(
+    build_graph_from_node_edge(node = node, edge = edge),
+    "unique IDs"
+  )
+})
+
+test_that("build_graph_from_node_edge errors when edge IDs are unknown", {
+  node <- data.frame(name = c("A", "B"), stringsAsFactors = FALSE)
+  edge <- data.frame(from = "A", to = "Z", weight = 1, stringsAsFactors = FALSE)
+  expect_error(
+    build_graph_from_node_edge(node = node, edge = edge),
+    "appear in `edge` but not in"
+  )
+})
+
+# ---------------------------------------------------------------------------
+# build_graph_from_stringdb()
+# ---------------------------------------------------------------------------
+
+test_that("build_graph_from_stringdb parses STRING-style data and preserves evidence columns", {
+  # Mimics the STRING TSV header `#node1` + extra evidence channels.
+  stringdb_df <- data.frame(
+    `#node1`                              = c("AANAT", "AANAT", "ABCA1", "ABCA1"),
+    node2                                 = c("CRY1",  "TPH1",  "SIRT1", "APOA1"),
+    coexpression                          = c(0,       0.109,   0.079,   0.055),
+    experimentally_determined_interaction = c(0,       0,       0.046,   0.697),
+    combined_score                        = c(0.608,   0.675,   0.520,   0.999),
+    check.names      = FALSE,
+    stringsAsFactors = FALSE
+  )
+
+  obj <- build_graph_from_stringdb(stringdb = stringdb_df, top_modules = 5)
+
+  expect_s3_class(obj, "tbl_graph")
+  expect_gt(igraph::gorder(obj), 0L)
+  expect_gt(igraph::gsize(obj), 0L)
+
+  edge_df <- obj %>%
+    tidygraph::activate(edges) %>%
+    tidygraph::as_tibble()
+
+  # weight + correlation come from the standard pipeline.
+  expect_true(all(c("weight", "correlation") %in% colnames(edge_df)))
+  # Evidence channels survive as edge attributes (this is the key contract).
+  expect_true(all(c("coexpression",
+                    "experimentally_determined_interaction",
+                    "combined_score") %in% colnames(edge_df)))
+})
+
+test_that("build_graph_from_stringdb applies score_threshold", {
+  stringdb_df <- data.frame(
+    node1          = c("A", "B", "C", "D"),
+    node2          = c("B", "C", "D", "E"),
+    combined_score = c(0.30, 0.50, 0.90, 0.95),
+    stringsAsFactors = FALSE
+  )
+
+  obj <- build_graph_from_stringdb(
+    stringdb        = stringdb_df,
+    score_threshold = 0.6,
+    top_modules     = 5
+  )
+  edge_df <- obj %>%
+    tidygraph::activate(edges) %>%
+    tidygraph::as_tibble()
+
+  # Only the two edges with score >= 0.6 should remain.
+  expect_equal(nrow(edge_df), 2L)
+  expect_true(all(edge_df$weight >= 0.6))
+})
+
+test_that("build_graph_from_stringdb errors on missing required columns", {
+  bad <- data.frame(foo = "X", bar = "Y", stringsAsFactors = FALSE)
+  expect_error(
+    build_graph_from_stringdb(stringdb = bad),
+    "not found in"
+  )
+})
+
+test_that("build_graph_from_stringdb supports a custom score_col", {
+  stringdb_df <- data.frame(
+    node1          = c("A", "B", "C"),
+    node2          = c("B", "C", "D"),
+    coexpression   = c(0.10, 0.50, 0.80),
+    combined_score = c(0.40, 0.55, 0.85),
+    stringsAsFactors = FALSE
+  )
+
+  obj <- build_graph_from_stringdb(
+    stringdb        = stringdb_df,
+    score_col       = "coexpression",
+    score_threshold = 0.4,
+    top_modules     = 5
+  )
+  edge_df <- obj %>%
+    tidygraph::activate(edges) %>%
+    tidygraph::as_tibble()
+
+  # coexpression >= 0.4 keeps two of the three edges.
+  expect_equal(nrow(edge_df), 2L)
+  expect_true(all(edge_df$weight >= 0.4))
+})
