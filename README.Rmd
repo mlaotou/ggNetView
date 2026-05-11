@@ -27,7 +27,36 @@ ggNetView is an R package for network analysis and visualization. It provides fl
 
 ## Installation
 
-You can install the development version of ggNetView from [GitHub](https://github.com/) with:
+`ggNetView` depends on a number of CRAN packages. We recommend installing the required dependencies first, and then installing `ggNetView` from GitHub.
+
+### Step1: install CRAN dependencies
+
+```
+cran_pkgs <- c(
+  "boot", "dplyr", "FNN", "future", "future.apply",
+  "ggforce", "ggnewscale", "ggplot2", "ggraph", "ggrepel",
+  "Hmisc", "huge", "igraph", "magrittr", "MASS",
+  "Matrix", "patchwork", "progressr", "psych", "purrr",
+  "qgraph", "Rcpp", "RcppArmadillo", "readr", "rlang",
+  "scales", "scatterpie", "stringr", "tibble", "tidygraph",
+  "tidyr", "vegan", "VGAM", "WGCNA"
+)
+
+new_pkgs <- cran_pkgs[!cran_pkgs %in% installed.packages()[, "Package"]]
+if (length(new_pkgs)) install.packages(new_pkgs)
+```
+
+### Step2: (optional) install suggested packages
+
+These packages are not required for the core functionality, but enable additional features (e.g. dynamic tree cut, node influence, vignettes, tests):
+
+```
+install.packages(c("dynamicTreeCut", "influential",
+                   "knitr", "rmarkdown",
+                   "RobustRankAggreg", "testthat"))
+```
+
+### Step3: install ggNetView from GitHub
 
 ```
 # install.packages("devtools")

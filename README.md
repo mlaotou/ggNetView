@@ -15,8 +15,36 @@ biological and ecological networks.
 
 ## Installation
 
-You can install the development version of ggNetView from
-[GitHub](https://github.com/) with:
+`ggNetView` depends on a number of CRAN packages. We recommend
+installing the required dependencies first, and then installing
+`ggNetView` from GitHub.
+
+### Step1: install CRAN dependencies
+
+    cran_pkgs <- c(
+      "boot", "dplyr", "FNN", "future", "future.apply",
+      "ggforce", "ggnewscale", "ggplot2", "ggraph", "ggrepel",
+      "Hmisc", "huge", "igraph", "magrittr", "MASS",
+      "Matrix", "patchwork", "progressr", "psych", "purrr",
+      "qgraph", "Rcpp", "RcppArmadillo", "readr", "rlang",
+      "scales", "scatterpie", "stringr", "tibble", "tidygraph",
+      "tidyr", "vegan", "VGAM", "WGCNA"
+    )
+
+    new_pkgs <- cran_pkgs[!cran_pkgs %in% installed.packages()[, "Package"]]
+    if (length(new_pkgs)) install.packages(new_pkgs)
+
+### Step2: (optional) install suggested packages
+
+These packages are not required for the core functionality, but enable
+additional features (e.g. dynamic tree cut, node influence, vignettes,
+tests):
+
+    install.packages(c("dynamicTreeCut", "influential",
+                       "knitr", "rmarkdown",
+                       "RobustRankAggreg", "testthat"))
+
+### Step3: install ggNetView from GitHub
 
     # install.packages("devtools")
     devtools::install_github("Jiawang1209/ggNetView")
@@ -42,20 +70,18 @@ library(ggNetView)
 #>  ░███████   ░███████
 #> 
 #> 
-#> Yue Liu, Chao Wang (2026). ggNetView: An R Package for Reproducible and Deterministic Network Analysis and Visualization.
 #> 
-#>   Maintainers:
-#>    - Yue Liu <yueliu@iae.ac.cn>
-#>    - Chao Wang <cwang@iae.ac.cn>
+#> ggNetView: Reproducible and Deterministic Network Analysis and Visualization
+#> Version: 0.1.0
 #> 
-#>   Manual: https://jiawang1209.github.io/ggNetView-manual/
-#>   GitHub: https://github.com/Jiawang1209/ggNetView
+#>   Authors:     Yue Liu, Chao Wang
+#>   Maintainer:  Yue Liu <yueliu@iae.ac.cn>
+#> 
+#>   Manual:      https://jiawang1209.github.io/ggNetView-manual/
+#>   GitHub:      https://github.com/Jiawang1209/ggNetView
 #>   Bug Reports: https://github.com/Jiawang1209/ggNetView/issues
 #> 
-#> 
 #>   Type citation('ggNetView') for how to cite this package.
-#>   Run browseVignettes('ggNetView') for documentation.
-#> 
 ```
 
 ### Step2: load Data
@@ -219,8 +245,6 @@ p2 <- ggNetView(
 #> ℹ Adding new coordinate system, which will replace the existing one.
 
 p2
-#> Warning: No shared levels found between `names(values)` of the manual scale and the
-#> data's fill values.
 ```
 
 <img src="man/figures/README-unnamed-chunk-9-1.png" alt="" width="100%" style="display: block; margin: auto;" />
@@ -254,8 +278,6 @@ p3 <- ggNetView(
 #> ℹ Adding new coordinate system, which will replace the existing one.
 
 p3
-#> Warning: No shared levels found between `names(values)` of the manual scale and the
-#> data's fill values.
 ```
 
 <img src="man/figures/README-unnamed-chunk-10-1.png" alt="" width="100%" style="display: block; margin: auto;" />
@@ -290,8 +312,6 @@ p4 <- ggNetView(
 #> ℹ Adding new coordinate system, which will replace the existing one.
 
 p4
-#> Warning: No shared levels found between `names(values)` of the manual scale and the
-#> data's fill values.
 ```
 
 <img src="man/figures/README-unnamed-chunk-11-1.png" alt="" width="100%" style="display: block; margin: auto;" />
@@ -326,8 +346,6 @@ p5 <- ggNetView(
 #> ℹ Adding new coordinate system, which will replace the existing one.
 
 p5
-#> Warning: No shared levels found between `names(values)` of the manual scale and the
-#> data's fill values.
 ```
 
 <img src="man/figures/README-unnamed-chunk-12-1.png" alt="" width="100%" style="display: block; margin: auto;" />
@@ -438,7 +456,7 @@ out2[[2]]
 sessionInfo()
 #> R version 4.5.1 (2025-06-13)
 #> Platform: aarch64-apple-darwin20
-#> Running under: macOS Tahoe 26.2
+#> Running under: macOS Tahoe 26.3.1
 #> 
 #> Matrix products: default
 #> BLAS:   /Library/Frameworks/R.framework/Versions/4.5-arm64/Resources/lib/libRblas.0.dylib 
@@ -454,39 +472,38 @@ sessionInfo()
 #> [1] stats     graphics  grDevices utils     datasets  methods   base     
 #> 
 #> other attached packages:
-#> [1] ggNetView_1.4.17 ggnewscale_0.5.2 ggplot2_4.0.2   
+#> [1] ggNetView_0.1.0  ggnewscale_0.5.2 ggplot2_4.0.3   
 #> 
 #> loaded via a namespace (and not attached):
-#>  [1] psych_2.6.1           tidyselect_1.2.1      WGCNA_1.74           
-#>  [4] viridisLite_0.4.3     dplyr_1.2.0           farver_2.1.2         
-#>  [7] viridis_0.6.5         S7_0.2.1              ggraph_2.2.2         
-#> [10] fastmap_1.2.0         tweenr_2.0.3          digest_0.6.39        
-#> [13] rpart_4.1.24          lifecycle_1.0.5       cluster_2.1.8.1      
-#> [16] survival_3.8-3        magrittr_2.0.4        compiler_4.5.1       
-#> [19] rlang_1.1.7           Hmisc_5.2-5           tools_4.5.1          
-#> [22] igraph_2.2.2          utf8_1.2.6            yaml_2.3.12          
-#> [25] data.table_1.18.2.1   knitr_1.51            FNN_1.1.4.1          
-#> [28] labeling_0.4.3        graphlayouts_1.2.2    htmlwidgets_1.6.4    
-#> [31] mnormt_2.1.2          RColorBrewer_1.1-3    withr_3.0.2          
-#> [34] foreign_0.8-90        purrr_1.2.1           BiocGenerics_0.56.0  
-#> [37] nnet_7.3-20           dynamicTreeCut_1.63-1 grid_4.5.1           
-#> [40] polyclip_1.10-7       stats4_4.5.1          preprocessCore_1.70.0
-#> [43] multtest_2.64.0       colorspace_2.1-2      fastcluster_1.3.0    
-#> [46] scales_1.4.0          iterators_1.0.14      MASS_7.3-65          
-#> [49] dichromat_2.0-0.1     cli_3.6.5             rmarkdown_2.30       
-#> [52] generics_0.1.4        otel_0.2.0            rstudioapi_0.18.0    
-#> [55] cachem_1.1.0          ggforce_0.5.0         stringr_1.6.0        
-#> [58] splines_4.5.1         parallel_4.5.1        impute_1.82.0        
-#> [61] matrixStats_1.5.0     base64enc_0.1-6       vctrs_0.7.1          
-#> [64] Matrix_1.7-4          ggrepel_0.9.6         Formula_1.2-5        
-#> [67] htmlTable_2.4.3       foreach_1.5.2         tidyr_1.3.2          
-#> [70] glue_1.8.0            codetools_0.2-20      stringi_1.8.7        
-#> [73] gtable_0.3.6          tibble_3.3.1          pillar_1.11.1        
-#> [76] htmltools_0.5.9       R6_2.6.1              doParallel_1.0.17    
-#> [79] tidygraph_1.3.1       evaluate_1.0.5        lattice_0.22-7       
-#> [82] Biobase_2.70.0        backports_1.5.0       memoise_2.0.1        
-#> [85] Rcpp_1.1.1            nlme_3.1-168          gridExtra_2.3        
-#> [88] checkmate_2.3.4       xfun_0.56             pkgconfig_2.0.3
+#>  [1] gtable_0.3.6          impute_1.82.0         xfun_0.57            
+#>  [4] htmlwidgets_1.6.4     psych_2.6.3           ggrepel_0.9.8        
+#>  [7] lattice_0.22-7        vctrs_0.7.3           tools_4.5.1          
+#> [10] generics_0.1.4        parallel_4.5.1        tibble_3.3.1         
+#> [13] cluster_2.1.8.1       pkgconfig_2.0.3       Matrix_1.7-4         
+#> [16] data.table_1.18.4     checkmate_2.3.4       RColorBrewer_1.1-3   
+#> [19] S7_0.2.2              lifecycle_1.0.5       FNN_1.1.4.1          
+#> [22] compiler_4.5.1        farver_2.1.2          stringr_1.6.0        
+#> [25] mnormt_2.1.2          ggforce_0.5.0         graphlayouts_1.2.3   
+#> [28] codetools_0.2-20      htmltools_0.5.9       yaml_2.3.12          
+#> [31] htmlTable_2.5.0       preprocessCore_1.70.0 Formula_1.2-5        
+#> [34] pillar_1.11.1         tidyr_1.3.2           MASS_7.3-65          
+#> [37] cachem_1.1.0          viridis_0.6.5         Hmisc_5.2-5          
+#> [40] iterators_1.0.14      rpart_4.1.24          foreach_1.5.2        
+#> [43] nlme_3.1-168          tidyselect_1.2.1      digest_0.6.39        
+#> [46] stringi_1.8.7         purrr_1.2.2           dplyr_1.2.1          
+#> [49] labeling_0.4.3        splines_4.5.1         polyclip_1.10-7      
+#> [52] fastmap_1.2.0         grid_4.5.1            colorspace_2.1-2     
+#> [55] cli_3.6.6             magrittr_2.0.5        base64enc_0.1-6      
+#> [58] ggraph_2.2.2          dichromat_2.0-0.1     tidygraph_1.3.1      
+#> [61] survival_3.8-3        dynamicTreeCut_1.63-1 utf8_1.2.6           
+#> [64] foreign_0.8-90        withr_3.0.2           scales_1.4.0         
+#> [67] backports_1.5.1       rmarkdown_2.31        matrixStats_1.5.0    
+#> [70] igraph_2.3.1          otel_0.2.0            nnet_7.3-20          
+#> [73] gridExtra_2.3         fastcluster_1.3.0     memoise_2.0.1        
+#> [76] evaluate_1.0.5        knitr_1.51            doParallel_1.0.17    
+#> [79] viridisLite_0.4.3     rlang_1.2.0           Rcpp_1.1.1-1.1       
+#> [82] glue_1.8.1            tweenr_2.0.3          rstudioapi_0.18.0    
+#> [85] WGCNA_1.74            R6_2.6.1
 ```
 
 #### Citation
