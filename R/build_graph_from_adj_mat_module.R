@@ -67,6 +67,11 @@ build_graph_from_adj_mat_module <- function(adjacency_matrix,
     if (ncol(node_annotation) < 2) {
       stop("`annotation` requires at least two columns (the first is the name, the rest are the annotation columns to be merged).", call. = FALSE)
     }
+    if (!"Modularity" %in% colnames(node_annotation)) {
+      stop("`node_annotation` must contain a column named `Modularity` when using `build_graph_from_adj_mat_module()`. ",
+           "If you don't have pre-computed module assignments, use `build_graph_from_adj_mat()` instead.",
+           call. = FALSE)
+    }
   }
 
   # df = ppi_module$ppi
