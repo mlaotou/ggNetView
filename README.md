@@ -7,9 +7,9 @@
 
 <!-- badges: end -->
 
-ggNetView is an R package for network analysis and visualization. It
-provides flexible and publication-ready tools for exploring complex
-biological and ecological networks.
+ggNetView: An R Package for Reproducible Biological Network Analysis and
+Visualization. It provides flexible and publication-ready tools for
+exploring complex biological and ecological networks.
 
 </br> </br> </br>
 
@@ -510,7 +510,7 @@ sessionInfo()
 
 If you use ggNetView in your research, please cite:
 
-    Yue Liu, Chao Wang (2026). ggNetView: An R Package for Reproducible and Deterministic Network Analysis and Visualization. 
+    Yue Liu, Chao Wang (2026). ggNetView: An R Package for Reproducible Biological Network Analysis and Visualization.
 
 #### Github & Manual
 
