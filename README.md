@@ -11,13 +11,19 @@ ggNetView: An R Package for Reproducible Biological Network Analysis and
 Visualization. It provides flexible and publication-ready tools for
 exploring complex biological and ecological networks.
 
-</br> </br> </br>
+[GitHub Repository](https://github.com/Jiawang1209/ggNetView)
+
+[User Manual](https://jiawang1209.github.io/ggNetView-manual/)
+
+[Zenodo DOI](https://doi.org/10.5281/zenodo.20175076)
 
 ## Installation
 
 `ggNetView` depends on a number of CRAN packages. We recommend
 installing the required dependencies first, and then installing
 `ggNetView` from GitHub.
+
+Current development release: v0.1.0
 
 ### Step1: install CRAN dependencies
 
