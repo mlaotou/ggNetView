@@ -904,15 +904,28 @@ module_layout5 <- function(graph_obj,
     tidygraph::as_tibble()
 
 
-  node_df %>%
-    dplyr::count(modularity3, name = "size") %>%
-    dplyr::arrange(size) %>%
-    dplyr::mutate(modularity4 = factor(modularity3,
-                                       levels = c(setdiff(modularity3, "Others"), "Others"),
-                                       ordered = TRUE)) %>%
-    dplyr::arrange(modularity4) %>%
-    dplyr::mutate(modularity4 = as.character(modularity4)) %>%
-    dplyr::pull(modularity4) -> mod_levels
+  # ---- Determine module order (matches the order used by create_layout_multirings) ----
+  # Default: order modules by size ascending (smallest first), with "Others" at the end.
+  # If the caller has explicitly customised module order via
+  # `update_graph_modules*(levels = ...)`, the graph carries
+  # `.modularity_user_ordered = TRUE`; in that case we respect the existing
+  # `Modularity` factor levels so that the node order here matches the ring
+  # order produced by `create_layout_multirings`.
+  user_ordered <- isTRUE(igraph::graph_attr(graph_obj, ".modularity_user_ordered"))
+
+  if (user_ordered && is.factor(node_df$Modularity)) {
+    mod_levels <- levels(droplevels(node_df$Modularity))
+  } else {
+    node_df %>%
+      dplyr::count(modularity3, name = "size") %>%
+      dplyr::arrange(size) %>%
+      dplyr::mutate(modularity4 = factor(modularity3,
+                                         levels = c(setdiff(modularity3, "Others"), "Others"),
+                                         ordered = TRUE)) %>%
+      dplyr::arrange(modularity4) %>%
+      dplyr::mutate(modularity4 = as.character(modularity4)) %>%
+      dplyr::pull(modularity4) -> mod_levels
+  }
 
 
   node_df_sorted <- node_df %>%
