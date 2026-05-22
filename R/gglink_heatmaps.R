@@ -804,7 +804,7 @@ gglink_heatmaps <- function(
         dplyr::mutate(p_signif = dplyr::case_when(
           Pvalue > 0.05 ~ "",
           Pvalue > 0.01 & Pvalue <= 0.05 ~ "*",
-          Pvalue < 0.01 & Pvalue >= 0.001 ~ "**",
+          Pvalue <= 0.01 & Pvalue >= 0.001 ~ "**",
           Pvalue < 0.001 ~ "***"
         ))
 
@@ -854,7 +854,7 @@ gglink_heatmaps <- function(
         dplyr::mutate(p_signif = dplyr::case_when(
           Pvalue > 0.05 ~ "",
           Pvalue > 0.01 & Pvalue <= 0.05 ~ "*",
-          Pvalue < 0.01 & Pvalue >= 0.001 ~ "**",
+          Pvalue <= 0.01 & Pvalue >= 0.001 ~ "**",
           Pvalue < 0.001 ~ "***"
         ))
 
@@ -904,7 +904,7 @@ gglink_heatmaps <- function(
         dplyr::mutate(p_signif = dplyr::case_when(
           Pvalue > 0.05 ~ "",
           Pvalue > 0.01 & Pvalue <= 0.05 ~ "*",
-          Pvalue < 0.01 & Pvalue >= 0.001 ~ "**",
+          Pvalue <= 0.01 & Pvalue >= 0.001 ~ "**",
           Pvalue < 0.001 ~ "***"
         ))
 
@@ -955,7 +955,7 @@ gglink_heatmaps <- function(
         dplyr::mutate(p_signif = dplyr::case_when(
           Pvalue > 0.05 ~ "",
           Pvalue > 0.01 & Pvalue <= 0.05 ~ "*",
-          Pvalue < 0.01 & Pvalue >= 0.001 ~ "**",
+          Pvalue <= 0.01 & Pvalue >= 0.001 ~ "**",
           Pvalue < 0.001 ~ "***"
         ))
 
@@ -1047,7 +1047,7 @@ gglink_heatmaps <- function(
           dplyr::mutate(p_signif = dplyr::case_when(
             Pvalue > 0.05 ~ "",
             Pvalue > 0.01 & Pvalue <= 0.05 ~ "*",
-            Pvalue < 0.01 & Pvalue >= 0.001 ~ "**",
+            Pvalue <= 0.01 & Pvalue >= 0.001 ~ "**",
             Pvalue < 0.001 ~ "***"
           ))
         cor_env_list_tmp_r_p <- cbind(cor_env_list_tmp_r,
@@ -1112,7 +1112,7 @@ gglink_heatmaps <- function(
             is.na(Pvalue) ~ "",
             Pvalue > 0.05 ~ "",
             Pvalue > 0.01 & Pvalue <= 0.05 ~ "*",
-            Pvalue < 0.01 & Pvalue >= 0.001 ~ "**",
+            Pvalue <= 0.01 & Pvalue >= 0.001 ~ "**",
             Pvalue < 0.001 ~ "***",
             TRUE ~ ""
           )
@@ -1189,7 +1189,7 @@ gglink_heatmaps <- function(
         stats::na.omit() %>%
         dplyr::mutate(p_signif = dplyr::case_when(
           Pvalue > 0.05 ~ "", Pvalue > 0.01 & Pvalue <= 0.05 ~ "*",
-          Pvalue < 0.01 & Pvalue >= 0.001 ~ "**", Pvalue < 0.001 ~ "***"
+          Pvalue <= 0.01 & Pvalue >= 0.001 ~ "**", Pvalue < 0.001 ~ "***"
         ))
       spec_cor_self_r_p <- cbind(spec_cor_self_r %>% dplyr::select(1, 2, 4, 5, 3),
                                  spec_cor_self_p %>% dplyr::select(3, 6)) %>%

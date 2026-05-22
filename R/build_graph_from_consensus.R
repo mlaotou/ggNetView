@@ -456,8 +456,11 @@ build_graph_from_consensus <- function(
 
   # Min-max normalise score to [0, 1], then re-attach the sign of the
   # mean correlation across methods. Pairs that everyone gave |w| = 0
-  # can produce score = NaN/-Inf; clamp those to 0.
-  score[!is.finite(score)] <- min(score[is.finite(score)], na.rm = TRUE)
+  # can produce score = NaN/-Inf; clamp those to the smallest finite
+  # score, or to 0 if no scores are finite (otherwise `min(numeric(0))`
+  # is `Inf` and every score gets stamped with `Inf`).
+  .finite_min <- if (any(is.finite(score))) min(score[is.finite(score)]) else 0
+  score[!is.finite(score)] <- .finite_min
   score_range <- range(score, finite = TRUE)
   if (diff(score_range) > 0) {
     score_norm <- (score - score_range[1L]) / diff(score_range)

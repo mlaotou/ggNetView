@@ -165,7 +165,7 @@ module_layout <- function(graph_obj,
 
 
 
-  for (i in 1:nrow(node_df_sorted_number)) {
+  for (i in seq_len(nrow(node_df_sorted_number))) {
 
     if (i == 1) {
       out <- get_neighbors_hub(ly = layout,

@@ -156,6 +156,11 @@ generateMask_ggnetview <- function(dims,
                                names = FALSE,
                                na.rm = TRUE)
 
+  # If every data point evaluated to NA/NaN density (e.g. degenerate KDE), the
+  # quantile is NA and `contourLines(level = NA)` would crash. Fall back to the
+  # convex-hull path by returning NULL up the call chain.
+  if (!is.finite(threshold)) return(NULL)
+
   contours <- grDevices::contourLines(k$x, k$y, k$z, levels = threshold)
   if (length(contours) == 0L) return(NULL)
 

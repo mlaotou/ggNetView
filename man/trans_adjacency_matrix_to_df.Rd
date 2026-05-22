@@ -11,7 +11,8 @@ trans_adjacency_matrix_to_df(adjacency_matrix)
 A numeric matrix with adjacency matrix.}
 }
 \value{
-a data frame of edge
+A data frame with columns `from`, `to`, `weight` describing the
+edges of the adjacency matrix (one row per edge of the undirected graph).
 }
 \description{
 Trans adjacency matrix to edge data frame

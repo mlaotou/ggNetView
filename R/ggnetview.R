@@ -122,6 +122,9 @@
 #' (closer to the convex hull of the module); lower values make it tighter
 #' around the densest core. Sparse outliers/satellites typically fall outside
 #' the contour and remain visible as bare nodes.
+#' Note: modules with fewer than 10 nodes bypass the KDE path entirely and are
+#' enclosed by a convex hull, so `q_outer` (and `bandwidth_scale`) have no
+#' effect on them.
 #' @param expand_outer Numeric (default = 1.02).
 #' Multiplicative scaling applied to each polygon from its own centroid after
 #' the HDR contour is drawn. Values > 1 slightly expand the boundary, values

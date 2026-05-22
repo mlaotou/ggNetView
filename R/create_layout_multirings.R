@@ -75,7 +75,7 @@ create_layout_multirings <- function(graph_obj,
 
   r = r
 
-  for (i in 1:dim(node_df_stat)[1]) {
+  for (i in seq_len(dim(node_df_stat)[1])) {
 
     n_points <- node_df_stat$n[i]
     radius <- r
