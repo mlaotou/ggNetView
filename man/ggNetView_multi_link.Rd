@@ -49,6 +49,7 @@ ggNetView_multi_link(
   add_outer = "circle",
   q_outer = 0.88,
   expand_outer = 1.02,
+  bandwidth_scale = 1,
   outerwidth = 1.25,
   outerlinetype = 2,
   outeralpha = 0.5,
@@ -256,12 +257,17 @@ and \code{"none"} (disable). Logical \code{TRUE}/\code{FALSE} are
 accepted and mapped to \code{"circle"}/\code{"none"}.}
 
 \item{q_outer}{Numeric (default = 0.88).
-Quantile of radial distance used to construct the smooth outer boundary
-when \code{add_outer = "manual"}.}
+HDR coverage of the outer boundary when \code{add_outer = "manual"}: the
+contour is drawn at the density level whose iso-density region contains a
+fraction \code{q_outer} of the module's empirical probability mass.}
 
 \item{expand_outer}{Numeric (default = 1.02).
-Global scaling factor applied to the smooth outer boundary when
-\code{add_outer = "manual"}.}
+Multiplicative scaling applied to each polygon from its own centroid
+when \code{add_outer = "manual"}.}
+
+\item{bandwidth_scale}{Numeric (default = 1.0).
+Multiplier on the robust normal-reference 2D KDE bandwidth used to build
+the outer boundary when \code{add_outer = "manual"}.}
 
 \item{outerwidth}{Numeric (default = 1.25).
 Line width for module outer boundaries.}

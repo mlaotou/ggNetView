@@ -1110,6 +1110,7 @@ ggnetview_modularity_heatmaps <- function(
   module_label_fun <- function(x) paste0(module_label_prefix, " ", x)
   q_outer <- if (!is.null(ggnetview_args$q_outer)) as.numeric(ggnetview_args$q_outer) else 0.88
   expand_outer <- if (!is.null(ggnetview_args$expand_outer)) as.numeric(ggnetview_args$expand_outer) else 1.02
+  bandwidth_scale <- if (!is.null(ggnetview_args$bandwidth_scale)) as.numeric(ggnetview_args$bandwidth_scale) else 1.0
   outerwidth <- if (!is.null(ggnetview_args$outerwidth)) as.numeric(ggnetview_args$outerwidth) else 1.25
   outerlinetype <- if (!is.null(ggnetview_args$outerlinetype)) ggnetview_args$outerlinetype else 2
   outeralpha <- if (!is.null(ggnetview_args$outeralpha)) as.numeric(ggnetview_args$outeralpha) else 0.5
@@ -1151,7 +1152,8 @@ ggnetview_modularity_heatmaps <- function(
       dims = graph_ly_scaled[, c("x", "y")],
       clusters = graph_ly_scaled$Modularity,
       q = q_outer,
-      expand = expand_outer
+      expand = expand_outer,
+      bandwidth_scale = bandwidth_scale
     )
     if (nrow(maskTable) > 0L) {
       maskTable <- maskTable %>%
@@ -1172,7 +1174,9 @@ ggnetview_modularity_heatmaps <- function(
         ggnewscale::new_scale_color() +
         ggplot2::geom_polygon(
           data = maskTable %>% dplyr::filter(cluster != "Others"),
-          mapping = ggplot2::aes(x = x, y = y, group = cluster, fill = cluster, color = cluster),
+          mapping = ggplot2::aes(x = x, y = y,
+                                 group = interaction(cluster, polygon_id),
+                                 fill = cluster, color = cluster),
           linewidth = outerwidth,
           linetype = outerlinetype,
           alpha = outeralpha,

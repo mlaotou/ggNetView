@@ -109,13 +109,31 @@
 #' @param add_group_outer_linewidth Numeric (default = 0.5).
 #' Line width of the group outer circle.
 #' @param add_outer Logical (default = FALSE).
-#' Whether to add an outer circle/border around each module.
+#' Whether to draw a smooth outer boundary around each module. The boundary is
+#' computed by 2D kernel density estimation followed by a Highest-Density-Region
+#' (HDR) contour: it encloses the densest portion of each module rather than
+#' all of its points. As a side effect, a single module whose points fall into
+#' two well-separated clouds may produce two disconnected polygons (this is by
+#' design and matches the behaviour of e.g. `mascarade`).
 #' @param q_outer Numeric (default = 0.88).
-#' Quantile of radial distance used to construct the smooth outer boundary for each module.
-#' Higher values make the boundary more expanded; lower values make it tighter.
+#' HDR coverage of the outer boundary: the contour is drawn at the density
+#' level whose iso-density region contains a fraction `q_outer` of the module's
+#' empirical probability mass. Higher values make the boundary more inclusive
+#' (closer to the convex hull of the module); lower values make it tighter
+#' around the densest core. Sparse outliers/satellites typically fall outside
+#' the contour and remain visible as bare nodes.
 #' @param expand_outer Numeric (default = 1.02).
-#' Global scaling factor applied to the smoothed radial distances when drawing the outer boundary.
-#' Values > 1 slightly expand the boundary; values < 1 slightly shrink it.
+#' Multiplicative scaling applied to each polygon from its own centroid after
+#' the HDR contour is drawn. Values > 1 slightly expand the boundary, values
+#' < 1 slightly shrink it. Useful for adding a small visual breathing room
+#' between the boundary and the nodes.
+#' @param bandwidth_scale Numeric (default = 1.0).
+#' Multiplier on the robust normal-reference 2D KDE bandwidth used to build the
+#' outer boundary. Values > 1 produce smoother, wider contours (and may merge
+#' nearby sub-clusters of a module into a single component); values < 1
+#' produce tighter, more wiggly contours that follow local point density more
+#' closely. Has no effect when \code{add_outer = FALSE} or when a module falls
+#' back to the convex-hull path (very small clusters).
 #' @param outerwidth Integer  (default = 1.25).
 #' Change  outer linewidth.
 #' @param outerlinetype Integer  (default = 2).
@@ -229,8 +247,9 @@ ggNetView <- function(graph_obj,
                       add_outer = FALSE,
                       q_outer = 0.88,
                       expand_outer = 1.02,
-                      outerwidth = 1.25,
-                      outerlinetype = 2,
+                      bandwidth_scale = 1.0,
+                      outerwidth = 1,
+                      outerlinetype = 1,
                       outeralpha = 0.5,
                       nodelabsize = 5,
                       remove = FALSE,
@@ -554,7 +573,8 @@ ggNetView <- function(graph_obj,
           tidygraph::as_tibble() %>%
           dplyr::pull(modularity3),
         q = q_outer,
-        expand = expand_outer
+        expand = expand_outer,
+        bandwidth_scale = bandwidth_scale
       )
 
       return(maskTable)
@@ -971,7 +991,9 @@ ggNetView <- function(graph_obj,
         ggnewscale::new_scale_color() +
         ggplot2::geom_polygon(data=maskTable %>%
                                 dplyr::filter(cluster != "Others"),
-                              mapping = ggplot2::aes(x = x, y = y, group=cluster, fill = cluster, color = cluster),
+                              mapping = ggplot2::aes(x = x, y = y,
+                                                     group = interaction(cluster, polygon_id),
+                                                     fill = cluster, color = cluster),
                               linewidth = outerwidth,
                               linetype = outerlinetype,
                               alpha = outeralpha,
@@ -1020,7 +1042,9 @@ ggNetView <- function(graph_obj,
         ggnewscale::new_scale_fill() +
         ggnewscale::new_scale_color() +
         ggplot2::geom_polygon(data= maskTable %>% dplyr::filter(cluster != "Others"),
-                              mapping = ggplot2::aes(x = x, y = y, group=cluster, fill = cluster, color = cluster),
+                              mapping = ggplot2::aes(x = x, y = y,
+                                                     group = interaction(cluster, polygon_id),
+                                                     fill = cluster, color = cluster),
                               linewidth = outerwidth,
                               linetype = outerlinetype,
                               alpha = outeralpha,
