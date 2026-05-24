@@ -40,6 +40,9 @@ ggNetView(
   labelsize = 10,
   labelsegmentsize = 1,
   labelsegmentalpha = 1,
+  label_layout = c("two_column", "two_column_follow", "label_circle"),
+  label_wrap_width = NULL,
+  label_outer_pad = 0.4,
   add_group_outer = FALSE,
   add_group_outer_expand = 2,
   add_group_outer_color = "grey50",
@@ -196,6 +199,64 @@ Change  label segment size.}
 
 \item{labelsegmentalpha}{Integer  (default = 1).
 Change  label segment alpha.}
+
+\item{label_layout}{Character (default = \code{"two_column"}).
+Strategy used to place module text labels when \code{label} is not
+\code{FALSE}. One of:
+\itemize{
+  \item \code{"two_column"} (default; backward compatible): modules whose
+    centroid \code{x} is left of the network median go to a fixed left
+    column at \code{x = xr[1] - dx}, the rest to a fixed right column at
+    \code{x = xr[2] + dx}, with labels evenly distributed along \code{y}.
+    Best for very crowded networks or layouts that read left-to-right
+    (bipartite, grid).
+  \item \code{"two_column_follow"}: 360-degree ring layout with
+    two-segment "L-shape" leaders. Modules are sorted by their
+    actual angle from the network centroid and assigned angularly
+    equispaced target angles around the full \code{2*pi}, so
+    labels are evenly distributed around the network while
+    preserving the angular neighbour order. Each label is
+    projected onto an outer ellipse whose semi-axes are
+    \code{(1 + label_outer_pad)} times the network's half-width /
+    half-height. The leader has two segments: the first leg is
+    drawn manually via \code{geom_segment} from the module
+    centroid to an elbow on the network boundary at the module's
+    actual angle; the second leg is drawn by \code{ggrepel} from
+    the label (which it may push tangentially with \code{force = 1}
+    to avoid overlaps) back to that elbow. Use this when you need
+    the L bend to be clearly visible and labels to never overlap.
+  \item \code{"label_circle"}: 360-degree ring layout drawn
+    entirely by \code{ggrepel}. Same equispacing as
+    \code{"two_column_follow"} (so labels track module angular
+    order around the outer ellipse), but no manual first leg --
+    \code{ggrepel} handles both placement and the connecting
+    segment, with \code{segment.square = TRUE} and
+    \code{segment.squareShape = 0} so the leader is an L-shape
+    between label and module centroid. Code is much simpler than
+    \code{"two_column_follow"} and works well when modules are
+    roughly evenly distributed around the network; the trade-off
+    is that the L bend can visually collapse when a label happens
+    to sit on its module's radial line (rare with full
+    equispacing). Requires \code{ggrepel >= 0.9.4}.
+}}
+
+\item{label_wrap_width}{Integer or NULL (default = \code{NULL}).
+If a positive integer, module text labels are wrapped to roughly that
+many characters per line via \code{stringr::str_wrap()} before
+rendering. Useful for long pathway / taxonomy names. Applies to every
+\code{label_layout}.}
+
+\item{label_outer_pad}{Numeric (default = \code{0.40}).
+Fractional outward push of the label anchors, expressed as a multiple
+of the network's \code{x}-range (for \code{"two_column"}) or as the
+fractional enlargement of the outer label-anchor ellipse (for
+\code{"two_column_follow"}). Larger values move labels further
+away from the network and make the slanted second leg of the
+\code{"two_column_follow"} L-shape leader more pronounced. Try
+\code{0.20} for a tight layout that almost hugs the network,
+\code{0.40} for the default breathing room, \code{0.55+} when
+modules sit inside a thick \code{add_group_outer} ring or labels
+are long.}
 
 \item{add_group_outer}{Logical (default = FALSE).
 Whether to add a circle boundary around the entire network (mimics \code{ggforce::geom_mark_circle}).}
