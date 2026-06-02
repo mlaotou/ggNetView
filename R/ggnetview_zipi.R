@@ -277,8 +277,14 @@ ggnetview_zipi <- function(nodes_bulk, z_bulk_mat, modularity_col, degree_col,
         y = .data$within_module_connectivities
       )
     ) +
-      ggplot2::scale_x_continuous(limits = x_lim, expand = c(0.001, 0.1)) +
-      ggplot2::scale_y_continuous(limits = y_lim, expand = c(0.1, 0.1))
+      # oob = oob_keep: the right-hand quadrant labels are anchored in the
+      # expansion margin (just outside x_lim); without this the default
+      # `censor` would drop them as out-of-range (the "Removed 1 row" warning).
+      # coord_cartesian(clip = "off") below then lets them render in the margin.
+      ggplot2::scale_x_continuous(limits = x_lim, expand = c(0.001, 0.1),
+                                  oob = scales::oob_keep) +
+      ggplot2::scale_y_continuous(limits = y_lim, expand = c(0.1, 0.1),
+                                  oob = scales::oob_keep)
 
 
     built0 <- ggplot2::ggplot_build(p0)

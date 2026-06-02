@@ -351,6 +351,8 @@ p5
 
 <img src="man/figures/README-unnamed-chunk-12-1.png" alt="" width="100%" style="display: block; margin: auto;" />
 
+> Save Plot
+
     ggsave(file = "Output/p3.pdf", 
            plot = p5,
            height = 10,
@@ -904,10 +906,6 @@ names(zp)
 #> [1] "data" "plot"
 
 zp$plot
-#> Warning: Removed 1 row containing missing values or values outside the scale range
-#> (`geom_text()`).
-#> Removed 1 row containing missing values or values outside the scale range
-#> (`geom_text()`).
 ```
 
 <img src="man/figures/README-unnamed-chunk-21-1.png" alt="" width="100%" />

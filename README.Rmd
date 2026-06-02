@@ -295,6 +295,7 @@ p5 <- ggNetView(
 p5
 ```
 
+> Save Plot
 
 ```
 ggsave(file = "Output/p3.pdf", 
