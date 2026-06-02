@@ -35,6 +35,8 @@ navbar:
           href: articles/wgcna-pipeline.html
         - text: Network Topology and Keystone Analysis
           href: articles/network-topology.html
+        - text: Virtual Perturbation Analysis
+          href: articles/network-perturbation.html
         - text: "---"
         - text: Reference
         - text: Layout Gallery
@@ -71,6 +73,7 @@ reference:
       - gglink_heatmap_triple
       - ggnetview_modularity_heatmaps
       - ggnetview_zipi
+      - ggnetview_perturbation_curve
 
   - title: Network analysis
     desc: >
@@ -81,6 +84,9 @@ reference:
       - get_network_topology_parallel
       - get_sample_subgraph_topology
       - get_sample_subgraph_topology_parallel
+      - get_network_perturbation
+      - get_node_influence
+      - press_perturbation
       - ggNetView_RMT
       - mantel_between_blocks
       - mantel_pairwise

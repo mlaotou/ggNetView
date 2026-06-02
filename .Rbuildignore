@@ -16,3 +16,4 @@
 ^\.\.?Rcheck$
 ^\.Rapp\.history$
 ^figure$
+^dev$

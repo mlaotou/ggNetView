@@ -1,0 +1,206 @@
+---
+title: "Virtual Perturbation Analysis"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Virtual Perturbation Analysis}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse  = TRUE,
+  comment   = "#>",
+  fig.width = 7,
+  fig.height = 6,
+  dpi       = 72
+)
+```
+
+## Overview
+
+Once a network is built, a common question is *what happens to it under
+disturbance* -- if key taxa disappear, if one species is pushed up or
+down, or if a whole module is lost. `ggNetView` groups these "virtual
+perturbation" analyses into three functions that all take a `tbl_graph`
+from any `build_graph_from_*()` constructor:
+
+| Function | Perturbation type | Question it answers |
+|----------|-------------------|---------------------|
+| `get_network_perturbation()` | Structural (node/edge removal) | How fast does the network fall apart as nodes are lost? |
+| `get_node_influence()` | Abundance-influence propagation | If I nudge one species, how far does the ripple reach? |
+| `press_perturbation()` | Press (sustained-disturbance) approximation | If I keep suppressing/boosting a species, how does the community re-arrange? |
+
+`ggnetview_perturbation_curve()` draws the attack curve produced by the
+first function.
+
+> **Interpretation caveat.** Correlation / co-occurrence networks encode
+> *association, not causation*, and have no edge direction. The
+> structural analysis (type 1) depends only on topology and is robust.
+> The influence (type 2) and press (type 3) analyses borrow ideas from
+> dynamical ecology but use correlations as proxies for interaction
+> strengths -- read their output as **qualitative scenarios**, not
+> quantitative predictions.
+
+```{r setup}
+library(ggNetView)
+```
+
+## 1. Build a demo network
+
+We reuse the bundled microbiome data and build a Spearman correlation
+network, exactly as in the topology vignette.
+
+```{r build}
+data(otu_rare_relative)
+data(tax_tab)
+
+mat <- as.matrix(otu_rare_relative)
+mat <- mat[order(rowSums(mat), decreasing = TRUE)[seq_len(80)], ]
+annot <- tax_tab[tax_tab$OTUID %in% rownames(mat), ]
+
+g <- build_graph_from_mat(
+  mat             = mat,
+  method          = "cor",
+  cor.method      = "spearman",
+  proc            = "BH",
+  r.threshold     = 0.6,
+  p.threshold     = 0.05,
+  module.method   = "Fast_greedy",
+  node_annotation = annot,
+  seed            = 1
+)
+
+g
+```
+
+## 2. Structural perturbation: random failure vs targeted attack
+
+`get_network_perturbation()` removes nodes step by step and recomputes a
+panel of connectivity metrics after each removal. The headline metric is
+`LCC_fraction` -- the size of the largest connected component relative to
+the original network -- and the single-number summary is the Schneider
+**R-index** (area under the LCC curve; higher = more robust).
+
+The most informative comparison is *random failure* against *targeted
+attack* (removing the most-connected nodes first):
+
+```{r structural}
+rnd <- get_network_perturbation(
+  g, strategy = "random", bootstrap = 30, seed = 1, plot = FALSE
+)
+
+tgt <- get_network_perturbation(
+  g, strategy = "targeted", centrality = "degree", plot = FALSE
+)
+
+rbind(rnd$robustness_index, tgt$robustness_index)
+```
+
+A lower R-index under targeted attack is the classic signature of a
+scale-free-like network: it tolerates random loss but is fragile to the
+deliberate removal of hubs.
+
+Overlay both curves with the companion plotting helper:
+
+```{r structural-plot}
+ggnetview_perturbation_curve(rbind(rnd$curve, tgt$curve))
+```
+
+You can target any centrality (`"degree"`, `"strength"`,
+`"betweenness"`, `"closeness"`, `"eigenvector"`, or `"ivi"`), and the
+`curve` table also carries `Natural_connectivity`, `Efficiency`,
+`Modularity` and more, so you can plot a different metric:
+
+```{r structural-other-metric}
+ggnetview_perturbation_curve(tgt$curve, metric = "Natural_connectivity")
+```
+
+### Knocking out a specific module or node set
+
+Instead of a fraction sweep, you can remove a named module (a level of
+the `Modularity` column) or an explicit set of nodes and read the
+before/after change:
+
+```{r structural-module}
+mods <- levels(get_graph_nodes(g)$Modularity)
+ko <- get_network_perturbation(g, strategy = "module", target = mods[1])
+ko$curve[ko$curve$metric %in% c("LCC_fraction", "N_components"), ]
+```
+
+## 3. Abundance-influence propagation
+
+`get_node_influence()` injects a virtual perturbation at one or more
+source nodes and lets it diffuse along the (signed) weighted edges,
+returning a per-node `Influence` score. Positive vs negative values
+distinguish neighbours that move with vs against the source.
+
+```{r influence}
+hub <- get_graph_nodes(g) |>
+  dplyr::arrange(dplyr::desc(Degree)) |>
+  dplyr::pull(name) |>
+  head(1)
+
+g_infl <- get_node_influence(g, source = hub)
+
+get_graph_nodes(g_infl) |>
+  dplyr::arrange(dplyr::desc(abs(Influence))) |>
+  dplyr::select(name, Modularity, Degree, Influence) |>
+  head(8)
+```
+
+Because the score is stored as a node column, you can map it onto a
+network figure. `ggNetView()`'s `fill.by` aesthetic uses a discrete
+scale, so bin the signed influence into a small categorical column
+first:
+
+```{r influence-plot}
+g_infl <- g_infl |>
+  tidygraph::activate(nodes) |>
+  tidygraph::mutate(Influence_class = dplyr::case_when(
+    Influence > 0 ~ "Co-moves (+)",
+    Influence < 0 ~ "Counter-moves (-)",
+    TRUE          ~ "Unreached"
+  ))
+
+ggNetView(g_infl, layout = "fr", fill.by = "Influence_class")
+```
+
+## 4. Press perturbation (sustained disturbance)
+
+`press_perturbation()` treats the signed correlation matrix as a proxy
+community matrix \(A\), adds negative self-regulation on the diagonal,
+and inverts it to get the net-effect matrix \(N = -A^{-1}\). Entry
+\(N_{ij}\) is the long-run net response of species \(i\) when species
+\(j\) is held under sustained pressure.
+
+The diagonal is chosen automatically to guarantee a dynamically stable
+matrix, and stability is reported:
+
+```{r press}
+pp <- press_perturbation(g)
+
+c(stable = pp$stable,
+  eigen_real_max = round(pp$eigen_real_max, 3),
+  self_regulation = round(pp$self_regulation, 3))
+```
+
+Query the consequences of continuously pressing the hub species -- the
+nodes with the largest absolute response are the ones most affected:
+
+```{r press-source}
+pp_hub <- press_perturbation(g, source = hub)
+head(pp_hub$response, 8)
+```
+
+A positive `net_response` means that species tends to increase when the
+source is boosted (and decrease when it is suppressed); a negative value
+means the opposite.
+
+## Where to go next
+
+- `vignette("network-topology")` -- static topology and Zi-Pi keystone
+  roles, the natural companion to the perturbation analyses here.
+- `vignette("node-importance")` -- per-node centralities and the
+  integrated influence (IVI) score, which can drive the `"ivi"` targeted
+  attack above.

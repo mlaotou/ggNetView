@@ -58,6 +58,7 @@ Imports:
     VGAM,
     WGCNA
 Suggests:
+    devtools,
     dynamicTreeCut,
     influential,
     knitr,
