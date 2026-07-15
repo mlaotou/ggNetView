@@ -17,6 +17,6 @@ spieceasi_fit_rcpp(
 )
 }
 \description{
-Same as \code{spieceasi_fit} but uses fast C++ CLR transformation.
+Fits the SpiecEasi model using fast C++ CLR transformation.
 }
 \keyword{internal}

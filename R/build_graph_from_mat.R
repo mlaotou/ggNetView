@@ -174,14 +174,19 @@ build_graph_from_mat <- function(mat,
     g <- igraph::graph_from_adjacency_matrix(occor.r, weighted = TRUE, mode = 'undirected')
   }
 
-  # SpiecEasi (spieceasi_matrix_rcpp: no p-value, filter by r.threshold only)
+  # SpiecEasi selects edges via StARS model selection (sparse inverse
+  # covariance), NOT a correlation threshold or p-value. We therefore take the
+  # weighted estimate directly -- partial correlation (glasso) or symmetrised
+  # beta (mb) -- whose non-zero support IS the StARS-selected edge set and whose
+  # values carry signed interaction strength. `r.threshold` / `p.threshold` do
+  # not apply to this method.
   if (method == "SpiecEasi") {
     # mat: ASV x samples -> t(mat): samples x taxa for spieceasi_matrix_rcpp
-    am <- spieceasi_matrix_rcpp(as.matrix(t(mat)), method = SpiecEasi.method, output = "adjacency",
+    se_output <- if (SpiecEasi.method == "mb") "beta" else "partial_correlation"
+    am <- spieceasi_matrix_rcpp(as.matrix(t(mat)), method = SpiecEasi.method, output = se_output,
                                 lambda.min.ratio = 1e-2, nlambda = 20, pulsar.params = list(rep.num = 50))
     rownames(am) <- rownames(mat)
     colnames(am) <- rownames(mat)
-    am <- am * (abs(am) >= r.threshold)
     am[is.na(am)] <- 0
     diag(am) <- 0
     g <- igraph::graph_from_adjacency_matrix(am, weighted = TRUE, mode = 'undirected')
@@ -191,7 +196,7 @@ build_graph_from_mat <- function(mat,
   if (method == "SPARCC") {
     # mat: ASV x samples -> t(mat): samples x taxa for sparcc_matrix_rcpp
     occor.r <- sparcc_matrix_rcpp(as.matrix(t(mat)))
-    p_mat <- sparcc_pvalue_rcpp(as.matrix(t(mat)), R = sparcc_R)
+    p_mat <- sparcc_pvalue_rcpp(as.matrix(t(mat)), R = sparcc_R, seed = seed)
     diag(occor.r) <- 0
     occor.r[abs(occor.r) < r.threshold | is.na(p_mat) | p_mat > p.threshold] <- 0
     occor.r[is.na(occor.r)] <- 0
@@ -219,6 +224,10 @@ build_graph_from_mat <- function(mat,
 
   # Hmisc::rcorr
   if (method == "Hmisc") {
+    if (!requireNamespace("Hmisc", quietly = TRUE)) {
+      stop("`method = \"Hmisc\"` requires the 'Hmisc' package. ",
+           "Install it with install.packages(\"Hmisc\").", call. = FALSE)
+    }
     if (identical(cor.method, "kendall")) {
       stop("`method = 'Hmisc'` uses `Hmisc::rcorr()` and only supports `cor.method = 'pearson'` or `cor.method = 'spearman'`.", call. = FALSE)
     }
@@ -269,32 +278,32 @@ build_graph_from_mat <- function(mat,
   igraph::V(g)$modularity  <- membership_vec
   igraph::V(g)$modularity2 <- as.character(membership_vec)
 
-  table(igraph::V(g)$modularity2) %>% sort(., decreasing = T)
+  table(igraph::V(g)$modularity2) %>% sort(., decreasing = TRUE)
 
   # max model length
-  max_model <- length(table(igraph::V(g)$modularity2) %>% sort(., decreasing = T))
+  max_model <- length(table(igraph::V(g)$modularity2) %>% sort(., decreasing = TRUE))
 
   if (max_model < top_modules) {
 
     message(paste("The max module in network is", max_model, "we use the", max_model, " modules for next analysis"))
-    modularity_top_15 <- igraph::V(g)$modularity2 %>% table() %>% sort(., decreasing = T) %>% .[seq_len(max_model)] %>% names()
+    modularity_top_15 <- igraph::V(g)$modularity2 %>% table() %>% sort(., decreasing = TRUE) %>% .[seq_len(max_model)] %>% names()
     # no others
 
   }else if (max_model >= top_modules) {
 
-    modularity_top_15 <- igraph::V(g)$modularity2 %>% table() %>% sort(., decreasing = T) %>% .[seq_len(top_modules)] %>% names()
+    modularity_top_15 <- igraph::V(g)$modularity2 %>% table() %>% sort(., decreasing = TRUE) %>% .[seq_len(top_modules)] %>% names()
   }
 
   igraph::V(g)$modularity2 <- ifelse(igraph::V(g)$modularity2 %in% modularity_top_15, igraph::V(g)$modularity2, "Others")
 
-  modularity_top_final <- igraph::V(g)$modularity2 %>% table() %>% sort(., decreasing = T) %>% names()
+  modularity_top_final <- igraph::V(g)$modularity2 %>% table() %>% sort(., decreasing = TRUE) %>% names()
   modularity_top_final <- c(setdiff(modularity_top_final, "Others"), "Others")
 
   if (is.null(node_annotation)) {
     # create ggraph_obj
     graph_obj <- tidygraph::as_tbl_graph(g) %>%
       tidygraph::mutate(modularity = factor(modularity),
-                        modularity2 = factor(modularity2, levels = modularity_top_final, ordered = T),
+                        modularity2 = factor(modularity2, levels = modularity_top_final, ordered = TRUE),
                         modularity3 = as.character(modularity2),
                         Modularity = modularity2,
                         Degree = tidygraph::centrality_degree(mode = "out"),
@@ -306,7 +315,7 @@ build_graph_from_mat <- function(mat,
     graph_obj <- tidygraph::as_tbl_graph(g) %>%
       tidygraph::mutate(modularity = factor(modularity),
                         # modularity2 = factor(modularity2),
-                        modularity2 = factor(modularity2, levels = modularity_top_final, ordered = T),
+                        modularity2 = factor(modularity2, levels = modularity_top_final, ordered = TRUE),
                         modularity3 = as.character(modularity2),
                         Modularity = modularity2,
                         Degree = tidygraph::centrality_degree(mode = "out"),

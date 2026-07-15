@@ -20,6 +20,6 @@ order_graph <- function(graph_obj, order){
   graph_obj <- graph_obj %>%
     tidygraph::mutate(Modularity = factor(Modularity,
                                           levels = order,
-                                          ordered = T))
+                                          ordered = TRUE))
   return(graph_obj)
 }

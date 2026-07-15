@@ -29,7 +29,7 @@
 build_graph_from_double_mat_with_module <- function(mat1,
                                                     mat2,
                                                     node_annotation = NULL,
-                                                    directed = F,
+                                                    directed = FALSE,
                                                     top_modules = 15,
                                                     seed = 1115){
 
@@ -98,20 +98,20 @@ build_graph_from_double_mat_with_module <- function(mat1,
   # igraph::V(g)$modularity  <- membership_vec
   igraph::V(g)$modularity2 <- as.character(igraph::V(g)$Modularity)
 
-  table(igraph::V(g)$modularity2) %>% sort(., decreasing = T)
-  factor_levels <- table(igraph::V(g)$modularity2) %>% sort(., decreasing = T) %>% names()
+  table(igraph::V(g)$modularity2) %>% sort(., decreasing = TRUE)
+  factor_levels <- table(igraph::V(g)$modularity2) %>% sort(., decreasing = TRUE) %>% names()
 
   # max model length
-  max_model <- length(table(igraph::V(g)$modularity2) %>% sort(., decreasing = T))
+  max_model <- length(table(igraph::V(g)$modularity2) %>% sort(., decreasing = TRUE))
 
   if (max_model < top_modules) {
 
     message(paste("The max module in network is", max_model, "we use the", max_model, " modules for next analysis"))
-    modularity_top_15 <- igraph::V(g)$modularity2 %>% table() %>% sort(., decreasing = T) %>% .[seq_len(max_model)] %>% names()
+    modularity_top_15 <- igraph::V(g)$modularity2 %>% table() %>% sort(., decreasing = TRUE) %>% .[seq_len(max_model)] %>% names()
 
   }else if (max_model >= top_modules) {
 
-    modularity_top_15 <- igraph::V(g)$modularity2 %>% table() %>% sort(., decreasing = T) %>% .[seq_len(top_modules)] %>% names()
+    modularity_top_15 <- igraph::V(g)$modularity2 %>% table() %>% sort(., decreasing = TRUE) %>% .[seq_len(top_modules)] %>% names()
   }
 
   igraph::V(g)$modularity2 <- ifelse(igraph::V(g)$modularity2 %in% modularity_top_15, igraph::V(g)$modularity2, "Others")
@@ -122,8 +122,8 @@ build_graph_from_double_mat_with_module <- function(mat1,
   factor_levels <- c(setdiff(factor_levels, "Others"), "Others")
 
   graph_obj <- tidygraph::as_tbl_graph(g) %>%
-    tidygraph::mutate(Modularity = factor(Modularity, levels = factor_levels, ordered = T),
-                      modularity2 = factor(modularity2, levels = factor_levels, ordered = T),
+    tidygraph::mutate(Modularity = factor(Modularity, levels = factor_levels, ordered = TRUE),
+                      modularity2 = factor(modularity2, levels = factor_levels, ordered = TRUE),
                       modularity3 = as.character(modularity2),
                       Modularity = modularity2,
                       Degree = tidygraph::centrality_degree(mode = "out"),

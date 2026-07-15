@@ -3,7 +3,7 @@ create_layout_fr2 <- function(
     graph_obj,
     node_add = NULL,
     r=NULL,
-    scale = T,
+    scale = TRUE,
     anchor_dist = 10,
     orientation = c("up","down","left","right"),
     angle = 0
@@ -12,7 +12,7 @@ create_layout_fr2 <- function(
   orientation <- match.arg(orientation)
   base_angle <- switch(orientation,
                        up = 0, right = -pi/2, down = pi, left = pi/2)
-  theta_shift <- base_angle + angle
+  theta_shift <- base_angle + .normalize_angle(angle)
 
 
   node_df <- graph_obj %>%
@@ -28,6 +28,10 @@ create_layout_fr2 <- function(
   igraph_obj <- tidygraph::as.igraph(graph_obj)
 
   # layout
+  if (!requireNamespace("qgraph", quietly = TRUE)) {
+    stop("Package 'qgraph' is required for `layout = \"fr2\"`. ",
+         "Install it with install.packages(\"qgraph\").", call. = FALSE)
+  }
   e <- igraph::as_edgelist(igraph_obj, names=FALSE)
 
   ly <- qgraph::qgraph.layout.fruchtermanreingold(e,

@@ -14,7 +14,7 @@ create_layout_circular_modules_equal_star_concentric_layout <- function(
     orientation,
     up = 0, right = -pi / 2, down = pi, left = pi / 2
   )
-  theta_shift <- base_angle + angle
+  theta_shift <- base_angle + .normalize_angle(angle)
 
   node_df <- graph_obj %>%
     tidygraph::activate(nodes) %>%

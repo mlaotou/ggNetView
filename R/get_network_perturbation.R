@@ -139,9 +139,12 @@ get_network_perturbation <- function(
     ncomp <- comps$no
 
     # natural connectivity: log(mean(exp(eigenvalues of adjacency)))
+    # Use the log-sum-exp trick to avoid Inf when the largest eigenvalue is
+    # large (exp() overflow) in dense subgraphs.
     A  <- as.matrix(igraph::as_adjacency_matrix(sub, sparse = FALSE))
     ev <- eigen(A, symmetric = TRUE, only.values = TRUE)$values
-    nat <- log(mean(exp(ev)))
+    ev_max <- max(ev)
+    nat <- ev_max + log(mean(exp(ev - ev_max)))
 
     dd <- 1 / igraph::distances(sub)
     diag(dd) <- NA

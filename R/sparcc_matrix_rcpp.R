@@ -13,8 +13,8 @@
 #'   Default 10.
 #' @param th Numeric. Threshold for excluding highly correlated pairs.
 #'   Default 0.1.
-#' @param nthreads Integer. Number of OpenMP threads for parallel \code{sparccinner}
-#'   (0 = use default). Only effective when OpenMP is available.
+#' @param nthreads Integer. Number of OpenMP threads for the parallel C++ SparCC
+#'   inner loop (0 = use default). Only effective when OpenMP is available.
 #'
 #' @return Numeric matrix of taxa x taxa correlations (median across iterations).
 #' @export
@@ -72,6 +72,10 @@ sparcc_matrix_rcpp <- function(data, iter = 20, inner_iter = 10, th = 0.1, nthre
 #'   Default 0.1.
 #' @param R Integer. Number of bootstrap/permutation replicates. Default 20.
 #' @param ncpus Integer. Number of CPUs for parallel boot. Default 1.
+#' @param seed Integer or NULL (default). If supplied, makes the bootstrap /
+#'   permutation reproducible. When \code{ncpus > 1} the L'Ecuyer-CMRG generator
+#'   is used so parallel workers get independent, deterministic RNG streams; the
+#'   previous RNG kind is restored on exit.
 #'
 #' @return Numeric matrix of taxa x taxa p-values. Diagonal = 0.
 #'   NaN indicates observed correlation outside bootstrap CI.
@@ -79,9 +83,9 @@ sparcc_matrix_rcpp <- function(data, iter = 20, inner_iter = 10, th = 0.1, nthre
 #'
 #' @examples
 #' \dontrun{
-#' p_mat <- sparcc_pvalue_rcpp(asv_mat, R = 20, ncpus = 4)
+#' p_mat <- sparcc_pvalue_rcpp(asv_mat, R = 20, ncpus = 4, seed = 1115)
 #' }
-sparcc_pvalue_rcpp <- function(data, iter = 20, inner_iter = 10, th = 0.1, R = 20, ncpus = 1) {
+sparcc_pvalue_rcpp <- function(data, iter = 20, inner_iter = 10, th = 0.1, R = 20, ncpus = 1, seed = NULL) {
   if (!requireNamespace("boot", quietly = TRUE)) {
     stop("package 'boot' is required for SparCC p-values", call. = FALSE)
   }
@@ -104,6 +108,16 @@ sparcc_pvalue_rcpp <- function(data, iter = 20, inner_iter = 10, th = 0.1, R = 2
   th <- as.numeric(th)[1L]
   if (is.na(th) || th < 0) {
     stop("th must be a non-negative numeric", call. = FALSE)
+  }
+
+  # Reproducible parallel resampling: L'Ecuyer-CMRG gives each worker an
+  # independent, deterministic stream. Restore the caller's RNG kind on exit.
+  if (!is.null(seed)) {
+    if (ncpus > 1L) {
+      old_kind <- RNGkind("L'Ecuyer-CMRG")[1L]
+      on.exit(RNGkind(old_kind), add = TRUE)
+    }
+    set.seed(as.integer(seed)[1L])
   }
 
   triu_local <- function(x) x[upper.tri(x)]

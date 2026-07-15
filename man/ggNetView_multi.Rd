@@ -45,7 +45,7 @@ ggNetView_multi(
   jitter_sd = 0.1,
   plot_line = TRUE,
   mapping_line = FALSE,
-  curve = F,
+  curve = FALSE,
   curvature = 0.25,
   linealpha = 0.25,
   linecolor = "grey70",
@@ -72,7 +72,7 @@ ggNetView_multi(
   dropOthers = FALSE,
   orientation = "up",
   angle = 0,
-  scale = T,
+  scale = TRUE,
   anchor_dist = 6,
   layout_nrow = NULL,
   layout_ncol = NULL,
@@ -305,7 +305,7 @@ Custom orientation; one of "up","down","left","right".}
 \item{angle}{Integer  (default = 0).
 Change  orientation angle.}
 
-\item{scale}{Logical  (default = T).
+\item{scale}{Logical  (default = TRUE).
 modules applicable to `Bipartite, Tripartite, Quadripartite, Multipartite, Pentapartite Layout` to scale the radius}
 
 \item{anchor_dist}{Integer (default = 6)

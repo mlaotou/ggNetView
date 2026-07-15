@@ -20,6 +20,8 @@
 #' @param sparcc_R Integer. Passed to \code{get_network_topology()} for SparCC p-values. Default 20.
 #' @param bootstrap Numeric (default = 100). Passed to
 #'   \code{get_network_topology()}.
+#' @param seed Integer (default = 1115). Random seed for reproducibility,
+#'   consistent with \code{get_sample_subgraph_topology_parallel()}.
 #'
 #' @returns A list with:
 #' \itemize{
@@ -51,7 +53,9 @@ get_sample_subgraph_topology <- function(graph_obj,
                                          proc = c("holm", "hochberg", "hommel", "bonferroni", "BH", "BY", "fdr", "none"),
                                          SpiecEasi.method = c("mb", "glasso"),
                                          sparcc_R = 20,
-                                         bootstrap = 100) {
+                                         bootstrap = 100,
+                                         seed = 1115) {
+  set.seed(seed)
   transfrom.method <- match.arg(transfrom.method)
   method <- match.arg(method)
   cor.method <- match.arg(cor.method)
@@ -125,7 +129,8 @@ get_sample_subgraph_topology <- function(graph_obj,
         proc = proc,
         SpiecEasi.method = SpiecEasi.method,
         sparcc_R = sparcc_R,
-        bootstrap = bootstrap
+        bootstrap = bootstrap,
+        seed = seed + match(sid, sample_ids) - 1L
       ),
       error = function(e) e
     )

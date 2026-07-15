@@ -38,7 +38,7 @@ build_graph_from_double_mat <- function(mat1,
                                         mat2,
                                         module.method = c("Fast_greedy", "Walktrap", "Edge_betweenness", "Spinglass"),
                                         node_annotation = NULL,
-                                        directed = F,
+                                        directed = FALSE,
                                         top_modules = 15,
                                         seed = 1115){
 
@@ -112,19 +112,19 @@ build_graph_from_double_mat <- function(mat1,
   igraph::V(g)$modularity  <- membership_vec
   igraph::V(g)$modularity2 <- as.character(membership_vec)
 
-  table(igraph::V(g)$modularity2) %>% sort(., decreasing = T)
+  table(igraph::V(g)$modularity2) %>% sort(., decreasing = TRUE)
 
   # max model length
-  max_model <- length(table(igraph::V(g)$modularity2) %>% sort(., decreasing = T))
+  max_model <- length(table(igraph::V(g)$modularity2) %>% sort(., decreasing = TRUE))
 
   if (max_model < top_modules) {
 
     message(paste("The max module in network is", max_model, "we use the", max_model, " modules for next analysis"))
-    modularity_top_15 <- igraph::V(g)$modularity2 %>% table() %>% sort(., decreasing = T) %>% .[seq_len(max_model)] %>% names()
+    modularity_top_15 <- igraph::V(g)$modularity2 %>% table() %>% sort(., decreasing = TRUE) %>% .[seq_len(max_model)] %>% names()
 
   }else if (max_model >= top_modules) {
 
-    modularity_top_15 <- igraph::V(g)$modularity2 %>% table() %>% sort(., decreasing = T) %>% .[seq_len(top_modules)] %>% names()
+    modularity_top_15 <- igraph::V(g)$modularity2 %>% table() %>% sort(., decreasing = TRUE) %>% .[seq_len(top_modules)] %>% names()
   }
 
   igraph::V(g)$modularity2 <- ifelse(igraph::V(g)$modularity2 %in% modularity_top_15, igraph::V(g)$modularity2, "Others")

@@ -1,7 +1,7 @@
 #' @noRd
 create_layout_tripartite_layout <- function(
     graph_obj,
-    scale = T,
+    scale = TRUE,
     r = 1,
     anchor_dist = 10,
     node_add = 7,
@@ -11,7 +11,7 @@ create_layout_tripartite_layout <- function(
   orientation <- match.arg(orientation)
   base_angle <- switch(orientation,
                        up = 0, right = -pi/2, down = pi, left = pi/2)
-  theta_shift <- base_angle + angle
+  theta_shift <- base_angle + .normalize_angle(angle)
 
 
   radius <- r * 6
@@ -36,9 +36,9 @@ create_layout_tripartite_layout <- function(
     stop(
       "Tripartite layout requires exactly 3 modules in `Modularity`; got ",
       length(n_vec), ".\n",
-      "  Filter `graph_obj` to 3 modules first, or use ",
-      "`create_layout_quadripartite_layout()` / `create_layout_pentapartite_layout()` ",
-      "for more.",
+      "  Filter `graph_obj` to 3 modules first, or use the ",
+      "`quadripartite_gephi_layout` / `pentapartite_gephi_layout` layouts ",
+      "for more blocks.",
       call. = FALSE
     )
   }

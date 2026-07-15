@@ -11,7 +11,7 @@ create_layout_cross_quadripartite_equal_gephi_layout <- function(
   orientation <- match.arg(orientation)
   base_angle <- switch(orientation,
                        up = 0, right = -pi/2, down = pi, left = pi/2)
-  theta_shift <- base_angle + angle
+  theta_shift <- base_angle + .normalize_angle(angle)
 
 
   anchors <- list(

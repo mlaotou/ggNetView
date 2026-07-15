@@ -4,7 +4,7 @@
 \alias{build_graph_from_pie}
 \title{Build a pie graph object from a data frame}
 \usage{
-build_graph_from_pie(df, node_annotation = NULL, directed = F, seed = 1115)
+build_graph_from_pie(df, node_annotation = NULL, directed = FALSE, seed = 1115)
 }
 \arguments{
 \item{df}{Data frame.

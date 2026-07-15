@@ -3,7 +3,7 @@ create_layout_square_outline <- function(
     graph_obj,
     r = 6,
     node_add = NULL,
-    scale = T,
+    scale = TRUE,
     orientation = c("up","down","left","right"),
     anchor_dist = 10,
     angle = 0
@@ -12,7 +12,7 @@ create_layout_square_outline <- function(
   orientation <- match.arg(orientation)
   base_angle <- switch(orientation,
                        up = 0, right = -pi/2, down = pi, left = pi/2)
-  theta_shift <- base_angle + angle
+  theta_shift <- base_angle + .normalize_angle(angle)
 
 
   node_df <- graph_obj %>%

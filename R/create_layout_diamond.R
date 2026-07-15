@@ -2,7 +2,7 @@
 create_layout_diamond <- function(
     graph_obj,
     node_add = 7,
-    scale = T,
+    scale = TRUE,
     anchor_dist = 10,
     r = 0.1,
     orientation = c("up","down","left","right"),
@@ -13,7 +13,7 @@ create_layout_diamond <- function(
   orientation <- match.arg(orientation)
   base_angle <- switch(orientation,
                        up = 0, right = -pi/2, down = pi, left = pi/2)
-  theta_shift <- base_angle + angle
+  theta_shift <- base_angle + .normalize_angle(angle)
 
 
   node_df <- graph_obj %>%
@@ -109,7 +109,9 @@ create_layout_diamond <- function(
 
   offset_accum <- 0
 
-  for (index in 2:nrow(layout_df_info)) {
+  # seq_len(nrow)[-1L] safely yields an empty sequence when nrow == 1
+  # (single-node graph), avoiding the `2:1` reverse-iteration bug.
+  for (index in seq_len(nrow(layout_df_info))[-1L]) {
     m <- layout_df_info$number[index]
     radius <- (index - 1) * r
 

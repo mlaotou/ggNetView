@@ -28,7 +28,7 @@
 build_graph_from_wgcna <- function(wgcna_tom,
                                    module = NULL,
                                    node_annotation = NULL,
-                                   directed = F,
+                                   directed = FALSE,
                                    seed = 1115){
 
   set.seed(seed)

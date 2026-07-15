@@ -7,7 +7,7 @@
 build_graph_from_module(
   df,
   node_annotation = NULL,
-  directed = F,
+  directed = FALSE,
   top_modules = 15,
   seed = 1115
 )

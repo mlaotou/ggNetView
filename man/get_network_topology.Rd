@@ -18,7 +18,8 @@ get_network_topology(
   proc = c("holm", "hochberg", "hommel", "bonferroni", "BH", "BY", "fdr", "none"),
   SpiecEasi.method = c("mb", "glasso"),
   sparcc_R = 20,
-  bootstrap = 100
+  bootstrap = 100,
+  seed = 1115
 )
 }
 \arguments{
@@ -77,6 +78,12 @@ Default 20.}
 
 \item{bootstrap}{Numeric  (default = 100).
 Number of bootstrap iterations for stability analysis}
+
+\item{seed}{Integer (default = 1115).
+Random seed for reproducibility. The correlation/network estimation
+(e.g. SparCC, SpiecEasi, rarefaction) and robustness resampling steps use
+random number generation; setting this makes results deterministic and
+consistent with \code{get_network_topology_parallel()}.}
 }
 \value{
 A list containing topology output and robustness output for a single

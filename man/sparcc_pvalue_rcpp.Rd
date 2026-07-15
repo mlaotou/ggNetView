@@ -10,7 +10,8 @@ sparcc_pvalue_rcpp(
   inner_iter = 10,
   th = 0.1,
   R = 20,
-  ncpus = 1
+  ncpus = 1,
+  seed = NULL
 )
 }
 \arguments{
@@ -28,6 +29,11 @@ Default 0.1.}
 \item{R}{Integer. Number of bootstrap/permutation replicates. Default 20.}
 
 \item{ncpus}{Integer. Number of CPUs for parallel boot. Default 1.}
+
+\item{seed}{Integer or NULL (default). If supplied, makes the bootstrap /
+permutation reproducible. When \code{ncpus > 1} the L'Ecuyer-CMRG generator
+is used so parallel workers get independent, deterministic RNG streams; the
+previous RNG kind is restored on exit.}
 }
 \value{
 Numeric matrix of taxa x taxa p-values. Diagonal = 0.
@@ -40,6 +46,6 @@ Output: taxa x taxa p-value matrix.
 }
 \examples{
 \dontrun{
-p_mat <- sparcc_pvalue_rcpp(asv_mat, R = 20, ncpus = 4)
+p_mat <- sparcc_pvalue_rcpp(asv_mat, R = 20, ncpus = 4, seed = 1115)
 }
 }

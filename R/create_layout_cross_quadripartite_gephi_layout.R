@@ -4,14 +4,14 @@ create_layout_cross_quadripartite_gephi_layout <- function(
     r = 1,
     anchor_dist = 10,
     node_add = 7,
-    scale = T,
+    scale = TRUE,
     orientation = c("up","down","left","right"),
     angle = 0
 ){
   orientation <- match.arg(orientation)
   base_angle <- switch(orientation,
                        up = 0, right = -pi/2, down = pi, left = pi/2)
-  theta_shift <- base_angle + angle
+  theta_shift <- base_angle + .normalize_angle(angle)
 
 
   radius <- r

@@ -14,7 +14,7 @@ create_layout_multirings <- function(graph_obj,
     down  = pi,
     left  = pi/2
   )
-  theta_shift <- base_angle + angle
+  theta_shift <- base_angle + .normalize_angle(angle)
 
 
 
@@ -61,14 +61,21 @@ create_layout_multirings <- function(graph_obj,
       tidygraph::activate(nodes) %>%
       tidygraph::as_tibble() %>%
       dplyr::group_by(Modularity) %>%
-      dplyr::summarise(n = n()) %>%
+      dplyr::summarise(n = dplyr::n(), .groups = "drop") %>%
       dplyr::arrange(n) %>%
-      dplyr::mutate(Modularity = droplevels(Modularity)) %>%
+      dplyr::mutate(Modularity = as.character(Modularity))
+    # Force the "Others" module to the outermost ring, matching the node
+    # ordering in module_layout5() so ring slots and nodes stay aligned.
+    ring_order <- c(setdiff(node_df_stat$Modularity, "Others"),
+                    intersect("Others", node_df_stat$Modularity))
+    node_df_stat <- node_df_stat %>%
+      dplyr::mutate(Modularity = factor(Modularity, levels = ring_order, ordered = TRUE)) %>%
+      dplyr::arrange(Modularity) %>%
       dplyr::mutate(Modularity = as.character(Modularity))
   }
 
   graph_obj <- graph_obj %>%
-    tidygraph::mutate(Modularity = factor(Modularity, levels = node_df_stat$Modularity, ordered = T)) %>%
+    tidygraph::mutate(Modularity = factor(Modularity, levels = node_df_stat$Modularity, ordered = TRUE)) %>%
     tidygraph::arrange(Modularity)
 
   circle_list <- list()

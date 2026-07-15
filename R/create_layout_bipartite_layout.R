@@ -15,7 +15,7 @@ create_layout_bipartite_layout <- function(
   orientation <- match.arg(orientation)
   base_angle <- switch(orientation,
                        up = 0, right = -pi/2, down = pi, left = pi/2)
-  theta_shift <- base_angle + angle
+  theta_shift <- base_angle + .normalize_angle(angle)
 
   # set radius
   radius = r
@@ -32,11 +32,14 @@ create_layout_bipartite_layout <- function(
   module_list <- node_df %>% dplyr::group_split(Modularity)
   n_vec <- vapply(module_list, nrow, integer(1))
 
-  if (length(n_vec) < 2) {
-    stop("Bipartite layout requires at least 2 modules in `Modularity`.")
-  }
-  if (length(n_vec) > 2) {
-    message("`Bipartite layout more than 2 modules detected.")
+  if (length(n_vec) != 2) {
+    stop(
+      "Bipartite layout requires exactly 2 modules in `Modularity`; got ",
+      length(n_vec), ".\n",
+      "  Filter `graph_obj` to 2 modules, or use `tripartite_*` / ",
+      "`quadripartite_gephi_layout` / `pentapartite_gephi_layout` for more blocks.",
+      call. = FALSE
+    )
   }
 
   # get radius

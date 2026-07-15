@@ -16,7 +16,7 @@ create_layout_pentapartite_gephi_layout <- function(
     down  = pi,
     left  = pi/2
   )
-  theta_shift <- base_angle + angle
+  theta_shift <- base_angle + .normalize_angle(angle)
 
 
 

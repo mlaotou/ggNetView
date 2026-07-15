@@ -23,7 +23,7 @@
 #' obj
 build_graph_from_pie <- function(df,
                                  node_annotation = NULL,
-                                 directed = F,
+                                 directed = FALSE,
                                  seed = 1115){
   set.seed(seed)
 

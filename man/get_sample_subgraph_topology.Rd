@@ -16,7 +16,8 @@ get_sample_subgraph_topology(
   proc = c("holm", "hochberg", "hommel", "bonferroni", "BH", "BY", "fdr", "none"),
   SpiecEasi.method = c("mb", "glasso"),
   sparcc_R = 20,
-  bootstrap = 100
+  bootstrap = 100,
+  seed = 1115
 )
 }
 \arguments{
@@ -45,6 +46,9 @@ one of \code{"mb"} or \code{"glasso"} for SpiecEasi inverse-covariance.}
 
 \item{bootstrap}{Numeric (default = 100). Passed to
 \code{get_network_topology()}.}
+
+\item{seed}{Integer (default = 1115). Random seed for reproducibility,
+consistent with \code{get_sample_subgraph_topology_parallel()}.}
 }
 \value{
 A list with:

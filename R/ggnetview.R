@@ -211,7 +211,7 @@
 #' Custom orientation; one of "up","down","left","right".
 #' @param angle Integer  (default = 0).
 #' Change  orientation angle.
-#' @param scale Logical  (default = T).
+#' @param scale Logical  (default = TRUE).
 #' modules applicable to `Bipartite, Tripartite, Quadripartite, Multipartite, Pentapartite Layout` to scale the radius
 #' @param anchor_dist Integer (default = 6)
 #' the distance of each modules, applicable to `Bipartite, Tripartite, Quadripartite, Multipartite, Pentapartite Layout`
@@ -287,7 +287,7 @@ ggNetView <- function(graph_obj,
                       jitter_sd = 0.1,
                       plot_line = TRUE,
                       mapping_line = FALSE,
-                      curve = F,
+                      curve = FALSE,
                       curvature = 0.25,
                       linealpha = 0.25,
                       linecolor = "grey70",
@@ -317,7 +317,7 @@ ggNetView <- function(graph_obj,
                       dropOthers = FALSE,
                       orientation = "up",
                       angle = 0,
-                      scale = T,
+                      scale = TRUE,
                       anchor_dist = 6,
                       nrow = NULL,
                       ncol = NULL,
@@ -423,6 +423,24 @@ ggNetView <- function(graph_obj,
     stat_graph <- stat_graph(graph_obj, mapping_line)
   }
 
+
+  # validate `layout` against the available create_layout_* functions before
+  # dispatching, so an unknown/misspelled layout gives a friendly error listing
+  # the valid options instead of an obscure getFromNamespace() failure.
+  if (is.null(layout) || !is.character(layout) || length(layout) != 1L) {
+    stop("`layout` must be a single character string naming a layout.",
+         call. = FALSE)
+  }
+  available_layouts <- sub("^create_layout_", "",
+                           grep("^create_layout_",
+                                ls(getNamespace("ggNetView")),
+                                value = TRUE))
+  if (!(layout %in% available_layouts)) {
+    stop("Unknown `layout = \"", layout, "\"`.\n",
+         "  Available layouts: ",
+         paste(sort(available_layouts), collapse = ", "),
+         call. = FALSE)
+  }
 
   # find layout function
   func_name <- paste0("create_layout_", layout)
@@ -583,7 +601,7 @@ ggNetView <- function(graph_obj,
 
       ly1_1[["graph_obj"]] <- ly1_1[["graph_obj"]] %>%
         tidygraph::mutate(Modularity = as.character(Modularity)) %>%
-        tidygraph::mutate(Modularity = factor(Modularity, ordered = T))
+        tidygraph::mutate(Modularity = factor(Modularity, ordered = TRUE))
 
     }else{
       module_info <- levels(ly1_1$graph_ly_final$Modularity)
@@ -691,7 +709,7 @@ ggNetView <- function(graph_obj,
 
       # shared base: one row per module (excluding "Others"), with side / y_rank
       base_df <- ly1_1[["graph_ly_final"]] %>%
-        dplyr::distinct(modularity3, .keep_all = T) %>%
+        dplyr::distinct(modularity3, .keep_all = TRUE) %>%
         dplyr::filter(modularity3 != "Others") %>%
         dplyr::mutate(side = ifelse(x < x_mid, "left", "right")) %>%
         dplyr::group_by(side) %>%
@@ -751,7 +769,7 @@ ggNetView <- function(graph_obj,
         R_y_outer <- R_y_net * (1 + label_outer_pad)
 
         base_follow <- ly1_1[["graph_ly_final"]] %>%
-          dplyr::distinct(modularity3, .keep_all = T) %>%
+          dplyr::distinct(modularity3, .keep_all = TRUE) %>%
           dplyr::filter(modularity3 != "Others") %>%
           dplyr::left_join(centroids, by = "modularity3") %>%
           dplyr::mutate(theta_actual = atan2(my - cy, mx - cx))
@@ -846,7 +864,7 @@ ggNetView <- function(graph_obj,
         R_y_outer <- R_y_net * (1 + label_outer_pad)
 
         base_follow <- ly1_1[["graph_ly_final"]] %>%
-          dplyr::distinct(modularity3, .keep_all = T) %>%
+          dplyr::distinct(modularity3, .keep_all = TRUE) %>%
           dplyr::filter(modularity3 != "Others") %>%
           dplyr::left_join(centroids, by = "modularity3") %>%
           dplyr::mutate(theta_actual = atan2(my - cy, mx - cx))
@@ -1270,13 +1288,13 @@ ggNetView <- function(graph_obj,
 
     }
 
-    # label = F add_outer = F
+    # label = FALSE add_outer = FALSE
     if (isFALSE(show_module_label) & isFALSE(add_outer)) {
       p1_1 <- p1_1
 
     }
 
-    # label = T add_outer = F
+    # label = TRUE add_outer = FALSE
     if (isTRUE(show_module_label) & isFALSE(add_outer)) {
 
       .build_label_location()
@@ -1329,7 +1347,7 @@ ggNetView <- function(graph_obj,
                                  box.padding = 0.15,
                                  point.padding = label_point_padding,
                                  force = label_force,
-                                 show.legend = F
+                                 show.legend = FALSE
         ) +
         color_scale_lab +
         ggplot2::coord_equal(clip = "off",
@@ -1338,12 +1356,12 @@ ggNetView <- function(graph_obj,
         theme_ggnetview()
     }
 
-    # label = F add_outer = T
+    # label = FALSE add_outer = TRUE
     if (isFALSE(show_module_label) & isTRUE(add_outer)) {
 
       maskTable <- .build_mask_table()
 
-      maskTable <- maskTable %>% dplyr::mutate(cluster = factor(cluster, levels = levels(ly1_1[["graph_ly_final"]]$Modularity), ordered = T))
+      maskTable <- maskTable %>% dplyr::mutate(cluster = factor(cluster, levels = levels(ly1_1[["graph_ly_final"]]$Modularity), ordered = TRUE))
 
       mask_classes <- .ggnv_class_order(maskTable$cluster)
       fill_scale_mask <- if (is.null(fill)) scale_fill_ggnetview(mask_classes, labels = module_label_fun) else ggplot2::scale_fill_manual(values = fill, labels = module_label_fun)
@@ -1360,20 +1378,20 @@ ggNetView <- function(graph_obj,
                               linewidth = outerwidth,
                               linetype = outerlinetype,
                               alpha = outeralpha,
-                              show.legend = F) +
+                              show.legend = FALSE) +
         fill_scale_mask +
         color_scale_mask +
         ggplot2::coord_equal(clip = "off") +
         theme_ggnetview()
     }
 
-    # label = T add_outer = T
+    # label = TRUE add_outer = TRUE
     if (isTRUE(show_module_label) & isTRUE(add_outer)) {
 
       .build_label_location()
       maskTable <- .build_mask_table()
 
-      maskTable <- maskTable %>% dplyr::mutate(cluster = factor(cluster, levels = levels(ly1_1[["graph_ly_final"]]$Modularity), ordered = T))
+      maskTable <- maskTable %>% dplyr::mutate(cluster = factor(cluster, levels = levels(ly1_1[["graph_ly_final"]]$Modularity), ordered = TRUE))
 
       lab_classes_outer <- .ggnv_class_order(lab_df$Modularity)
       mask_classes_outer <- .ggnv_class_order(maskTable$cluster)
@@ -1426,7 +1444,7 @@ ggNetView <- function(graph_obj,
                                  box.padding = 0.15,
                                  point.padding = label_point_padding,
                                  force = label_force,
-                                 show.legend = F
+                                 show.legend = FALSE
         ) +
         color_scale_lab_outer +
         ggnewscale::new_scale_fill() +
@@ -1438,7 +1456,7 @@ ggNetView <- function(graph_obj,
                               linewidth = outerwidth,
                               linetype = outerlinetype,
                               alpha = outeralpha,
-                              show.legend = F) +
+                              show.legend = FALSE) +
         fill_scale_mask_outer +
         color_scale_mask_outer +
         ggplot2::coord_equal(clip = "off",

@@ -46,6 +46,11 @@
 #' Default 20.
 #' @param bootstrap Numeric  (default = 100).
 #' Number of bootstrap iterations for stability analysis
+#' @param seed Integer (default = 1115).
+#' Random seed for reproducibility. The correlation/network estimation
+#' (e.g. SparCC, SpiecEasi, rarefaction) and robustness resampling steps use
+#' random number generation; setting this makes results deterministic and
+#' consistent with \code{get_network_topology_parallel()}.
 #'
 #' @returns A list containing topology output and robustness output for a single
 #'   network. When \code{graph_obj_list} is provided, returns a named list of
@@ -74,7 +79,8 @@ get_network_topology <- function(graph_obj = NULL,
                                  proc = c("holm", "hochberg", "hommel", "bonferroni", "BH", "BY", "fdr", "none"),
                                  SpiecEasi.method = c("mb", "glasso"),
                                  sparcc_R = 20,
-                                 bootstrap = 100){
+                                 bootstrap = 100,
+                                 seed = 1115){
 
   if (!is.null(graph_obj_list) || !is.null(graph_mat_list)) {
     if (!is.null(graph_obj)) {
@@ -118,7 +124,8 @@ get_network_topology <- function(graph_obj = NULL,
         proc = proc,
         SpiecEasi.method = SpiecEasi.method,
         sparcc_R = sparcc_R,
-        bootstrap = bootstrap
+        bootstrap = bootstrap,
+        seed = seed + i - 1L
       )
     })
     names(out) <- result_names
@@ -128,6 +135,11 @@ get_network_topology <- function(graph_obj = NULL,
   if (is.null(graph_obj)) {
     stop("`graph_obj` must be provided unless `graph_obj_list` is used.", call. = FALSE)
   }
+
+  if (length(seed) != 1L || !is.numeric(seed) || !is.finite(seed)) {
+    stop("`seed` must be a single finite numeric.", call. = FALSE)
+  }
+  set.seed(as.integer(seed))
 
   # create igraph object
   ig <- tidygraph::as.igraph(graph_obj)
@@ -196,22 +208,26 @@ get_network_topology <- function(graph_obj = NULL,
       occor.r[occor.p > p.threshold | abs(occor.r) < r.threshold] = 0
       occor.r[is.na(occor.r)]=0
 
-      network.raw <- occor.r[colSums(abs(occor.r)) > 0, colSums(abs(occor.r)) > 0]
+      network.raw <- occor.r[colSums(abs(occor.r)) > 0, colSums(abs(occor.r)) > 0, drop = FALSE]
       sp.ra2 <- sp.ra[colSums(abs(occor.r))>0]
 
     }
 
-    # SpiecEasi (spieceasi_matrix_rcpp: no p-value, filter by r.threshold only)
+    # SpiecEasi selects edges via StARS model selection (sparse inverse
+    # covariance), NOT a correlation threshold. Use the weighted estimate
+    # directly -- partial correlation (glasso) / symmetrised beta (mb) -- whose
+    # non-zero support IS the selected edge set. `r.threshold` does not apply.
     if (method == "SpiecEasi") {
       sp.ra <- colMeans(t(mat))
-      am <- spieceasi_matrix_rcpp(as.matrix(t(mat)), method = SpiecEasi.method, output = "adjacency",
+      se_output <- if (SpiecEasi.method == "mb") "beta" else "partial_correlation"
+      am <- spieceasi_matrix_rcpp(as.matrix(t(mat)), method = SpiecEasi.method, output = se_output,
                                   lambda.min.ratio = 1e-2, nlambda = 20, pulsar.params = list(rep.num = 50))
       rownames(am) <- rownames(mat)
       colnames(am) <- rownames(mat)
-      am2 <- am * (abs(am) >= r.threshold)
+      am2 <- am
       am2[is.na(am2)] <- 0
       diag(am2) <- 0
-      network.raw <- am2[colSums(abs(am2)) > 0, colSums(abs(am2)) > 0]
+      network.raw <- am2[colSums(abs(am2)) > 0, colSums(abs(am2)) > 0, drop = FALSE]
       sp.ra2 <- sp.ra[colSums(abs(am2)) > 0]
     }
 
@@ -219,7 +235,7 @@ get_network_topology <- function(graph_obj = NULL,
     if (method == "SPARCC") {
       sp.ra <- colMeans(t(mat))
       occor.r <- sparcc_matrix_rcpp(as.matrix(t(mat)))
-      p_mat <- sparcc_pvalue_rcpp(as.matrix(t(mat)), R = sparcc_R)
+      p_mat <- sparcc_pvalue_rcpp(as.matrix(t(mat)), R = sparcc_R, seed = seed)
       diag(occor.r) <- 0
       occor.r[abs(occor.r) < r.threshold | is.na(p_mat) | p_mat > p.threshold] <- 0
       occor.r[is.na(occor.r)] <- 0
@@ -243,7 +259,7 @@ get_network_topology <- function(graph_obj = NULL,
       occor.r[occor.p > p.threshold | abs(occor.r) < r.threshold] = 0
       occor.r[is.na(occor.r)]=0
 
-      network.raw <- occor.r[colSums(abs(occor.r)) > 0, colSums(abs(occor.r)) > 0]
+      network.raw <- occor.r[colSums(abs(occor.r)) > 0, colSums(abs(occor.r)) > 0, drop = FALSE]
       sp.ra2 <- sp.ra[colSums(abs(occor.r))>0]
 
     }
@@ -251,7 +267,7 @@ get_network_topology <- function(graph_obj = NULL,
 
 
 
-  .rand.remov.once<-function(netRaw, rm.percent, sp.ra, abundance.weighted=T){
+  .rand.remov.once<-function(netRaw, rm.percent, sp.ra, abundance.weighted=TRUE){
     id.rm<-sample(seq_len(nrow(netRaw)), round(nrow(netRaw)*rm.percent))
     net.Raw=netRaw
     net.Raw[id.rm,]=0;  net.Raw[,id.rm]=0;
@@ -270,7 +286,7 @@ get_network_topology <- function(graph_obj = NULL,
   }
 
 
-  .rmsimu<-function(netRaw, rm.p.list, sp.ra, abundance.weighted=T,bootstrap=bootstrap){
+  .rmsimu<-function(netRaw, rm.p.list, sp.ra, abundance.weighted=TRUE,bootstrap=bootstrap){
     t(sapply(rm.p.list,function(x){
       remains=sapply(1:bootstrap,function(i){
         .rand.remov.once(netRaw=netRaw, rm.percent=x, sp.ra=sp.ra, abundance.weighted=abundance.weighted)
@@ -294,11 +310,11 @@ get_network_topology <- function(graph_obj = NULL,
       dplyr::filter(ASV != ASV_to) %>%
       dplyr::filter(Correlation != 0) %>%
       dplyr::group_by(ASV) %>%
-      dplyr::mutate(r_pos_mean = mean(dplyr::if_else(Correlation > 0, Correlation, 0), na.rm = T),
-                    r_neg_mean = mean(dplyr::if_else(Correlation < 0, Correlation, 0), na.rm = T),
-                    t_total = mean(dplyr::if_else(Correlation < 0, abs(Correlation), abs(Correlation)), na.rm = T)) %>%
+      dplyr::mutate(r_pos_mean = mean(dplyr::if_else(Correlation > 0, Correlation, 0), na.rm = TRUE),
+                    r_neg_mean = mean(dplyr::if_else(Correlation < 0, Correlation, 0), na.rm = TRUE),
+                    t_total = mean(dplyr::if_else(Correlation < 0, abs(Correlation), abs(Correlation)), na.rm = TRUE)) %>%
       dplyr::ungroup()  %>%
-      dplyr::distinct(ASV, .keep_all = T) %>%
+      dplyr::distinct(ASV, .keep_all = TRUE) %>%
       dplyr::select(1,4,5,6)
 
 
@@ -335,11 +351,11 @@ get_network_topology <- function(graph_obj = NULL,
   .network.efficiency <- function(ig){
     dd <- 1/igraph::distances(ig)
     diag(dd) <- NA
-    efficiency <- mean(dd, na.rm=T)
+    efficiency <- mean(dd, na.rm=TRUE)
     return(efficiency)
   }
 
-  .info.centrality.vertex <- function(ig, net=NULL, verbose=F){
+  .info.centrality.vertex <- function(ig, net=NULL, verbose=FALSE){
     if(is.null(net)) {
       net <- .network.efficiency(ig)
       }
@@ -381,7 +397,7 @@ get_network_topology <- function(graph_obj = NULL,
 
     # transitivity (global/local)
     clust_global <- igraph::transitivity(ig, type = "global")
-    clust_local  <- mean(igraph::transitivity(ig, type = "local"), na.rm = T)
+    clust_local  <- mean(igraph::transitivity(ig, type = "local"), na.rm = TRUE)
 
     # density
     density <- igraph::edge_density(ig)
@@ -393,20 +409,20 @@ get_network_topology <- function(graph_obj = NULL,
     network_info.centrality <- sum(.info.centrality.vertex(ig))
 
     # betweenness
-    betweenness_vals <- mean(igraph::betweenness(ig), na.rm = T)
-    betweenness_edge_vals <- mean(igraph::edge_betweenness(ig), na.rm = T)
+    betweenness_vals <- mean(igraph::betweenness(ig), na.rm = TRUE)
+    betweenness_edge_vals <- mean(igraph::edge_betweenness(ig), na.rm = TRUE)
 
     # closeness
-    closeness_vals <- mean(igraph::closeness(ig), na.rm = T)
-    closeness_vals_out <- mean(igraph::closeness(ig, mode = "out"), na.rm = T)
-    closeness_vals_in <- mean(igraph::closeness(ig, mode = "in"), na.rm = T)
-    closeness_vals_all <- mean(igraph::closeness(ig, mode = "all"), na.rm = T)
-    closeness_vals_total <- mean(igraph::closeness(ig, mode = "total"), na.rm = T)
+    closeness_vals <- mean(igraph::closeness(ig), na.rm = TRUE)
+    closeness_vals_out <- mean(igraph::closeness(ig, mode = "out"), na.rm = TRUE)
+    closeness_vals_in <- mean(igraph::closeness(ig, mode = "in"), na.rm = TRUE)
+    closeness_vals_all <- mean(igraph::closeness(ig, mode = "all"), na.rm = TRUE)
+    closeness_vals_total <- mean(igraph::closeness(ig, mode = "total"), na.rm = TRUE)
     # same output
 
 
     # eigen_centrality
-    eigen_vals <- mean(igraph::eigen_centrality(ig)$vector, na.rm = T)
+    eigen_vals <- mean(igraph::eigen_centrality(ig)$vector, na.rm = TRUE)
 
     # modularity
     fc <- igraph::cluster_fast_greedy(ig)
@@ -414,9 +430,9 @@ get_network_topology <- function(graph_obj = NULL,
 
     # K-core decomposition of graphs
     kcore_vals  <- igraph::coreness(ig)
-    kcore_mean  <- mean(kcore_vals, na.rm = T)
-    kcore_max   <- max(kcore_vals, na.rm = T)
-    kcore_min   <- min(kcore_vals, na.rm = T)
+    kcore_mean  <- mean(kcore_vals, na.rm = TRUE)
+    kcore_max   <- max(kcore_vals, na.rm = TRUE)
+    kcore_min   <- min(kcore_vals, na.rm = TRUE)
 
     # Cohension from igraph
     cohesion <- igraph::cohesion(ig)
@@ -493,13 +509,13 @@ get_network_topology <- function(graph_obj = NULL,
     Weighted.simu <- .rmsimu(netRaw=network.raw,
                              rm.p.list=seq(0.05,1,by=0.05),
                              sp.ra=sp.ra2,
-                             abundance.weighted=T,
+                             abundance.weighted=TRUE,
                              bootstrap=bootstrap)
 
     Unweighted.simu <- .rmsimu(netRaw=network.raw,
                                rm.p.list=seq(0.05,1,by=0.05),
                                sp.ra=sp.ra2,
-                               abundance.weighted=F,
+                               abundance.weighted=FALSE,
                                bootstrap=bootstrap)
   }
 
@@ -538,8 +554,8 @@ get_network_topology <- function(graph_obj = NULL,
 
     random_graph <- igraph::sample_gnm(n = igraph::vcount(ig),
                                        m = igraph::ecount(ig),
-                                       directed = F,
-                                       loops = F)
+                                       directed = FALSE,
+                                       loops = FALSE)
 
     random_topology[[i]] <- .get_topology(ig = random_graph) %>%
       dplyr::mutate(Robustness_weight = NA,

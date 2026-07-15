@@ -5,7 +5,7 @@ create_layout_star <- function(
     node_add = 7,
     r = 0.1,
     inner_ratio = 0.45,
-    scale = T,
+    scale = TRUE,
     anchor_dist = 10,
     orientation = c("up","down","left","right"),
     angle = 0
@@ -13,7 +13,7 @@ create_layout_star <- function(
   orientation <- match.arg(orientation)
   base_angle <- switch(orientation,
                        up = 0, right = -pi/2, down = pi, left = pi/2)
-  theta_shift <- base_angle + angle
+  theta_shift <- base_angle + .normalize_angle(angle)
 
 
   node_df <- graph_obj %>%

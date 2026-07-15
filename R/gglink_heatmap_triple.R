@@ -119,7 +119,7 @@ gglink_heatmap_triple <- function(
                                           title.position = "top"))  +
     ggnewscale::new_scale_fill() +
     ggplot2::geom_tile(data = hm_df,
-              aes(x = ID2, y = Type2), fill = "white", color = "#000000", linewidth = 0.5, inherit.aes = F) +
+              aes(x = ID2, y = Type2), fill = "white", color = "#000000", linewidth = 0.5, inherit.aes = FALSE) +
     ggplot2::geom_text(data = id_lab,
               aes(x = x_lab, y = y_lab, label = ID), inherit.aes = FALSE) +
     ggplot2::geom_text(data = type_lab,

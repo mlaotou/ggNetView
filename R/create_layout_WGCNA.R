@@ -55,7 +55,7 @@ create_layout_WGCNA <- function(
   orientation <- match.arg(orientation)
   base_angle <- switch(orientation,
                        up = 0, right = -pi/2, down = pi, left = pi/2)
-  theta_shift <- base_angle + angle
+  theta_shift <- base_angle + .normalize_angle(angle)
 
   # --- Validate inner_shrink ---
   # Default 1 reproduces the historical behaviour exactly (fit_radius = 0.95 * radius).

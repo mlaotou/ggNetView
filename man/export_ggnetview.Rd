@@ -4,7 +4,7 @@
 \alias{export_ggnetview}
 \title{Save a ggNetView with sensible defaults}
 \usage{
-export_ggnetview(p, filename, height, width, limitsize = F, dpi = 300)
+export_ggnetview(p, filename, height, width, limitsize = FALSE, dpi = 300)
 }
 \arguments{
 \item{p}{Plot to save, defaults to last plot displayed.}

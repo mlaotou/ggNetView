@@ -22,7 +22,7 @@
 #' export_ggnetview(p, filename = tmp, height = 6, width = 6)
 #' file.exists(tmp)
 #' }
-export_ggnetview <- function(p, filename, height, width, limitsize = F, dpi = 300){
+export_ggnetview <- function(p, filename, height, width, limitsize = FALSE, dpi = 300){
   ggplot2::ggsave(filename = filename,
                   plot = p,
                   height = height,

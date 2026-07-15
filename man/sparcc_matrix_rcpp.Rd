@@ -18,8 +18,8 @@ Default 10.}
 \item{th}{Numeric. Threshold for excluding highly correlated pairs.
 Default 0.1.}
 
-\item{nthreads}{Integer. Number of OpenMP threads for parallel \code{sparccinner}
-(0 = use default). Only effective when OpenMP is available.}
+\item{nthreads}{Integer. Number of OpenMP threads for the parallel C++ SparCC
+inner loop (0 = use default). Only effective when OpenMP is available.}
 }
 \value{
 Numeric matrix of taxa x taxa correlations (median across iterations).

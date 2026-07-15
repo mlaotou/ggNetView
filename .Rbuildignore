@@ -17,3 +17,8 @@
 ^\.Rapp\.history$
 ^figure$
 ^dev$
+^\.DS_Store$
+(^|/)\.DS_Store$
+^\.Rhistory$
+^\.RData$
+^CODE_REVIEW_ggNetView\.md$

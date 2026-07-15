@@ -606,7 +606,7 @@ gglink_heatmaps <- function(
   # distance = 4
   # relation_method = "correlation"
   # r = 6
-  # spec_relation = T
+  # spec_relation = TRUE
   # fontsize = 5
 
 
@@ -784,8 +784,8 @@ gglink_heatmaps <- function(
         tidyr::pivot_longer(cols = -ID,
                             names_to = "Type",
                             values_to = "Correlation") %>%
-        dplyr::mutate(ID = factor(ID, levels = unique(ID), ordered = T),
-                      Type = factor(Type, levels = rev(unique(Type)), ordered = T),
+        dplyr::mutate(ID = factor(ID, levels = unique(ID), ordered = TRUE),
+                      Type = factor(Type, levels = rev(unique(Type)), ordered = TRUE),
                       ID2 = as.numeric(ID),
                       Type2 = as.numeric(Type)
         ) %>%
@@ -796,8 +796,8 @@ gglink_heatmaps <- function(
         tidyr::pivot_longer(cols = -ID,
                             names_to = "Type",
                             values_to = "Pvalue") %>%
-        dplyr::mutate(ID = factor(ID, levels = unique(ID), ordered = T),
-                      Type = factor(Type, levels = rev(unique(Type)), ordered = T),
+        dplyr::mutate(ID = factor(ID, levels = unique(ID), ordered = TRUE),
+                      Type = factor(Type, levels = rev(unique(Type)), ordered = TRUE),
                       ID2 = as.numeric(ID),
                       Type2 = as.numeric(Type)) %>%
         stats::na.omit() %>%
@@ -834,8 +834,8 @@ gglink_heatmaps <- function(
         tidyr::pivot_longer(cols = -ID,
                             names_to = "Type",
                             values_to = "Correlation") %>%
-        dplyr::mutate(ID = factor(ID, levels = unique(ID), ordered = T),
-                      Type = factor(Type, levels = unique(Type), ordered = T),
+        dplyr::mutate(ID = factor(ID, levels = unique(ID), ordered = TRUE),
+                      Type = factor(Type, levels = unique(Type), ordered = TRUE),
                       ID2 = as.numeric(ID),
                       Type2 = as.numeric(Type)
         ) %>%
@@ -846,8 +846,8 @@ gglink_heatmaps <- function(
         tidyr::pivot_longer(cols = -ID,
                             names_to = "Type",
                             values_to = "Pvalue") %>%
-        dplyr::mutate(ID = factor(ID, levels = unique(ID), ordered = T),
-                      Type = factor(Type, levels = unique(Type), ordered = T),
+        dplyr::mutate(ID = factor(ID, levels = unique(ID), ordered = TRUE),
+                      Type = factor(Type, levels = unique(Type), ordered = TRUE),
                       ID2 = as.numeric(ID),
                       Type2 = as.numeric(Type)) %>%
         stats::na.omit() %>%
@@ -884,8 +884,8 @@ gglink_heatmaps <- function(
         tidyr::pivot_longer(cols = -ID,
                             names_to = "Type",
                             values_to = "Correlation") %>%
-        dplyr::mutate(ID = factor(ID, levels = unique(ID), ordered = T),
-                      Type = factor(Type, levels = unique(Type), ordered = T),
+        dplyr::mutate(ID = factor(ID, levels = unique(ID), ordered = TRUE),
+                      Type = factor(Type, levels = unique(Type), ordered = TRUE),
                       ID2 = as.numeric(ID),
                       Type2 = as.numeric(Type)
         ) %>%
@@ -896,8 +896,8 @@ gglink_heatmaps <- function(
         tidyr::pivot_longer(cols = -ID,
                             names_to = "Type",
                             values_to = "Pvalue") %>%
-        dplyr::mutate(ID = factor(ID, levels = unique(ID), ordered = T),
-                      Type = factor(Type, levels = unique(Type), ordered = T),
+        dplyr::mutate(ID = factor(ID, levels = unique(ID), ordered = TRUE),
+                      Type = factor(Type, levels = unique(Type), ordered = TRUE),
                       ID2 = as.numeric(ID),
                       Type2 = as.numeric(Type)) %>%
         stats::na.omit() %>%
@@ -935,8 +935,8 @@ gglink_heatmaps <- function(
         tidyr::pivot_longer(cols = -ID,
                             names_to = "Type",
                             values_to = "Correlation") %>%
-        dplyr::mutate(ID = factor(ID, levels = unique(ID), ordered = T),
-                      Type = factor(Type, levels = rev(unique(Type)), ordered = T),
+        dplyr::mutate(ID = factor(ID, levels = unique(ID), ordered = TRUE),
+                      Type = factor(Type, levels = rev(unique(Type)), ordered = TRUE),
                       ID2 = as.numeric(ID),
                       Type2 = as.numeric(Type)
         ) %>%
@@ -947,8 +947,8 @@ gglink_heatmaps <- function(
         tidyr::pivot_longer(cols = -ID,
                             names_to = "Type",
                             values_to = "Pvalue") %>%
-        dplyr::mutate(ID = factor(ID, levels = unique(ID), ordered = T),
-                      Type = factor(Type, levels = rev(unique(Type)), ordered = T),
+        dplyr::mutate(ID = factor(ID, levels = unique(ID), ordered = TRUE),
+                      Type = factor(Type, levels = rev(unique(Type)), ordered = TRUE),
                       ID2 = as.numeric(ID),
                       Type2 = as.numeric(Type)) %>%
         stats::na.omit() %>%

@@ -1,9 +1,9 @@
 # SPIEC-EASI Rcpp implementation
-# Uses spieceasi_norm_cpp for fast CLR; rest mirrors spieceasi_matrix.R
+# Uses spieceasi_norm_cpp for fast CLR (C++ backend).
 
 #' @useDynLib ggNetView, .registration = TRUE
 
-# Local helpers (mirror spieceasi_matrix.R)
+# Local helpers (self-contained; single source of truth for the SpiecEasi path)
 sparseiCov_local <- function(data, method, npn = FALSE, verbose = FALSE, cov.output = TRUE, ...) {
   if (npn) {
     data <- huge::huge.npn(data, verbose = verbose)
@@ -98,7 +98,7 @@ precision_to_partial_corr <- function(theta) {
 
 #' SPIEC-EASI fit (Rcpp-accelerated CLR)
 #'
-#' Same as \code{spieceasi_fit} but uses fast C++ CLR transformation.
+#' Fits the SpiecEasi model using fast C++ CLR transformation.
 #' @keywords internal
 spieceasi_fit_rcpp <- function(
   data,

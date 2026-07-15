@@ -15,7 +15,7 @@ create_layout_bipartite_gephi_layout <- function(
   orientation <- match.arg(orientation)
   base_angle <- switch(orientation,
                        up = 0, right = -pi/2, down = pi, left = pi/2)
-  theta_shift <- base_angle + angle
+  theta_shift <- base_angle + .normalize_angle(angle)
 
   # set radius
   radius = r
@@ -71,71 +71,39 @@ create_layout_bipartite_gephi_layout <- function(
     )
   })
 
-  ly_list <- list()
-
-  for (i in seq_along(n_vec_node)) {
-    if (i == 1) {
-      ly <- data.frame(x = -1*anchor_dist, y = 0)
-      offset <- 0
-      prev_n <- n_vec_node[[i]]$number_node
-
-
-      for (index in 2:(dim(n_vec_node[[i]])[1])) {
+  # Helper: concentric-ring coordinates around a center placed on the x-axis.
+  # Handles the single-ring case (module with only a center node) safely and
+  # uses the correctly-parenthesised angular offset.
+  ring_coords <- function(center_x, ring_counts) {
+    ly <- data.frame(x = center_x, y = 0)
+    prev_n <- ring_counts$number_node
+    n_ring <- nrow(ring_counts)
+    offset <- 0
+    if (n_ring >= 2) {
+      for (index in seq_len(n_ring)[-1L]) {
         if (index == 2) {
-          # index = 2
-          # l <- seq(0, 2*pi, length.out = prev_n[index])
-          l <- 2* pi * (0:(prev_n[index]-1)) / prev_n[index]
-        }else{
-
-          offset <- pi/prev_n[index] %% (2*pi) + offset
-          # l <- offset + seq(0, 2*pi, length.out = prev_n[index])
-          l <- offset + (2* pi * (0:(prev_n[index]-1)) / prev_n[index])
+          l <- 2 * pi * (0:(prev_n[index] - 1)) / prev_n[index]
+        } else {
+          offset <- (offset + pi / prev_n[index]) %% (2 * pi)
+          l <- offset + (2 * pi * (0:(prev_n[index] - 1)) / prev_n[index])
         }
-
-        x <- -1*anchor_dist + sin(l) * (index-1)*r
-        y <- 0 + cos(l) * (index-1)*r
-        ly_tmp <- data.frame(x = x,
-                             y = y)
-
-        ly <- dplyr::bind_rows(ly,ly_tmp)
-
-        ly_list[[i]] <- ly
-
+        x <- center_x + sin(l) * (index - 1) * r
+        y <- 0 + cos(l) * (index - 1) * r
+        ly <- dplyr::bind_rows(ly, data.frame(x = x, y = y))
       }
     }
-
-    if (i == 2) {
-      ly <- data.frame(x = 1*anchor_dist, y = 0)
-      offset <- 0
-      prev_n <- n_vec_node[[i]]$number_node
-
-
-      for (index in 2:(dim(n_vec_node[[i]])[1])) {
-        if (index == 2) {
-          # index = 2
-          # l <- seq(0, 2*pi, length.out = prev_n[index])
-          l <- 2* pi * (0:(prev_n[index]-1)) / prev_n[index]
-        }else{
-
-          offset <- pi/prev_n[index] %% (2*pi) + offset
-          # l <- offset + seq(0, 2*pi, length.out = prev_n[index])
-          l <- offset + (2* pi * (0:(prev_n[index]-1)) / prev_n[index])
-        }
-
-        x <- 1*anchor_dist + sin(l) * (index-1)*r
-        y <- 0 + cos(l) * (index-1)*r
-        ly_tmp <- data.frame(x = x,
-                             y = y)
-
-        ly <- dplyr::bind_rows(ly,ly_tmp)
-
-        ly_list[[i]] <- ly
-
-      }
-    }
+    ly
   }
 
+  # Spread module centers symmetrically along the x-axis. For the canonical
+  # 2-module (bipartite) case this reproduces centers at -anchor_dist and
+  # +anchor_dist; >2 modules are placed evenly between the two poles.
+  n_mod <- length(n_vec_node)
+  centers_x <- seq(-anchor_dist, anchor_dist, length.out = n_mod)
 
+  ly_list <- lapply(seq_len(n_mod), function(i) {
+    ring_coords(centers_x[i], n_vec_node[[i]])
+  })
 
   ly <- do.call(rbind, ly_list)
 

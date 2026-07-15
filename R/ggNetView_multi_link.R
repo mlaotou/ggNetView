@@ -901,7 +901,7 @@ ggNetView_multi_link <- function(mat = NULL,
 
     Module_information <- do.call(rbind, compare_out_list) %>%
       dplyr::filter(pvalue < 0.05) %>%
-      tidyr::separate(col = Group, sep = "_", into = c("GroupA", "to", "GroupB"), remove = F) %>%
+      tidyr::separate(col = Group, sep = "_", into = c("GroupA", "to", "GroupB"), remove = FALSE) %>%
       dplyr::select(-to)
   } else {
     Module_information <- tibble::tibble(
@@ -2102,7 +2102,7 @@ ggNetView_multi_link <- function(mat = NULL,
   }
 
   p <- p +
-    coord_fixed(clip = F) +
+    coord_fixed(clip = FALSE) +
     theme_ggnetview() +
     theme(legend.position = "none")
 

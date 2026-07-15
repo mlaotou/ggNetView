@@ -116,32 +116,32 @@ build_graph_from_igraph <- function(igraph,
     igraph::V(g)$modularity2 <- as.character(membership_vec)
   }
 
-  table(igraph::V(g)$modularity2) %>% sort(., decreasing = T)
+  table(igraph::V(g)$modularity2) %>% sort(., decreasing = TRUE)
 
   # max model length
-  max_model <- length(table(igraph::V(g)$modularity2) %>% sort(., decreasing = T))
+  max_model <- length(table(igraph::V(g)$modularity2) %>% sort(., decreasing = TRUE))
 
   if (max_model < top_modules) {
 
     message(paste("The max module in network is", max_model, "we use the", max_model, " modules for next analysis"))
-    modularity_top_15 <- igraph::V(g)$modularity2 %>% table() %>% sort(., decreasing = T) %>% .[seq_len(max_model)] %>% names()
+    modularity_top_15 <- igraph::V(g)$modularity2 %>% table() %>% sort(., decreasing = TRUE) %>% .[seq_len(max_model)] %>% names()
     # no others
 
   }else if (max_model >= top_modules) {
 
-    modularity_top_15 <- igraph::V(g)$modularity2 %>% table() %>% sort(., decreasing = T) %>% .[seq_len(top_modules)] %>% names()
+    modularity_top_15 <- igraph::V(g)$modularity2 %>% table() %>% sort(., decreasing = TRUE) %>% .[seq_len(top_modules)] %>% names()
   }
 
   igraph::V(g)$modularity2 <- ifelse(igraph::V(g)$modularity2 %in% modularity_top_15, igraph::V(g)$modularity2, "Others")
 
-  modularity_top_final <- igraph::V(g)$modularity2 %>% table() %>% sort(., decreasing = T) %>% names()
+  modularity_top_final <- igraph::V(g)$modularity2 %>% table() %>% sort(., decreasing = TRUE) %>% names()
   modularity_top_final <- c(setdiff(modularity_top_final, "Others"), "Others")
 
   if (is.null(node_annotation)) {
     # create ggraph_obj
     graph_obj <- tidygraph::as_tbl_graph(g) %>%
       tidygraph::mutate(modularity = factor(modularity),
-                        modularity2 = factor(modularity2, levels = modularity_top_final, ordered = T),
+                        modularity2 = factor(modularity2, levels = modularity_top_final, ordered = TRUE),
                         modularity3 = as.character(modularity2),
                         Modularity = modularity2,
                         Degree = tidygraph::centrality_degree(mode = "out"),
@@ -153,7 +153,7 @@ build_graph_from_igraph <- function(igraph,
     graph_obj <- tidygraph::as_tbl_graph(g) %>%
       tidygraph::mutate(modularity = factor(modularity),
                         # modularity2 = factor(modularity2),
-                        modularity2 = factor(modularity2, levels = modularity_top_final, ordered = T),
+                        modularity2 = factor(modularity2, levels = modularity_top_final, ordered = TRUE),
                         modularity3 = as.character(modularity2),
                         Modularity = modularity2,
                         Degree = tidygraph::centrality_degree(mode = "out"),

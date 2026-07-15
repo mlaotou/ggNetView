@@ -2,7 +2,7 @@
 create_layout_gephi <- function(
     graph_obj,
     node_add = 7,
-    scale = T,
+    scale = TRUE,
     anchor_dist = 10,
     r = 0.1,
     orientation = c("up","down","left","right"),
@@ -13,7 +13,7 @@ create_layout_gephi <- function(
   orientation <- match.arg(orientation)
   base_angle <- switch(orientation,
                        up = 0, right = -pi/2, down = pi, left = pi/2)
-  theta_shift <- base_angle + angle
+  theta_shift <- base_angle + .normalize_angle(angle)
 
 
   node_df <- graph_obj %>%
@@ -70,7 +70,7 @@ create_layout_gephi <- function(
       l <- 2* pi * (0:(prev_n[index]-1)) / prev_n[index]
     }else{
 
-      offset <- pi/prev_n[index] %% (2*pi) + offset
+      offset <- (offset + pi/prev_n[index]) %% (2*pi)
       # l <- offset + seq(0, 2*pi, length.out = prev_n[index])
       l <- offset + (2* pi * (0:(prev_n[index]-1)) / prev_n[index])
     }

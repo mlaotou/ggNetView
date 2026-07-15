@@ -154,7 +154,8 @@ get_sample_subgraph_topology_parallel <- function(graph_obj,
         proc = proc,
         SpiecEasi.method = SpiecEasi.method,
         sparcc_R = sparcc_R,
-        bootstrap = bootstrap
+        bootstrap = bootstrap,
+        seed = seed + match(sid, sample_ids) - 1L
       ),
       error = function(e) e
     )

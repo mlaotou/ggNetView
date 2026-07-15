@@ -5,14 +5,14 @@ create_layout_rightiso_layers <- function(
     graph_obj,
     node_add = 7,
     r = 0.2,
-    scale = T,
+    scale = TRUE,
     anchor_dist = 10,
     orientation = c("up","down","left","right"),
     angle = 0){
   orientation <- match.arg(orientation)
   base_angle <- switch(orientation,
                        up = 0, right = -pi/2, down = pi, left = pi/2)
-  theta_shift <- base_angle + angle
+  theta_shift <- base_angle + .normalize_angle(angle)
 
 
   node_df <- graph_obj %>%

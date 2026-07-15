@@ -4,7 +4,7 @@ create_layout_heart_centered <- function(
     r = 0.15,
     node_add = 8L,
     orientation = c("up","down","left","right"),
-    scale = T,
+    scale = TRUE,
     anchor_dist = 10,
     angle = 0,
     y_squash = 1.0
@@ -15,7 +15,7 @@ create_layout_heart_centered <- function(
   orientation <- match.arg(orientation)
   base_angle <- switch(orientation,
                        up = 0, right = -pi/2, down = pi, left = pi/2)
-  theta_shift <- base_angle + angle
+  theta_shift <- base_angle + .normalize_angle(angle)
 
 
   node_df <- graph_obj %>%

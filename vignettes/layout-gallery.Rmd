@@ -247,14 +247,12 @@ show_layout("tripartite_gephi_layout", layout.module = "order")
 show_layout("tripartite_equal_gephi_layout", layout.module = "order")
 
 # Quadripartite (4-block)
-show_layout("quadripartite_layout", layout.module = "order")
 show_layout("quadripartite_gephi_layout", layout.module = "order")
 show_layout("quadripartite_equal_gephi_layout", layout.module = "order")
 show_layout("cross_quadripartite_gephi_layout", layout.module = "order")
 show_layout("cross_quadripartite_equal_gephi_layout", layout.module = "order")
 
 # Pentapartite (5-block)
-show_layout("pentapartite_layout", layout.module = "order")
 show_layout("pentapartite_gephi_layout", layout.module = "order")
 show_layout("pentapartite_equal_gephi_layout", layout.module = "order")
 ```

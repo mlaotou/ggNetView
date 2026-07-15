@@ -1,7 +1,7 @@
 #' @noRd
 create_layout_consensus_module_gephi <- function(
     graph_obj,
-    scale = T,
+    scale = TRUE,
     r = 1,
     anchor_dist = 10,
     node_add = 7,
@@ -18,7 +18,7 @@ create_layout_consensus_module_gephi <- function(
     down  = pi,
     left  = pi/2
   )
-  theta_shift <- base_angle + angle
+  theta_shift <- base_angle + .normalize_angle(angle)
 
 
 
