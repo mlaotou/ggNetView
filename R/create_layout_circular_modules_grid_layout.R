@@ -1,12 +1,16 @@
 #' @noRd
 create_layout_circular_modules_grid_layout <- function(
     graph_obj,
+    node_add = NULL,
     r = 1,
     anchor_dist = 10,
     scale = TRUE,
     orientation = c("up", "down", "left", "right"),
     angle = 0
 ) {
+  # `node_add` is accepted for signature compatibility with the layout
+  # dispatcher in ggNetView() (which passes it unconditionally); the grid
+  # layout does not use phantom padding nodes, so it is intentionally ignored.
   orientation <- match.arg(orientation)
   base_angle <- switch(
     orientation,

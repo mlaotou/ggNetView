@@ -205,7 +205,7 @@ get_network_topology <- function(graph_obj = NULL,
       # R and pvalue
       occor.r <- occor$cor
       diag(occor.r) <- 0
-      occor.r[occor.p > p.threshold | abs(occor.r) < r.threshold] = 0
+      occor.r[is.na(occor.p) | is.na(occor.r) | occor.p > p.threshold | abs(occor.r) < r.threshold] = 0
       occor.r[is.na(occor.r)]=0
 
       network.raw <- occor.r[colSums(abs(occor.r)) > 0, colSums(abs(occor.r)) > 0, drop = FALSE]
@@ -242,7 +242,9 @@ get_network_topology <- function(graph_obj = NULL,
       rownames(occor.r) <- rownames(mat)
       colnames(occor.r) <- rownames(mat)
       SparCC_graph2 <- Matrix::Matrix(occor.r, sparse = TRUE)
-      network.raw <- SparCC_graph2[colSums(abs(SparCC_graph2)) > 0, colSums(abs(SparCC_graph2)) > 0]
+      # coerce back to a dense base matrix: downstream .cohension_compute()
+      # calls as.data.frame(), which cannot coerce a sparse dgCMatrix/dsCMatrix.
+      network.raw <- as.matrix(SparCC_graph2[colSums(abs(SparCC_graph2)) > 0, colSums(abs(SparCC_graph2)) > 0])
       sp.ra2 <- sp.ra[colSums(abs(SparCC_graph2)) > 0]
     }
 
@@ -256,7 +258,7 @@ get_network_topology <- function(graph_obj = NULL,
       # R and pvalue
       occor.r <- occor$r
       diag(occor.r) <- 0
-      occor.r[occor.p > p.threshold | abs(occor.r) < r.threshold] = 0
+      occor.r[is.na(occor.p) | is.na(occor.r) | occor.p > p.threshold | abs(occor.r) < r.threshold] = 0
       occor.r[is.na(occor.r)]=0
 
       network.raw <- occor.r[colSums(abs(occor.r)) > 0, colSums(abs(occor.r)) > 0, drop = FALSE]
@@ -301,49 +303,11 @@ get_network_topology <- function(graph_obj = NULL,
   }
 
 
+  # Delegates to the shared .compute_cohension() so the cohesion definition and
+  # its NA guards stay identical to get_network_topology_parallel(). `mat` is the
+  # abundance matrix captured from this function's scope.
   .cohension_compute <- function(network.raw){
-
-    ASV_Correlation <- network.raw %>%
-      as.data.frame() %>%
-      tibble::rownames_to_column(var = "ASV") %>%
-      tidyr::pivot_longer(cols = -ASV, values_to = "Correlation", names_to = "ASV_to") %>%
-      dplyr::filter(ASV != ASV_to) %>%
-      dplyr::filter(Correlation != 0) %>%
-      dplyr::group_by(ASV) %>%
-      dplyr::mutate(r_pos_mean = mean(dplyr::if_else(Correlation > 0, Correlation, 0), na.rm = TRUE),
-                    r_neg_mean = mean(dplyr::if_else(Correlation < 0, Correlation, 0), na.rm = TRUE),
-                    t_total = mean(dplyr::if_else(Correlation < 0, abs(Correlation), abs(Correlation)), na.rm = TRUE)) %>%
-      dplyr::ungroup()  %>%
-      dplyr::distinct(ASV, .keep_all = TRUE) %>%
-      dplyr::select(1,4,5,6)
-
-
-
-    relative_abundance_df <- mat %>%
-      as.data.frame() %>%
-      tibble::rownames_to_column(var = "ASV") %>%
-      tidyr::pivot_longer(cols = -ASV, values_to = "relative_abundance", names_to = "Groups") %>%
-      dplyr::group_by(ASV) %>%
-      dplyr::summarise(mean_relative_abundance = mean(relative_abundance))
-
-
-    ASV_cohensition <- ASV_Correlation %>%
-      dplyr::left_join(relative_abundance_df, by = "ASV") %>%
-      dplyr::mutate(positive_cohension = r_pos_mean * mean_relative_abundance,
-                    negative_cohension = r_neg_mean * mean_relative_abundance,
-                    total_cohension = t_total * mean_relative_abundance
-                    )
-
-    # guard against `mean(numeric(0))` (which returns NaN with a warning)
-    # when every per-ASV cohesion is exactly 0.
-    .safe_mean <- function(x) if (length(x) == 0L) NA_real_ else mean(x)
-    cohension_list <- list(
-      cohension_position = .safe_mean(ASV_cohensition$positive_cohension[ASV_cohensition$positive_cohension != 0]),
-      cohension_negative = .safe_mean(ASV_cohensition$negative_cohension[ASV_cohensition$negative_cohension != 0])
-    )
-
-
-    return(cohension_list)
+    .compute_cohension(network.raw = network.raw, mat = mat)
   }
 
 

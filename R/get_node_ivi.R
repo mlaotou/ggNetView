@@ -69,6 +69,9 @@
 #'   For interactive production work on a real network, raising this
 #'   to e.g. `4` or `parallel::detectCores() - 1` gives a meaningful
 #'   speed-up.
+#' @param overwrite Logical (default `TRUE`). If an `IVI` column already
+#'   exists on the input graph, controls whether to overwrite it (silent
+#'   overwrite when `TRUE`; warning + return unchanged when `FALSE`).
 #'
 #' @returns A `tbl_graph` whose node table is augmented with a single
 #'   new column, `IVI`. Other vertex / edge columns are preserved
@@ -123,7 +126,8 @@ get_node_ivi <- function(
   directed = FALSE,
   d = 3,
   scale = c("range", "z-scale", "none"),
-  ncores = 1L
+  ncores = 1L,
+  overwrite = TRUE
 ) {
 
   if (!inherits(graph_obj, "tbl_graph")) {
@@ -224,6 +228,18 @@ get_node_ivi <- function(
         length(ivi_aligned), igraph::vcount(ig)
       ), call. = FALSE)
     }
+  }
+
+  # Honour `overwrite = FALSE`: don't silently clobber an existing `IVI` column
+  # (mirrors the contract of get_node_centrality()).
+  existing_cols <- graph_obj %>%
+    tidygraph::activate(nodes) %>%
+    tidygraph::as_tibble() %>%
+    names()
+  if ("IVI" %in% existing_cols && !isTRUE(overwrite)) {
+    warning("Column `IVI` already exists on the graph; returning it unchanged ",
+            "(set `overwrite = TRUE` to replace).", call. = FALSE)
+    return(graph_obj)
   }
 
   graph_obj %>%

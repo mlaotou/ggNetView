@@ -85,7 +85,7 @@ update_graph_modules <- function(graph_obj,
     }
 
     map_df <- modules %>%
-      dplyr::select(all_of(c(old_col, new_col))) %>%
+      dplyr::select(dplyr::all_of(c(old_col, new_col))) %>%
       purrr::set_names(c("old_modularity", "new_modularity")) %>%
       dplyr::mutate(
         old_modularity = as.character(old_modularity),
@@ -132,49 +132,7 @@ update_graph_modules <- function(graph_obj,
     new_mod <- renamed
   }
 
-  if (is.null(levels)) {
-    level_tab <- sort(table(new_mod), decreasing = TRUE)
-    levels_final <- names(level_tab)
-  } else {
-    levels_final <- unique(as.character(levels))
-    missing_levels <- setdiff(unique(new_mod), levels_final)
-    levels_final <- c(levels_final, missing_levels)
-  }
-  levels_final <- c(setdiff(levels_final, "Others"), intersect("Others", levels_final))
-
-  new_mod_factor <- factor(new_mod, levels = levels_final, ordered = TRUE)
-
-  graph_obj_new <- graph_obj %>%
-    tidygraph::activate(nodes) %>%
-    tidygraph::mutate(
-      Modularity = new_mod_factor,
-      modularity2 = new_mod_factor,
-      modularity3 = as.character(new_mod_factor)
-    )
-
-  if ("modularity" %in% colnames(node_df)) {
-    graph_obj_new <- graph_obj_new %>%
-      tidygraph::activate(nodes) %>%
-      tidygraph::mutate(modularity = new_mod_factor)
-  }
-
-  if ("Degree" %in% colnames(node_df)) {
-    graph_obj_new <- graph_obj_new %>%
-      tidygraph::activate(nodes) %>%
-      tidygraph::arrange(Modularity, dplyr::desc(Degree))
-  } else {
-    graph_obj_new <- graph_obj_new %>%
-      tidygraph::activate(nodes) %>%
-      tidygraph::arrange(Modularity)
-  }
-
-  # Mark whether the user supplied an explicit `levels` argument so that
-  # downstream layout helpers can decide whether to honour the order.
-  graph_obj_new <- igraph::set_graph_attr(
-    graph_obj_new, ".modularity_user_ordered", user_supplied_levels
-  )
-
-  return(graph_obj_new)
+  return(.apply_module_relabel(graph_obj, new_mod, node_df, levels, user_supplied_levels))
 }
 
 
@@ -236,6 +194,27 @@ update_graph_modules2 <- function(graph_obj,
     new_mod[na_idx] <- "Others"
   }
 
+  return(.apply_module_relabel(graph_obj, new_mod, node_df, levels, user_supplied_levels))
+}
+
+
+#' Apply a recomputed module vector to a graph's module attributes.
+#'
+#' Shared tail of \code{update_graph_modules()} and
+#' \code{update_graph_modules2()}: builds the ordered factor (with "Others"
+#' pushed last), writes \code{Modularity}/\code{modularity2}/\code{modularity3}
+#' (and \code{modularity} if present), arranges nodes, and records the
+#' \code{.modularity_user_ordered} graph attribute.
+#'
+#' @param graph_obj The input \code{tbl_graph}.
+#' @param new_mod Character vector of new module labels, one per node.
+#' @param node_df The node tibble (used to detect optional columns).
+#' @param levels Optional explicit module order (\code{NULL} = order by size).
+#' @param user_supplied_levels Logical marker stored on the graph.
+#' @return The updated \code{tbl_graph}.
+#' @keywords internal
+#' @noRd
+.apply_module_relabel <- function(graph_obj, new_mod, node_df, levels, user_supplied_levels) {
   if (is.null(levels)) {
     level_tab <- sort(table(new_mod), decreasing = TRUE)
     levels_final <- names(level_tab)

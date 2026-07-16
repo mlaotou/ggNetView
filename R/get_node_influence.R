@@ -37,6 +37,9 @@
 #' @param drop_source Logical (default `TRUE`). Zero out the source
 #'   node(s)' own influence in the returned column so the ranking reflects
 #'   downstream spread only.
+#' @param overwrite Logical (default `TRUE`). If an `Influence` column
+#'   already exists on the input graph, controls whether to overwrite it
+#'   (silent overwrite when `TRUE`; warning + return unchanged when `FALSE`).
 #'
 #' @returns The input `tbl_graph` with one new node column, `Influence`
 #'   (signed when `signed = TRUE`). Larger magnitude = more strongly
@@ -69,7 +72,8 @@ get_node_influence <- function(
   delta       = 1,
   alpha       = 0.5,
   signed      = TRUE,
-  drop_source = TRUE
+  drop_source = TRUE,
+  overwrite   = TRUE
 ) {
 
   if (!inherits(graph_obj, "tbl_graph")) {
@@ -117,6 +121,18 @@ get_node_influence <- function(
   infl <- solve(diag(n) - a * Wn, s)
   names(infl) <- vnames
   if (isTRUE(drop_source)) infl[source] <- 0
+
+  # Honour `overwrite = FALSE`: don't silently clobber an existing `Influence`
+  # column (mirrors the contract of get_node_centrality()).
+  existing_cols <- graph_obj %>%
+    tidygraph::activate(nodes) %>%
+    tidygraph::as_tibble() %>%
+    names()
+  if ("Influence" %in% existing_cols && !isTRUE(overwrite)) {
+    warning("Column `Influence` already exists on the graph; returning it unchanged ",
+            "(set `overwrite = TRUE` to replace).", call. = FALSE)
+    return(graph_obj)
+  }
 
   graph_obj %>%
     tidygraph::activate(nodes) %>%

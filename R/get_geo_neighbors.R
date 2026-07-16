@@ -975,3 +975,42 @@ module_layout5 <- function(graph_obj,
   ))
 
 }
+
+
+#' @noRd
+module_layout_passthrough <- function(graph_obj,
+                                      layout,                # data.frame(x, y)
+                                      jitter = FALSE,
+                                      jitter_sd = 0.01) {
+  # A no-op module arranger. Self-arranging first-tier layouts (e.g.
+  # create_layout_circlepack) already place BOTH modules and nodes, so the
+  # module-arrangement stage must not run module_layout*/2/3/4/5 (which would
+  # re-arrange the modules and destroy the packing). This wrapper simply keeps
+  # the incoming coordinates and packages them into the standard ly1_1 list.
+  #
+  # Coordinates in `layout` MUST already be in graph_obj's node order (bind_cols
+  # below attaches them to node rows by position).
+  ly_final <- data.frame(x = layout$x, y = layout$y)
+
+  if (isTRUE(jitter)) {
+    ly_final <- ly_final %>%
+      dplyr::mutate(x = x + stats::rnorm(dplyr::n(), mean = 0, sd = jitter_sd),
+                    y = y + stats::rnorm(dplyr::n(), mean = 0, sd = jitter_sd))
+  }
+
+  graph_ly_final <- dplyr::bind_cols(
+    ly_final,
+    graph_obj %>%
+      tidygraph::activate(nodes) %>%
+      tidygraph::as_tibble()
+  ) %>%
+    dplyr::mutate(Modularity = droplevels(Modularity))
+
+  ggplot_data <- get_location(graph_ly_final, graph_obj)
+
+  return(list(layout = ly_final,
+              graph_obj = graph_obj,
+              graph_ly_final = graph_ly_final,
+              ggplot_data = ggplot_data
+  ))
+}

@@ -10,7 +10,8 @@ get_node_influence(
   delta = 1,
   alpha = 0.5,
   signed = TRUE,
-  drop_source = TRUE
+  drop_source = TRUE,
+  overwrite = TRUE
 )
 }
 \arguments{
@@ -33,6 +34,10 @@ influence). `FALSE` uses `|weight|` only.}
 \item{drop_source}{Logical (default `TRUE`). Zero out the source
 node(s)' own influence in the returned column so the ranking reflects
 downstream spread only.}
+
+\item{overwrite}{Logical (default `TRUE`). If an `Influence` column
+already exists on the input graph, controls whether to overwrite it
+(silent overwrite when `TRUE`; warning + return unchanged when `FALSE`).}
 }
 \value{
 The input `tbl_graph` with one new node column, `Influence`

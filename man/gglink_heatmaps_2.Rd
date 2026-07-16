@@ -18,6 +18,7 @@ gglink_heatmaps_2(
   mantel.method = c("mantel", "mantel.partial", "mantelhaen.test", "mantel.correlog"),
   mantel.method2 = c("pearson", "kendall", "spearman"),
   mantel.alternative = c("two.sided", "less", "greater"),
+  mantel.seed = 1115,
   drop_nonsig = FALSE,
   comparisons = TRUE,
   comparisons_groups = NULL,
@@ -110,6 +111,10 @@ argument. One of \code{"pearson"}, \code{"kendall"},
 
 \item{mantel.alternative}{Character. Same status as \code{mantel.method}
 -- accepted but not consumed.}
+
+\item{mantel.seed}{Integer (default \code{1115}). Seed forwarded to the
+Mantel helpers so the permutation p-values (and hence the significance
+stars / solid-vs-dashed links) are reproducible across runs.}
 
 \item{drop_nonsig}{Logical (default \code{FALSE}). If \code{TRUE},
 non-significant links (\code{Pvalue > sig_threshold}) are removed

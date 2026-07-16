@@ -13,7 +13,8 @@ mantel_pairwise(
   method = c("pearson", "spearman", "kendall"),
   alternative = c("two.sided", "less", "greater"),
   permutations = 999L,
-  na_omit = TRUE
+  na_omit = TRUE,
+  seed = NULL
 )
 
 mantel_between_blocks(
@@ -39,7 +40,8 @@ mantel_block_vs_col(
   spec_dist_method = "bray",
   env_dist_method = "euclidean",
   permutations = 999L,
-  na_omit = TRUE
+  na_omit = TRUE,
+  seed = NULL
 )
 }
 \arguments{
@@ -60,6 +62,8 @@ tested separately.}
 
 \item{na_omit}{If \code{TRUE}, drop incomplete cases jointly across
 \code{spec_df} and \code{env_df} before computing distances.}
+
+\item{seed}{Random seed for reproducibility.}
 
 \item{spec}{Data frame of species abundances.}
 
@@ -82,8 +86,6 @@ controlling variables (same rows as spec/env).}
 \item{env_dist_method}{Distance method for each env column
 (\code{vegan::vegdist}). Default \code{"euclidean"} is the standard
 choice for continuous env variables.}
-
-\item{seed}{Random seed for reproducibility.}
 
 \item{block_name}{Character (default \code{"block"}). Value placed in the
 \code{ID} column of the result, useful for tagging which block these

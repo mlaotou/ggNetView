@@ -15,6 +15,7 @@ ggNetView_multi_link(
   method = c("WGCNA", "SpiecEasi", "SPARCC", "cor"),
   cor.method = c("pearson", "kendall", "spearman"),
   proc = c("holm", "hochberg", "hommel", "bonferroni", "BH", "BY", "fdr", "none"),
+  sig_by = c("pvalue", "FDR"),
   module.method = c("Fast_greedy", "Walktrap", "Edge_betweenness", "Spinglass"),
   SpiecEasi.method = c("mb", "glasso"),
   sparcc_R = 20,
@@ -138,6 +139,15 @@ Correlation p-value adjustment methods.
 Options include:
 "holm", "hochberg", "hommel", "bonferroni",
 "BH", "BY", "fdr", and "none".}
+
+\item{sig_by}{Character (default \code{"pvalue"}). Which column decides
+whether a between-module comparison is kept (< 0.05): the raw
+\code{"pvalue"} (default; preserves historical behaviour) or the
+BH-adjusted \code{"FDR"} column. The \code{FDR} is Benjamini-Hochberg
+adjusted \emph{within each group-pair's} module-vs-module comparison grid
+(as computed by \code{compare_modules_by_overlap()}), not pooled globally
+across all group-pairs; use \code{"FDR"} to damp false positives from the
+many module comparisons made within a pair.}
 
 \item{module.method}{Character.
 Network community detection (module identification) method.

@@ -281,6 +281,8 @@ get_module_abundance <- function(otu_mat,
 #'   its own distance matrix when \code{relation_method = "mantel"}.
 #' @param permutations Integer (default \code{999L}). Number of
 #'   permutations passed to \code{vegan::mantel}.
+#' @param mantel.seed Integer (default \code{1115}). Seed forwarded to the
+#'   Mantel helpers so the permutation p-values are reproducible across runs.
 #'
 #' @section What gets analysed / drawn:
 #' Filters and selectors that decide what ends up on the plot: dropping
@@ -454,6 +456,7 @@ ggnetview_modularity_heatmaps <- function(
     spec_dist_method = "bray",
     env_dist_method = "euclidean",
     permutations = 999L,
+    mantel.seed = 1115,
     drop_nonsig = FALSE,
     layout = "gephi",
     layout.module = c("random", "adjacent", "order"),
@@ -589,7 +592,7 @@ ggnetview_modularity_heatmaps <- function(
         dplyr::mutate(p_signif = dplyr::case_when(
           Pvalue > 0.05 ~ "",
           Pvalue > 0.01 & Pvalue <= 0.05 ~ "*",
-          Pvalue < 0.01 & Pvalue >= 0.001 ~ "**",
+          Pvalue <= 0.01 & Pvalue >= 0.001 ~ "**",
           Pvalue < 0.001 ~ "***",
           TRUE ~ ""
         ))
@@ -650,7 +653,8 @@ ggnetview_modularity_heatmaps <- function(
             spec_dist_method = spec_dist_method,
             env_dist_method  = env_dist_method,
             permutations     = permutations,
-            na_omit          = TRUE
+            na_omit          = TRUE,
+            seed             = mantel.seed
           )
           if (base::nrow(mout) == 0L) next
           mout <- mout %>%
@@ -661,7 +665,7 @@ ggnetview_modularity_heatmaps <- function(
                 is.na(Pvalue) ~ "",
                 Pvalue > 0.05 ~ "",
                 Pvalue > 0.01 & Pvalue <= 0.05 ~ "*",
-                Pvalue < 0.01 & Pvalue >= 0.001 ~ "**",
+                Pvalue <= 0.01 & Pvalue >= 0.001 ~ "**",
                 Pvalue < 0.001 ~ "***",
                 TRUE ~ ""
               )
@@ -675,7 +679,8 @@ ggnetview_modularity_heatmaps <- function(
           env_df       = env_block_df,
           method       = mantel.method2,
           permutations = permutations,
-          na_omit      = TRUE
+          na_omit      = TRUE,
+          seed         = mantel.seed
         )
         if (base::nrow(mout) == 0L) next
         mout <- mout %>%
@@ -686,7 +691,7 @@ ggnetview_modularity_heatmaps <- function(
               is.na(Pvalue) ~ "",
               Pvalue > 0.05 ~ "",
               Pvalue > 0.01 & Pvalue <= 0.05 ~ "*",
-              Pvalue < 0.01 & Pvalue >= 0.001 ~ "**",
+              Pvalue <= 0.01 & Pvalue >= 0.001 ~ "**",
               Pvalue < 0.001 ~ "***",
               TRUE ~ ""
             )
@@ -742,7 +747,7 @@ ggnetview_modularity_heatmaps <- function(
       dplyr::mutate(p_signif = dplyr::case_when(
         Pvalue > 0.05 ~ "",
         Pvalue > 0.01 & Pvalue <= 0.05 ~ "*",
-        Pvalue < 0.01 & Pvalue >= 0.001 ~ "**",
+        Pvalue <= 0.01 & Pvalue >= 0.001 ~ "**",
         Pvalue < 0.001 ~ "***",
         TRUE ~ ""
       ))

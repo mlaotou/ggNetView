@@ -55,7 +55,7 @@ utils::globalVariables(c(
   "modularity", "Modularity", "modularity2", "modularity3", "modularity4",
   "Module",
   "name", "name_from", "name_to", "new_modularity",
-  "node", "node_size", "node1.node", "nodes",
+  "node", "node_size", "node_weight", "node1.node", "nodes",
   "old_modularity", "ONTOLOGY",
   "p_end1", "p_signif", "p_start1", "p_value", "pad",
   "pvalue", "Pvalue",

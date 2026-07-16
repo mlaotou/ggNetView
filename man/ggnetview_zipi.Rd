@@ -36,7 +36,11 @@ Non-zero entries are treated as edges. \code{NA}/\code{Inf} are replaced with 0.
 Column name in \code{nodes_bulk} containing module labels.}
 
 \item{degree_col}{Character.
-Column name in \code{nodes_bulk} containing node degree (number of edges).}
+Column name in \code{nodes_bulk} containing node degree (number of edges).
+Note: this column is only \strong{validated} (it must exist and be free of
+\code{NA}). The participation coefficient (Pi) derives each node's total
+degree from \code{z_bulk_mat} directly, so the values in \code{degree_col}
+do not enter the Zi/Pi computation.}
 
 \item{zi_threshold}{Numeric (default = 2.5).
 Threshold for within-module connectivity (Zi) in role classification.}

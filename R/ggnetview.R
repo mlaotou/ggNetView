@@ -486,7 +486,21 @@ ggNetView <- function(graph_obj,
 
   # get ly1_1
 
-  if (layout.module == "random") {
+  ly1_1 <- NULL
+
+  # `circlepack` is a self-arranging layout: it already packs modules and places
+  # nodes, so it bypasses the module_layout*() arrangers (which would re-arrange
+  # the modules) and goes through a no-op passthrough that just wraps the
+  # coordinates. Guarding the branches below with `is.null(ly1_1)` leaves every
+  # other layout's dispatch byte-for-byte unchanged.
+  if (func_name == "create_layout_circlepack") {
+    ly1_1 <- module_layout_passthrough(graph_obj,
+                                       layout = ly1,
+                                       jitter = jitter,
+                                       jitter_sd = jitter_sd)
+  }
+
+  if (is.null(ly1_1) && layout.module == "random") {
     ly1_1 <- module_layout(graph_obj,
                            layout = ly1,
                            center = center,
@@ -498,7 +512,7 @@ ggNetView <- function(graph_obj,
     )
   }
 
-  if (layout.module == "adjacent") {
+  if (is.null(ly1_1) && layout.module == "adjacent") {
     k_nn_try <- k_nn
     k_nn_cap <- max(1, nrow(ly1) - 1)
     ly1_1 <- NULL
@@ -540,7 +554,7 @@ ggNetView <- function(graph_obj,
     }
   }
 
-  if (layout.module == "order" & func_name != "create_layout_multirings") {
+  if (is.null(ly1_1) && layout.module == "order" & func_name != "create_layout_multirings") {
     ly1_1 <- module_layout4(graph_obj,
                             layout = ly1,
                             center = center,
@@ -553,7 +567,7 @@ ggNetView <- function(graph_obj,
     )
   }
 
-  if (layout.module == "order" & func_name == "create_layout_multirings") {
+  if (is.null(ly1_1) && layout.module == "order" & func_name == "create_layout_multirings") {
     ly1_1 <- module_layout5(graph_obj,
                             layout = ly1,
                             center = center,

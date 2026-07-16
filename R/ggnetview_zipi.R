@@ -16,6 +16,10 @@
 #'   Column name in \code{nodes_bulk} containing module labels.
 #' @param degree_col Character.
 #'   Column name in \code{nodes_bulk} containing node degree (number of edges).
+#'   Note: this column is only \strong{validated} (it must exist and be free of
+#'   \code{NA}). The participation coefficient (Pi) derives each node's total
+#'   degree from \code{z_bulk_mat} directly, so the values in \code{degree_col}
+#'   do not enter the Zi/Pi computation.
 #'
 #' @param zi_threshold Numeric (default = 2.5).
 #'   Threshold for within-module connectivity (Zi) in role classification.
@@ -201,11 +205,17 @@ ggnetview_zipi <- function(nodes_bulk, z_bulk_mat, modularity_col, degree_col,
   kis_mat[kis_mat < 0] <- 0
 
   sum_kis2 <- rowSums(kis_mat^2)
-  k_tot    <- as.numeric(deg)
+  # Participation coefficient denominator must be the SAME total degree the
+  # per-module degrees (kis_mat) sum to, otherwise sum_kis2 / k_tot^2 can exceed
+  # 1 and yield a negative Pi. `deg` (from degree_col) may be a weighted degree
+  # or come from a differently-filtered graph, so derive k_tot from the same
+  # adjacency instead: rowSums(kis_mat) == rowSums(A) - 1 (diag(A) == 1).
+  k_tot    <- rowSums(kis_mat)
   P <- numeric(length(k_tot))
   P[k_tot == 0] <- 0
   nz <- (k_tot > 0)
   P[nz] <- 1 - (sum_kis2[nz] / (k_tot[nz]^2))
+  P <- pmin(pmax(P, 0), 1)   # guard against tiny numeric overshoot outside [0, 1]
   names(P) <- ids
 
 

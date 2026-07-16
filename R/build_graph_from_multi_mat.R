@@ -137,6 +137,9 @@ build_graph_from_multi_mat <- function(mat1,
 
 
   module.method <- match.arg(module.method)
+  # honour the documented `seed`: community detection (e.g. Spinglass) is
+  # stochastic, so seed before it to keep module assignment reproducible.
+  set.seed(seed)
   membership_vec <- switch(
     module.method,
     Fast_greedy = igraph::membership(igraph::cluster_fast_greedy(g)),

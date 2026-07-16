@@ -242,6 +242,9 @@
 #'   \code{"spearman"}.
 #' @param permutations Integer (default \code{999L}). Number of permutations
 #'   passed to \code{vegan::mantel}.
+#' @param mantel.seed Integer (default \code{1115}). Seed forwarded to the
+#'   Mantel helpers so the permutation p-values (and hence the significance
+#'   stars / solid-vs-dashed links) are reproducible across runs.
 #' @param mantel.method Character. Reserved for future use -- currently
 #'   accepted for backwards compatibility but \strong{not} consumed by the
 #'   active code path (only \code{vegan::mantel} via \code{mantel.method2}
@@ -503,6 +506,7 @@ gglink_heatmaps <- function(
     env_dist_method = "euclidean",
     mantel_kind = c("block_vs_col", "col_vs_col"),
     permutations = 999L,
+    mantel.seed = 1115,
     spec_collapse = FALSE,
     drop_nonsig = FALSE,
     comparisons = TRUE,
@@ -551,6 +555,26 @@ gglink_heatmaps <- function(
   mantel.method   <- match.arg(mantel.method)
   mantel.method2  <- match.arg(mantel.method2)
   mantel.alternative <- match.arg(mantel.alternative)
+
+  # spec and env are consumed row-for-row (correlation and Mantel index samples
+  # by position), so misaligned rows silently produce wrong results. Guard it:
+  # unequal sample counts is a hard error; same count but mismatched row names
+  # is a loud warning telling the caller to pre-align by sample ID.
+  if (nrow(as.data.frame(spec)) != nrow(as.data.frame(env))) {
+    stop("`spec` and `env` must have the same number of rows (samples): ",
+         "spec has ", nrow(as.data.frame(spec)), ", env has ",
+         nrow(as.data.frame(env)), ". Align them to the same samples first.",
+         call. = FALSE)
+  }
+  .spec_rn <- rownames(as.data.frame(spec))
+  .env_rn  <- rownames(as.data.frame(env))
+  if (!is.null(.spec_rn) && !is.null(.env_rn) && !identical(.spec_rn, .env_rn)) {
+    warning("`spec` and `env` row names are not identical / not in the same order. ",
+            "gglink_heatmaps() matches samples by ROW POSITION, not by name, so ",
+            "results assume row i of `spec` and row i of `env` are the same sample. ",
+            "Reorder both to a common sample order before calling.", call. = FALSE)
+  }
+
   if (!is.character(spec_dist_method) || length(spec_dist_method) != 1L || !nzchar(spec_dist_method)) {
     stop("`spec_dist_method` must be a single non-empty character string (passed to `vegan::vegdist`).", call. = FALSE)
   }
@@ -576,6 +600,14 @@ gglink_heatmaps <- function(
             "for a one-line-per-block visualisation.")
   }
   orientation     <- match.arg(orientation, several.ok = TRUE)
+  # each env block maps to exactly one quadrant orientation (env_select[[i]] ->
+  # orientation[i]); a mismatch otherwise surfaces later as an obscure length
+  # error or silently drops/NA-fills env blocks.
+  if (length(orientation) != length(env_select)) {
+    stop(sprintf(
+      "`orientation` (length %d) must have the same length as `env_select` (length %d): each env block maps element-wise to one quadrant orientation.",
+      length(orientation), length(env_select)), call. = FALSE)
+  }
   group_layout    <- match.arg(group_layout)
   # Normalise angle inputs to radians. Both `group_angle` and `group_arc_angle`
   # accept radians (|x| <= 2*pi) or degrees (|x| > 2*pi); use `deg(x)` to be
@@ -1031,7 +1063,7 @@ gglink_heatmaps <- function(
       j <- which(spec_block_names == spec_blk)
       p <- which(env_block_names == env_blk)
       if (length(j) != 1 || length(p) != 1) next
-      cor_env_list_tmp <- psych::corr.test(spec_list[[j]], env_list[[p]])
+      cor_env_list_tmp <- psych::corr.test(spec_list[[j]], env_list[[p]], use = cor.use, method = cor.method)
         cor_env_list_tmp_r <- cor_env_list_tmp$r %>%
           as.data.frame() %>%
           tibble::rownames_to_column(var = "ID") %>%
@@ -1090,7 +1122,8 @@ gglink_heatmaps <- function(
           spec_dist_method = spec_dist_method,
           env_dist_method  = env_dist_method,
           permutations     = permutations,
-          na_omit          = TRUE
+          na_omit          = TRUE,
+          seed             = mantel.seed
         )
       } else {
         mout <- mantel_pairwise(
@@ -1098,7 +1131,8 @@ gglink_heatmaps <- function(
           env_df       = env_list[[p]],
           method       = mantel.method2,
           permutations = permutations,
-          na_omit      = TRUE
+          na_omit      = TRUE,
+          seed         = mantel.seed
         )
       }
 

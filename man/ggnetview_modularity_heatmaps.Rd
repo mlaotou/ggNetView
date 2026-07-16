@@ -19,6 +19,7 @@ ggnetview_modularity_heatmaps(
   spec_dist_method = "bray",
   env_dist_method = "euclidean",
   permutations = 999L,
+  mantel.seed = 1115,
   drop_nonsig = FALSE,
   layout = "gephi",
   layout.module = c("random", "adjacent", "order"),
@@ -105,6 +106,9 @@ its own distance matrix when \code{relation_method = "mantel"}.}
 
 \item{permutations}{Integer (default \code{999L}). Number of
 permutations passed to \code{vegan::mantel}.}
+
+\item{mantel.seed}{Integer (default \code{1115}). Seed forwarded to the
+Mantel helpers so the permutation p-values are reproducible across runs.}
 
 \item{drop_nonsig}{Logical (default \code{FALSE}). If \code{TRUE},
 non-significant links (p > 0.05) are removed from the plots; the

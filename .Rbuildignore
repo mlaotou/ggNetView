@@ -5,6 +5,7 @@
 ^cran-comments\.md$
 ^README\.html$
 ^\.omc$
+^\.claude$
 ^cleanup$
 ^ggNetView\.Rcheck$
 ^README\.Rmd$

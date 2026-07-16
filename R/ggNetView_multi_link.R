@@ -38,6 +38,14 @@
 #' Options include:
 #' "holm", "hochberg", "hommel", "bonferroni",
 #' "BH", "BY", "fdr", and "none".
+#' @param sig_by Character (default \code{"pvalue"}). Which column decides
+#'   whether a between-module comparison is kept (< 0.05): the raw
+#'   \code{"pvalue"} (default; preserves historical behaviour) or the
+#'   BH-adjusted \code{"FDR"} column. The \code{FDR} is Benjamini-Hochberg
+#'   adjusted \emph{within each group-pair's} module-vs-module comparison grid
+#'   (as computed by \code{compare_modules_by_overlap()}), not pooled globally
+#'   across all group-pairs; use \code{"FDR"} to damp false positives from the
+#'   many module comparisons made within a pair.
 #' @param module.method Character.
 #' Network community detection (module identification) method.
 #' Options include "Fast_greedy", "Walktrap", "Edge_betweenness", and "Spinglass".
@@ -296,6 +304,7 @@ ggNetView_multi_link <- function(mat = NULL,
                                  method = c("WGCNA", "SpiecEasi", "SPARCC", "cor"),
                                  cor.method = c("pearson", "kendall", "spearman"),
                                  proc = c("holm", "hochberg", "hommel", "bonferroni", "BH", "BY", "fdr", "none"),
+                                 sig_by = c("pvalue", "FDR"),
                                  module.method = c("Fast_greedy", "Walktrap", "Edge_betweenness", "Spinglass"),
                                  SpiecEasi.method = c("mb", "glasso"),
                                  sparcc_R = 20,
@@ -375,6 +384,7 @@ ggNetView_multi_link <- function(mat = NULL,
                                  seed = 1115
 ){
   method <- match.arg(method)
+  sig_by <- match.arg(sig_by)
 
 
   color_v <- c('#1f78b4', '#e7298a', '#41ab5d', '#807dba',
@@ -891,7 +901,14 @@ ggNetView_multi_link <- function(mat = NULL,
         dplyr::mutate(Group = stringr::str_c(compare_matrix[1, i],
                                              "to",
                                              compare_matrix[2, i],
-                                             sep = "_"))
+                                             sep = "_"),
+                      # set GroupA/GroupB directly from the comparison pair
+                      # instead of splitting `Group` back apart on "_" -- group
+                      # names supplied via `graph_obj_list` may themselves
+                      # contain underscores, which made tidyr::separate() mis-parse
+                      # them into the wrong GroupA/GroupB.
+                      GroupA = compare_matrix[1, i],
+                      GroupB = compare_matrix[2, i])
 
       compare_out_list[[stringr::str_c(compare_matrix[1, i],
                                        "to",
@@ -899,10 +916,12 @@ ggNetView_multi_link <- function(mat = NULL,
                                        sep = "_")]] <- tmp
     }
 
+    # significance filter: `sig_by = "pvalue"` (default, unchanged behaviour) uses
+    # the raw p-value; `sig_by = "FDR"` uses the BH-adjusted column from
+    # compare_modules_info(), which is the statistically appropriate choice when
+    # many module pairs are tested.
     Module_information <- do.call(rbind, compare_out_list) %>%
-      dplyr::filter(pvalue < 0.05) %>%
-      tidyr::separate(col = Group, sep = "_", into = c("GroupA", "to", "GroupB"), remove = FALSE) %>%
-      dplyr::select(-to)
+      dplyr::filter(.data[[sig_by]] < 0.05)
   } else {
     Module_information <- tibble::tibble(
       modA = character(),
@@ -1733,7 +1752,10 @@ ggNetView_multi_link <- function(mat = NULL,
     module_targets <- character(0)
     if (link_level %in% c("module", "nodeinmodule", "module&node") && nrow(Module_information_plot) > 0) {
       module_targets <- Module_information_plot %>%
-        dplyr::filter(stringr::str_detect(Group, pattern = names(graph_list)[index])) %>%
+        # match by exact GroupA/GroupB equality only; the previous
+        # str_detect(Group, ...) treated the group name as a regex and was
+        # redundant with this line -- group names containing regex metacharacters
+        # (or being substrings of each other) would error or mis-match.
         dplyr::filter(GroupA == names(graph_list)[index] | GroupB == names(graph_list)[index]) %>%
         dplyr::mutate(mod_target = dplyr::case_when(
           GroupA == names(graph_list)[index] ~ modA,

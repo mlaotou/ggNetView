@@ -44,13 +44,18 @@ arma::mat clr_matrix(const arma::mat& data) {
   return out;
 }
 
-// Dirichlet: draw from Gamma(alpha_i, 1) and normalize
+// Dirichlet: draw from Gamma(alpha_i, 1) and normalize.
+// NOTE: the SparCC pseudocount (+1) is applied by the caller
+// (norm_diric_row builds alpha = counts + 1). This sampler must therefore
+// use the shape verbatim -- adding +1 here again would double the pseudocount
+// (Gamma(count+2) instead of the intended Gamma(count+1)) and bias every
+// composition toward uniform, most visibly for sparse (low-count) taxa.
 arma::vec rdiric_one(const arma::vec& alpha) {
   int n = alpha.n_elem;
   arma::vec x(n);
   double s = 0.0;
   for (int i = 0; i < n; i++) {
-    x(i) = R::rgamma(alpha(i) + 1.0, 1.0);
+    x(i) = R::rgamma(alpha(i), 1.0);
     s += x(i);
   }
   return x / s;

@@ -22,27 +22,27 @@ get_subgraph <- function(graph_obj, select_module = NULL){
   # get obj
   obj <- graph_obj
 
-  # get module name
-  module_name <- obj %>%
+  node_df <- obj %>%
     tidygraph::activate(nodes) %>%
-    tidygraph::as_tibble() %>%
-    dplyr::pull(Modularity) %>%
-    levels()
+    tidygraph::as_tibble()
+
+  # module labels derived from the actual split groups, so this works whether
+  # `Modularity` is a factor OR a plain character column. (The old code used
+  # levels(), which returns NULL for a character vector and then silently
+  # produced an empty subgraph list.)
+  module_splits <- dplyr::group_split(node_df, Modularity)
+  module_name <- vapply(module_splits,
+                        function(g) as.character(g$Modularity[[1]]),
+                        character(1))
 
   # get module list
-  module_list <- purrr::map(obj %>%
-                              tidygraph::activate(nodes) %>%
-                              tidygraph::as_tibble() %>%
-                              dplyr::group_split(Modularity),
-                            ~.x)
+  module_list <- module_splits
   names(module_list) <- module_name
 
-  # get module ID
-  id_list <- purrr::map(obj %>%
-                          tidygraph::activate(nodes) %>%
-                          tidygraph::as_tibble() %>%
-                          dplyr::group_split(Modularity),
-                        ~.x[[1]])
+  # get module ID: prefer the explicit `name` column instead of assuming the
+  # first column is the node identifier.
+  id_list <- purrr::map(module_splits,
+                        function(g) if ("name" %in% names(g)) g[["name"]] else g[[1]])
   names(id_list) <- module_name
 
   # create sub_graph object
@@ -50,8 +50,10 @@ get_subgraph <- function(graph_obj, select_module = NULL){
 
   for (i in module_name) {
 
-    sub_graph[[i]] <- igraph::subgraph(tidygraph::as.igraph(obj),
-                                       id_list[[i]]) %>%
+    # induced_subgraph() replaces the soft-deprecated igraph::subgraph();
+    # both select vertices by name/id with identical semantics.
+    sub_graph[[i]] <- igraph::induced_subgraph(tidygraph::as.igraph(obj),
+                                               id_list[[i]]) %>%
       tidygraph::as_tbl_graph()
 
   }

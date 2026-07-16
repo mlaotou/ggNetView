@@ -11,6 +11,9 @@
 #' @param alternative Alternative hypothesis for the test.
 #' @param permutations Number of permutations for significance testing.
 #' @param na_omit If \code{TRUE}, remove incomplete cases before computing distances.
+#' @param seed Optional integer. When supplied, the permutation stream for each
+#'   tested pair/column is seeded (as \code{seed + i}) so the Mantel p-values are
+#'   reproducible across runs. \code{NULL} (default) leaves the RNG untouched.
 #' @param spec_dist_method Distance method for species matrix when using
 #'   \code{mantel_between_blocks}. One of \code{"euclidean"}, \code{"bray"},
 #'   \code{"manhattan"}, etc. (see \code{vegan::vegdist}).
@@ -52,9 +55,21 @@ mantel_pairwise <- function(spec_df,
                             method = c("pearson", "spearman", "kendall"),
                             alternative = c("two.sided", "less", "greater"),
                             permutations = 999L,
-                            na_omit = TRUE) {
+                            na_omit = TRUE,
+                            seed = NULL) {
   method <- match.arg(method)
   alternative <- match.arg(alternative)
+  # `seed` makes the permutation p-values reproducible, but set.seed() mutates
+  # the caller's global RNG. Stash and restore it so seeding stays local to this
+  # call and does not perturb the caller's random stream.
+  if (!is.null(seed)) {
+    if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) {
+      .oldseed <- get(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+      on.exit(assign(".Random.seed", .oldseed, envir = .GlobalEnv), add = TRUE)
+    } else {
+      on.exit(suppressWarnings(rm(".Random.seed", envir = .GlobalEnv)), add = TRUE)
+    }
+  }
   spec_df <- as.data.frame(spec_df)
   env_df <- as.data.frame(env_df)
 
@@ -79,6 +94,9 @@ mantel_pairwise <- function(spec_df,
     if (length(s) < 3L) next
     d_s <- stats::dist(as.matrix(s))
     d_e <- stats::dist(as.matrix(e))
+    # seed per pair so the permutation p-value is reproducible without making
+    # every pair share the same permutation stream.
+    if (!is.null(seed)) set.seed(seed + i)
     m <- vegan::mantel(
       d_s, d_e,
       method = method,
@@ -133,6 +151,15 @@ mantel_between_blocks <- function(spec,
                                   seed = NULL) {
   test_type <- match.arg(test_type)
   method <- match.arg(method)
+  # keep set.seed() local to this call (see note in mantel_pairwise()).
+  if (!is.null(seed)) {
+    if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) {
+      .oldseed <- get(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+      on.exit(assign(".Random.seed", .oldseed, envir = .GlobalEnv), add = TRUE)
+    } else {
+      on.exit(suppressWarnings(rm(".Random.seed", envir = .GlobalEnv)), add = TRUE)
+    }
+  }
   spec <- as.data.frame(spec)
   env <- as.data.frame(env)
 
@@ -273,8 +300,18 @@ mantel_block_vs_col <- function(spec_df,
                                 spec_dist_method = "bray",
                                 env_dist_method = "euclidean",
                                 permutations = 999L,
-                                na_omit = TRUE) {
+                                na_omit = TRUE,
+                                seed = NULL) {
   method <- match.arg(method)
+  # keep set.seed() local to this call (see note in mantel_pairwise()).
+  if (!is.null(seed)) {
+    if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) {
+      .oldseed <- get(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+      on.exit(assign(".Random.seed", .oldseed, envir = .GlobalEnv), add = TRUE)
+    } else {
+      on.exit(suppressWarnings(rm(".Random.seed", envir = .GlobalEnv)), add = TRUE)
+    }
+  }
   spec_df <- as.data.frame(spec_df)
   env_df  <- as.data.frame(env_df)
 
@@ -308,6 +345,8 @@ mantel_block_vs_col <- function(spec_df,
       error = function(e) NULL
     )
     if (is.null(d_env)) next
+    # seed per env column so the permutation p-value is reproducible.
+    if (!is.null(seed)) set.seed(seed + k)
     m <- vegan::mantel(
       d_spec, d_env,
       method = method,

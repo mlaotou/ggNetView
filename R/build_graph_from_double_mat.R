@@ -101,6 +101,9 @@ build_graph_from_double_mat <- function(mat1,
   igraph::E(g)$corr_direction <- ifelse(igraph::E(g)$correlation > 0, "Positive", "Negative")
 
 
+  # honour the documented `seed`: community detection (e.g. Spinglass) is
+  # stochastic, so seed before it to keep module assignment reproducible.
+  set.seed(seed)
   membership_vec <- switch(
     module.method,
     Fast_greedy = igraph::membership(igraph::cluster_fast_greedy(g)),

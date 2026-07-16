@@ -95,6 +95,16 @@ build_graph_from_double_mat_with_module <- function(mat1,
 
 
 
+  # this builder takes pre-computed modules: `node_annotation` MUST carry a
+  # `Modularity` column. Fail loudly here rather than letting the downstream
+  # factor()/table() calls emit an obscure length/recycling error.
+  if (is.null(igraph::vertex_attr(g, "Modularity"))) {
+    stop("`build_graph_from_double_mat_with_module()` requires a `Modularity` ",
+         "column in `node_annotation` (one module label per node). Provide it, ",
+         "or use `build_graph_from_double_mat()` to detect modules automatically.",
+         call. = FALSE)
+  }
+
   # igraph::V(g)$modularity  <- membership_vec
   igraph::V(g)$modularity2 <- as.character(igraph::V(g)$Modularity)
 
@@ -122,10 +132,12 @@ build_graph_from_double_mat_with_module <- function(mat1,
   factor_levels <- c(setdiff(factor_levels, "Others"), "Others")
 
   graph_obj <- tidygraph::as_tbl_graph(g) %>%
-    tidygraph::mutate(Modularity = factor(Modularity, levels = factor_levels, ordered = TRUE),
-                      modularity2 = factor(modularity2, levels = factor_levels, ordered = TRUE),
-                      modularity3 = as.character(modularity2),
+    tidygraph::mutate(modularity2 = factor(modularity2, levels = factor_levels, ordered = TRUE),
+                      # Modularity mirrors the (Others-collapsed) modularity2. The
+                      # previous `Modularity = factor(Modularity, ...)` here was dead
+                      # code -- it was overwritten by this line in the same mutate().
                       Modularity = modularity2,
+                      modularity3 = as.character(modularity2),
                       Degree = tidygraph::centrality_degree(mode = "out"),
                       Segree = tidygraph::centrality_degree(mode = "out"),
                       Strength = tidygraph::centrality_degree(weights = weight)

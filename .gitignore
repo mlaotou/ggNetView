@@ -12,5 +12,6 @@ src/*.so
 ..Rcheck
 .RDataTmp
 .RDataTmp1
-# docs
-docs
+# docs (generated pkgdown site) — but keep the development history tracked
+docs/*
+!docs/DEVELOPMENT_HISTORY.md

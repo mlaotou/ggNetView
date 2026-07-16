@@ -11,7 +11,8 @@ get_node_ivi(
   directed = FALSE,
   d = 3,
   scale = c("range", "z-scale", "none"),
-  ncores = 1L
+  ncores = 1L,
+  overwrite = TRUE
 )
 }
 \arguments{
@@ -63,6 +64,10 @@ simultaneous processes spawned" / "invalid connection" errors).
 For interactive production work on a real network, raising this
 to e.g. `4` or `parallel::detectCores() - 1` gives a meaningful
 speed-up.}
+
+\item{overwrite}{Logical (default `TRUE`). If an `IVI` column already
+exists on the input graph, controls whether to overwrite it (silent
+overwrite when `TRUE`; warning + return unchanged when `FALSE`).}
 }
 \value{
 A `tbl_graph` whose node table is augmented with a single

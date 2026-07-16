@@ -22,6 +22,7 @@ gglink_heatmaps(
   env_dist_method = "euclidean",
   mantel_kind = c("block_vs_col", "col_vs_col"),
   permutations = 999L,
+  mantel.seed = 1115,
   spec_collapse = FALSE,
   drop_nonsig = FALSE,
   comparisons = TRUE,
@@ -139,6 +140,10 @@ in \code{\link{ggnetview_modularity_heatmaps}}.}
 
 \item{permutations}{Integer (default \code{999L}). Number of permutations
 passed to \code{vegan::mantel}.}
+
+\item{mantel.seed}{Integer (default \code{1115}). Seed forwarded to the
+Mantel helpers so the permutation p-values (and hence the significance
+stars / solid-vs-dashed links) are reproducible across runs.}
 
 \item{spec_collapse}{Logical (default \code{FALSE}). If \code{TRUE}, each
 block is rendered as ONE labelled point at its anchor position; the

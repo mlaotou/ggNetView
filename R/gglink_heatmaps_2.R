@@ -38,6 +38,7 @@ gglink_heatmaps_2 <- function(
     mantel.method = c("mantel", "mantel.partial", "mantelhaen.test", "mantel.correlog"),
     mantel.method2 = c("pearson", "kendall", "spearman"),
     mantel.alternative = c("two.sided", "less", "greater"),
+    mantel.seed = 1115,
     drop_nonsig = FALSE,
     comparisons = TRUE,
     comparisons_groups = NULL,
@@ -78,6 +79,36 @@ gglink_heatmaps_2 <- function(
   mantel.method2  <- match.arg(mantel.method2)
   mantel.alternative <- match.arg(mantel.alternative)
   orientation     <- match.arg(orientation, several.ok = TRUE)
+
+  # spec and env are consumed row-for-row (correlation and Mantel index samples
+  # by position), so misaligned rows silently produce wrong results. Guard it:
+  # unequal sample counts is a hard error; same count but mismatched row names
+  # is a loud warning telling the caller to pre-align by sample ID. (Mirrors the
+  # guard in gglink_heatmaps().)
+  if (nrow(as.data.frame(spec)) != nrow(as.data.frame(env))) {
+    stop("`spec` and `env` must have the same number of rows (samples): ",
+         "spec has ", nrow(as.data.frame(spec)), ", env has ",
+         nrow(as.data.frame(env)), ". Align them to the same samples first.",
+         call. = FALSE)
+  }
+  .spec_rn <- rownames(as.data.frame(spec))
+  .env_rn  <- rownames(as.data.frame(env))
+  if (!is.null(.spec_rn) && !is.null(.env_rn) && !identical(.spec_rn, .env_rn)) {
+    warning("`spec` and `env` row names are not identical / not in the same order. ",
+            "gglink_heatmaps_2() matches samples by ROW POSITION, not by name, so ",
+            "results assume row i of `spec` and row i of `env` are the same sample. ",
+            "Reorder both to a common sample order before calling.", call. = FALSE)
+  }
+
+  # each env block maps to exactly one quadrant orientation (env_select[[i]] ->
+  # orientation[i]); a mismatch otherwise surfaces later as an obscure
+  # `setNames()` length error or silently drops/NA-fills env blocks.
+  if (length(orientation) != length(env_select)) {
+    stop(sprintf(
+      "`orientation` (length %d) must have the same length as `env_select` (length %d): each env block maps element-wise to one quadrant orientation.",
+      length(orientation), length(env_select)), call. = FALSE)
+  }
+
   group_layout    <- match.arg(group_layout)
   anchor_dist     <- as.numeric(anchor_dist)
   if (length(anchor_dist) != 1 || is.na(anchor_dist) || anchor_dist < 0) {
@@ -404,7 +435,7 @@ gglink_heatmaps_2 <- function(
       j <- which(spec_block_names == spec_blk)
       p <- which(env_block_names == env_blk)
       if (length(j) != 1 || length(p) != 1) next
-      cor_env_list_tmp <- psych::corr.test(spec_list[[j]], env_list[[p]])
+      cor_env_list_tmp <- psych::corr.test(spec_list[[j]], env_list[[p]], use = cor.use, method = cor.method)
         cor_env_list_tmp_r <- cor_env_list_tmp$r %>%
           as.data.frame() %>%
           tibble::rownames_to_column(var = "ID") %>%
@@ -448,7 +479,8 @@ gglink_heatmaps_2 <- function(
         env_df = env_list[[p]],
         method = mantel.method2,
         permutations = 999L,
-        na_omit = TRUE
+        na_omit = TRUE,
+        seed = mantel.seed
       )
       mout <- mout %>%
         dplyr::mutate(

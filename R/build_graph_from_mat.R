@@ -167,7 +167,7 @@ build_graph_from_mat <- function(mat,
     # R and pvalue
     occor.r <- occor$cor
     diag(occor.r) <- 0
-    occor.r[occor.p > p.threshold | abs(occor.r) < r.threshold] = 0
+    occor.r[is.na(occor.p) | is.na(occor.r) | occor.p > p.threshold | abs(occor.r) < r.threshold] = 0
     occor.r[is.na(occor.r)]=0
 
     # create igraph object
@@ -215,7 +215,7 @@ build_graph_from_mat <- function(mat,
     # R and pvalue
     occor.r <- occor$r
     diag(occor.r) <- 0
-    occor.r[occor.p > p.threshold | abs(occor.r) < r.threshold] = 0
+    occor.r[is.na(occor.p) | is.na(occor.r) | occor.p > p.threshold | abs(occor.r) < r.threshold] = 0
     occor.r[is.na(occor.r)]=0
 
     # create igraph object
