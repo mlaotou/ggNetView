@@ -2,6 +2,26 @@
 
 ## Changelog (newest first)
 
+### 2026-09-24 — Document module-outline tuning in the README
+
+- **Type**: docs
+- **Motivation**: On the user's food-web data, the restored spline outline
+  still looked worse than their 2026-03-25 figure. Rendering that figure's data
+  with the 2026-03 build (`ff8f669`) and with HEAD showed the outline algorithm
+  is identical. The difference came from arguments:
+  `module_outline_expand = 1.25` (was 1.1) magnifies small dents, the default
+  line is now solid width 1 (was dashed 1.25), and the legacy `color = pal`
+  now also sets `edge_color_values`.
+- **What**: README.Rmd / README.md gain a "tune the module outline" note after
+  the `p2` example, covering `module_outline_method`, `_q`, `_expand`,
+  `_linetype` and `_width`. The misleading "outer hull/line" comments now say
+  "smooth outline". No code changes. The gephi ring-offset precedence fix
+  (which moves where modules sit versus 2026-03) is kept on purpose.
+- **Impact**: Documentation only; README figures were not re-rendered.
+- **Verification**: `R CMD check --no-manual --ignore-vignettes` on a clean
+  copy of the tree; user's P1 script re-rendered with the documented
+  arguments and compared visually with `p_network.pdf`.
+
 ### 2026-09-24 — Restore the smooth-spline module outline (`module_outline_method`)
 
 - **Type**: feat

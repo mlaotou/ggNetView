@@ -181,7 +181,7 @@ p2 <- ggNetView(
   edge_color = "corr_direction", # colour edges by correlation sign
   shrink = 0.9,                 # shrink layout inward (smaller = more compact)
   edge_alpha = 0.2,             # edge transparency
-  module_outline = T,           # draw an outer hull/line around each module
+  module_outline = T,           # draw a smooth outline around each module
   module_label = T              # show node labels
 )
 
@@ -196,6 +196,26 @@ ggsave(file = "Output/p2.pdf",
        width = 10)
 ```
 
+
+> Tune the module outline. `module_outline_method = "spline"` (default)
+> draws one rounded blob per module; `"kde"` draws a density contour instead.
+> `module_outline_q` sets how many nodes the outline covers, and
+> `module_outline_expand` scales it from the module centre. Keep it near
+> 1.0-1.1, because larger values also magnify small dents in the outline.
+
+```
+ggNetView(
+  graph_obj = obj,
+  layout = "gephi",
+  layout_module = "adjacent",
+  module_outline = TRUE,
+  module_outline_method = "spline", # "spline" (rounded) or "kde" (density contour)
+  module_outline_q = 0.9,           # share of nodes the outline covers
+  module_outline_expand = 1.1,      # scale outline from module centre
+  module_outline_linetype = 2,      # dashed outline
+  module_outline_width = 1.25       # outline line width
+)
+```
 
 > Change the fill of node points.
 
@@ -213,7 +233,7 @@ p3 <- ggNetView(
   edge_color = "corr_direction", # colour edges by correlation sign
   shrink = 0.9,                 # shrink layout inward
   edge_alpha = 0.2,             # edge transparency
-  module_outline = T,           # draw an outer hull/line around each module
+  module_outline = T,           # draw a smooth outline around each module
   module_label = T              # show node labels
 )
 
@@ -248,7 +268,7 @@ p4 <- ggNetView(
   edge_color = "corr_direction", # colour edges by correlation sign
   shrink = 0.9,                 # shrink layout inward
   edge_alpha = 0.2,             # edge transparency
-  module_outline = T,           # draw an outer hull/line around each module
+  module_outline = T,           # draw a smooth outline around each module
   module_label = T              # show node labels
 )
 
@@ -282,7 +302,7 @@ p5 <- ggNetView(
   edge_color = "corr_direction", # colour edges by correlation sign
   shrink = 0.9,                 # shrink layout inward
   edge_alpha = 0.2,             # edge transparency
-  module_outline = T,           # draw an outer hull/line around each module
+  module_outline = T,           # draw a smooth outline around each module
   module_label = T,             # show node labels
   node_label = "top1"           # label only the top-1 hub node per module
 )
@@ -452,7 +472,7 @@ res <- ggnetview_modularity_heatmaps(
   layout = "gephi",                 # node-positioning algorithm
   layout_module = "adjacent",       # place neighbouring modules close together
   node_jitter    = T,                       # jitter node positions to reduce overlap
-  module_outline = T,                    # draw an outer hull/line around each module
+  module_outline = T,                    # draw a smooth outline around each module
   HeatmapScale = 1.5,               # scale factor for heatmap point/tile size
   network_outline = T,              # draw an outer boundary around node groups
   module_label = F,                        # do not show node labels
@@ -486,7 +506,7 @@ res2 <- ggnetview_modularity_heatmaps(
   layout = "gephi",                 # node-positioning algorithm
   layout_module = "adjacent",       # place neighbouring modules close together
   node_jitter    = T,                       # jitter node positions to reduce overlap
-  module_outline = T,                    # draw an outer hull/line around each module
+  module_outline = T,                    # draw a smooth outline around each module
   HeatmapScale = 1.5,               # scale factor for heatmap point/tile size
   network_outline = T,              # draw an outer boundary around node groups
   module_label = F,                        # do not show node labels
