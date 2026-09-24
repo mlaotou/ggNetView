@@ -1,14 +1,19 @@
-#' Generate cluster masks via KDE + HDR contour
+#' Generate cluster masks (smooth-spline or KDE + HDR contour)
 #'
 #' Produces one or more closed polygons per cluster that visually enclose the
-#' high-density region of the cluster's points. Uses 2D kernel density
-#' estimation followed by a Highest-Density-Region (HDR) contour: the boundary
-#' is drawn at the density level whose iso-density region contains a fraction
-#' `q` of the cluster's probability mass.
+#' cluster's points. Two methods are available:
 #'
-#' Small clusters (n < 10) automatically fall back to a convex hull, since
-#' KDE bandwidth selection is unreliable for very few points.
+#' - `"spline"` (default): polar-quantile outline. Points are binned by angle
+#'   around the cluster centroid, the `q` quantile of the radius is taken in
+#'   each bin, and the radii are joined by a periodic `smooth.spline()` fit.
+#'   Gives one rounded blob per cluster (the pre-0.2.1 behaviour).
+#' - `"kde"`: 2D kernel density estimation followed by a
+#'   Highest-Density-Region (HDR) contour drawn at the density level whose
+#'   iso-density region contains a fraction `q` of the cluster's probability
+#'   mass. Small clusters (n < 10) fall back to a convex hull, since KDE
+#'   bandwidth selection is unreliable for very few points.
 #'
+#' @param method `"spline"` (default) or `"kde"`; see above.
 #' @param dims data.frame / tibble with numeric columns `x` and `y`
 #'        (node coordinates).
 #' @param clusters Vector (same length as `nrow(dims)`) giving the cluster /
@@ -19,10 +24,10 @@
 #'        `q_outer`: larger `q` -> wider mask; smaller `q` -> tighter mask.
 #' @param expand Multiplicative scaling applied to each polygon from its own
 #'        centroid. Same semantic as the previous polar `expand_outer`.
-#' @param bandwidth_scale Multiplier on the robust normal-reference KDE
-#'        bandwidth. > 1 produces smoother / wider contours, < 1 produces
+#' @param bandwidth_scale (`"kde"` only) Multiplier on the robust
+#'        normal-reference KDE bandwidth. > 1 produces smoother / wider contours, < 1 produces
 #'        tighter / more wiggly ones.
-#' @param n_grid Resolution of the KDE grid along each axis. 100 is usually
+#' @param n_grid (`"kde"` only) Resolution of the KDE grid along each axis. 100 is usually
 #'        sufficient; raise for finer contours, lower for speed.
 #' @param min_polygon_points Minimum number of points a contour piece must
 #'        have to be kept. Used to drop degenerate tiny artifacts.
@@ -38,7 +43,10 @@ generateMask_ggnetview <- function(dims,
                                    expand = 1.02,
                                    bandwidth_scale = 1.0,
                                    n_grid = 100L,
-                                   min_polygon_points = 4L) {
+                                   min_polygon_points = 4L,
+                                   method = c("spline", "kde")) {
+
+  method <- match.arg(method)
 
   if (is.null(dims) || nrow(dims) == 0L) {
     return(.empty_mask_table())
@@ -63,6 +71,10 @@ generateMask_ggnetview <- function(dims,
 
     # Too small to draw anything meaningful
     if (n < 5L) return(NULL)
+
+    if (method == "spline") {
+      return(.mask_polar_spline(d, q = q, expand = expand))
+    }
 
     # For small modules, KDE bandwidth would be unreliable -> convex-hull fallback
     if (n < 10L) {
@@ -198,6 +210,65 @@ generateMask_ggnetview <- function(dims,
 
   if (length(polys) == 0L) return(NULL)
   do.call(rbind, polys)
+}
+
+
+#' Polar-quantile + smooth-spline outline for a single cluster.
+#'
+#' Restored from ggNetView <= 0.2.0: bin points by angle around the centroid,
+#' take the `q` quantile of the radius per bin, then fit a smoothing spline to
+#' radius-vs-angle and trace it back to x/y. Returns NULL when fewer than 8
+#' angular bins are occupied.
+#' @noRd
+.mask_polar_spline <- function(d, q, expand) {
+  cx <- mean(d$x)
+  cy <- mean(d$y)
+  dx <- d$x - cx
+  dy <- d$y - cy
+  theta <- atan2(dy, dx)                 # [-pi, pi]
+  r <- sqrt(dx^2 + dy^2)
+
+  theta[theta < 0] <- theta[theta < 0] + 2 * pi
+
+  n_bins <- max(36L, ceiling(sqrt(nrow(d)) * 6L))
+  breaks <- seq(0, 2 * pi, length.out = n_bins + 1L)
+  bin_id <- cut(theta, breaks = breaks, include.lowest = TRUE, labels = FALSE)
+
+  theta_bin <- tapply(theta, bin_id, function(x) (min(x) + max(x)) / 2)
+  r_bin <- tapply(r, bin_id, function(x) {
+    stats::quantile(x, probs = q, names = FALSE, type = 7)
+  })
+
+  keep <- !(is.na(theta_bin) | is.na(r_bin))
+  theta_bin <- as.numeric(theta_bin[keep])
+  r_bin <- as.numeric(r_bin[keep])
+
+  if (length(theta_bin) < 8L) return(NULL)
+
+  ord <- order(theta_bin)
+  theta_bin <- theta_bin[ord]
+  r_bin <- r_bin[ord]
+
+  theta_ext <- c(theta_bin, theta_bin[1] + 2 * pi)
+  r_ext <- c(r_bin, r_bin[1])
+
+  n_grid <- max(120L, length(theta_ext) * 5L)
+  theta_grid <- seq(from = theta_ext[1], to = theta_ext[length(theta_ext)],
+                    length.out = n_grid)
+  spline_fit <- stats::smooth.spline(theta_ext, r_ext, spar = 0.5)
+  r_smooth <- stats::predict(spline_fit, theta_grid)$y
+
+  r_smooth <- pmax(r_smooth, 0) * expand
+
+  hx <- cx + r_smooth * cos(theta_grid)
+  hy <- cy + r_smooth * sin(theta_grid)
+
+  data.frame(
+    x          = c(hx, hx[1]),
+    y          = c(hy, hy[1]),
+    cluster    = d$cluster[1],
+    polygon_id = 1L
+  )
 }
 
 

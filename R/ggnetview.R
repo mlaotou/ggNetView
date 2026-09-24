@@ -198,23 +198,33 @@
 #'   `network_outline` ring or labels are long.
 #'
 #' @param module_outline Logical (default = FALSE).
-#'   Draw a smooth outer boundary around each module. The boundary is
-#'   computed by 2D kernel density estimation followed by a
-#'   Highest-Density-Region (HDR) contour: it encloses the densest portion of
-#'   each module rather than all of its points. A module whose points fall
-#'   into two well-separated clouds may produce two disconnected polygons.
+#'   Draw a smooth outer boundary around each module; the shape is chosen by
+#'   `module_outline_method`.
+#' @param module_outline_method Character (default = `"spline"`).
+#'   How the module outline is computed:
+#'   - `"spline"`: polar-quantile outline smoothed with `smooth.spline()`.
+#'     Nodes are binned by angle around the module centroid, the
+#'     `module_outline_q` quantile of their radius is taken per bin, and the
+#'     radii are joined by a smooth closed curve. Gives one rounded blob per
+#'     module (the behaviour of ggNetView <= 0.2.0).
+#'   - `"kde"`: 2D kernel density estimation followed by a
+#'     Highest-Density-Region (HDR) contour. It encloses the densest portion
+#'     of each module; a module whose points fall into two well-separated
+#'     clouds may produce two disconnected polygons, and modules with fewer
+#'     than 10 nodes use a convex hull.
 #' @param module_outline_q Numeric (default = 0.88).
-#'   HDR coverage of the module outline: the contour is drawn at the density
-#'   level whose iso-density region contains a fraction `module_outline_q`
-#'   of the module's probability mass. Higher values are more inclusive
-#'   (closer to the convex hull). Modules with fewer than 10 nodes bypass the
-#'   KDE path and use a convex hull.
+#'   Coverage of the module outline. For `"spline"`, the per-angle radius
+#'   quantile; for `"kde"`, the HDR coverage (the contour is drawn at the
+#'   density level whose iso-density region contains a fraction
+#'   `module_outline_q` of the module's probability mass). Higher values are
+#'   more inclusive in both cases.
 #' @param module_outline_expand Numeric (default = 1.02).
 #'   Multiplicative scaling applied to each outline polygon from its own
 #'   centroid (> 1 expands, < 1 shrinks).
 #' @param module_outline_bandwidth Numeric (default = 2).
-#'   Multiplier on the robust normal-reference 2D KDE bandwidth used to build
-#'   the module outline (> 1 smoother/wider, < 1 tighter).
+#'   (`module_outline_method = "kde"` only.) Multiplier on the robust
+#'   normal-reference 2D KDE bandwidth used to build the module outline
+#'   (> 1 smoother/wider, < 1 tighter).
 #' @param module_outline_width Numeric (default = 1). Module outline line width.
 #' @param module_outline_linetype Integer or character (default = 1).
 #'   Module outline linetype.
@@ -343,6 +353,7 @@ ggNetView <- function(graph_obj,
                       module_label_pad = 0.25,
                       # ---- module outline ---------------------------------
                       module_outline = FALSE,
+                      module_outline_method = c("spline", "kde"),
                       module_outline_q = 0.88,
                       module_outline_expand = 1.02,
                       module_outline_bandwidth = 2,
@@ -432,6 +443,7 @@ ggNetView <- function(graph_obj,
   }
 
   layout_module <- match.arg(layout_module)
+  module_outline_method <- match.arg(module_outline_method)
   module_label_layout <- match.arg(module_label_layout)
 
   if (!is.null(module_label_wrap)) {
@@ -1062,7 +1074,8 @@ ggNetView <- function(graph_obj,
           dplyr::pull(modularity3),
         q = module_outline_q,
         expand = module_outline_expand,
-        bandwidth_scale = module_outline_bandwidth
+        bandwidth_scale = module_outline_bandwidth,
+        method = module_outline_method
       )
 
       return(maskTable)

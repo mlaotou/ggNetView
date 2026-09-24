@@ -50,6 +50,7 @@ ggNetView_multi_link(
   module_outline_q = 0.88,
   module_outline_expand = 1.02,
   module_outline_bandwidth = 1,
+  module_outline_method = c("spline", "kde"),
   module_outline_width = 1.25,
   module_outline_linetype = 2,
   module_outline_alpha = 0.5,
@@ -302,17 +303,22 @@ and \code{"none"} (disable). Logical \code{TRUE}/\code{FALSE} are
 accepted and mapped to \code{"circle"}/\code{"none"}.}
 
 \item{module_outline_q}{Numeric (default = 0.88).
-HDR coverage of the outer boundary when \code{module_outline = "manual"}: the
-contour is drawn at the density level whose iso-density region contains a
-fraction \code{module_outline_q} of the module's empirical probability mass.}
+Coverage of the outer boundary when \code{module_outline = "manual"}: the
+per-angle radius quantile for \code{"spline"}, or the HDR coverage for
+\code{"kde"}.}
 
 \item{module_outline_expand}{Numeric (default = 1.02).
 Multiplicative scaling applied to each polygon from its own centroid
 when \code{module_outline = "manual"}.}
 
 \item{module_outline_bandwidth}{Numeric (default = 1.0).
-Multiplier on the robust normal-reference 2D KDE bandwidth used to build
+(\code{module_outline_method = "kde"} only.) Multiplier on the robust normal-reference 2D KDE bandwidth used to build
 the outer boundary when \code{module_outline = "manual"}.}
+
+\item{module_outline_method}{Character (default = "spline").
+Boundary algorithm when \code{module_outline = "manual"}: \code{"spline"}
+(rounded polar-quantile outline smoothed with \code{smooth.spline()}) or
+\code{"kde"} (2D KDE + HDR contour). See \code{\link{ggNetView}}.}
 
 \item{module_outline_width}{Numeric (default = 1.25).
 Line width for module outer boundaries.}

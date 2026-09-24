@@ -1,3 +1,19 @@
+# ggNetView (development version)
+
+## New features
+
+* `ggNetView()` gains `module_outline_method = c("spline", "kde")`. The
+  default `"spline"` brings back the rounded module outline of ggNetView
+  <= 0.2.0: node radii around each module centroid are binned by angle, the
+  `module_outline_q` quantile is taken per bin, and the result is smoothed with
+  `smooth.spline()`. `"kde"` keeps the 0.2.1 KDE + HDR contour, which could
+  look jagged or split into pieces and fell back to a straight-edged convex
+  hull for small or degenerate modules. The same option is honoured by
+  `ggNetView_multi_link(module_outline = "manual")`,
+  `ggnetview_modularity_heatmaps()` and `ggnetview_subgraph()` (via `...` /
+  `sub_args`). **Default output changes**: pass
+  `module_outline_method = "kde"` to reproduce 0.2.1 figures.
+
 # ggNetView 0.2.1
 
 ## New features

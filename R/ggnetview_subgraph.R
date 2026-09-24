@@ -371,6 +371,7 @@ ggnetview_subgraph <- function(
       q         = getd(sub_args[["module_outline_q"]], 0.88),
       expand    = getd(sub_args[["module_outline_expand"]], 1.02),
       bandwidth = getd(sub_args[["module_outline_bandwidth"]], 2),
+      method    = getd(sub_args[["module_outline_method"]], "spline"),
       linewidth = getd(sub_args[["module_outline_width"]], 1),
       linetype  = getd(sub_args[["module_outline_linetype"]], 1),
       alpha     = getd(sub_args[["module_outline_alpha"]], 0.5),
@@ -429,7 +430,7 @@ ggnetview_subgraph <- function(
 #'
 #' @noRd
 .ggnv_add_outer_layer <- function(p, xy_df, clusters, classes,
-                                  q, expand, bandwidth,
+                                  q, expand, bandwidth, method,
                                   linewidth, linetype, alpha,
                                   fb_color, fb_linetype, fb_linewidth,
                                   fb_expand_mm) {
@@ -439,7 +440,8 @@ ggnetview_subgraph <- function(
       clusters        = clusters,
       q               = q,
       expand          = expand,
-      bandwidth_scale = bandwidth
+      bandwidth_scale = bandwidth,
+      method          = method
     ),
     error = function(e) NULL
   )

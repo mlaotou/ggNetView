@@ -375,6 +375,7 @@ get_module_abundance <- function(otu_mat,
 #'   \code{\link{ggNetView}} network call. Commonly used:
 #'   \code{shrink}, \code{inner_shrink} (intra-module compactness, only
 #'   for \code{layout = "WGCNA"}), \code{node_jitter}, \code{module_outline},
+#'   \code{module_outline_method} (\code{"spline"} or \code{"kde"}),
 #'   \code{network_outline}, \code{module_label} (logical or character --
 #'   module labels in ggNetView style), \code{module_label_size},
 #'   \code{module_label_segment_width}, \code{module_label_segment_alpha},
@@ -1130,6 +1131,7 @@ ggnetview_modularity_heatmaps <- function(
   q_outer <- if (!is.null(ggnetview_args$module_outline_q)) as.numeric(ggnetview_args$module_outline_q) else 0.88
   expand_outer <- if (!is.null(ggnetview_args$module_outline_expand)) as.numeric(ggnetview_args$module_outline_expand) else 1.02
   bandwidth_scale <- if (!is.null(ggnetview_args$module_outline_bandwidth)) as.numeric(ggnetview_args$module_outline_bandwidth) else 1.0
+  outline_method <- match.arg(if (!is.null(ggnetview_args$module_outline_method)) ggnetview_args$module_outline_method else "spline", c("spline", "kde"))
   outerwidth <- if (!is.null(ggnetview_args$module_outline_width)) as.numeric(ggnetview_args$module_outline_width) else 1.25
   outerlinetype <- if (!is.null(ggnetview_args$module_outline_linetype)) ggnetview_args$module_outline_linetype else 2
   outeralpha <- if (!is.null(ggnetview_args$module_outline_alpha)) as.numeric(ggnetview_args$module_outline_alpha) else 0.5
@@ -1172,7 +1174,8 @@ ggnetview_modularity_heatmaps <- function(
       clusters = graph_ly_scaled$Modularity,
       q = q_outer,
       expand = expand_outer,
-      bandwidth_scale = bandwidth_scale
+      bandwidth_scale = bandwidth_scale,
+      method = outline_method
     )
     if (nrow(maskTable) > 0L) {
       maskTable <- maskTable %>%

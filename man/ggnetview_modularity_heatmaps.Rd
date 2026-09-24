@@ -189,6 +189,7 @@ for heatmap tiles.}
 \code{\link{ggNetView}} network call. Commonly used:
 \code{shrink}, \code{inner_shrink} (intra-module compactness, only
 for \code{layout = "WGCNA"}), \code{node_jitter}, \code{module_outline},
+\code{module_outline_method} (\code{"spline"} or \code{"kde"}),
 \code{network_outline}, \code{module_label} (logical or character --
 module labels in ggNetView style), \code{module_label_size},
 \code{module_label_segment_width}, \code{module_label_segment_alpha},
